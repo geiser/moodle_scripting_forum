@@ -43,8 +43,10 @@ $PAGE->set_url($url);
 
 $discussion = $DB->get_record('scripting_forum_discussions', array('id' => $d), '*', MUST_EXIST);
 $course = $DB->get_record('course', array('id' => $discussion->course), '*', MUST_EXIST);
-$scripting_forum = $DB->get_record('scripting_forum', array('id' => $discussion->scripting_forum), '*', MUST_EXIST);
-$cm = get_coursemodule_from_instance('scripting_forum', $scripting_forum->id, $course->id, false, MUST_EXIST);
+$scripting_forum = $DB->get_record('scripting_forum',
+        array('id' => $discussion->scripting_forum), '*', MUST_EXIST);
+$cm = get_coursemodule_from_instance('scripting_forum', $scripting_forum->id,
+        $course->id, false, MUST_EXIST);
 
 require_course_login($course, true, $cm);
 
@@ -52,12 +54,16 @@ require_course_login($course, true, $cm);
 require_once($CFG->dirroot.'/mod/scripting_forum/lib.php');
 
 $modcontext = context_module::instance($cm->id);
-require_capability('mod/scripting_forum:viewdiscussion', $modcontext, NULL, true, 'noviewdiscussionspermission', 'scripting_forum');
+require_capability('mod/scripting_forum:viewdiscussion', $modcontext, NULL,
+        true, 'noviewdiscussionspermission', 'scripting_forum');
 
-if (!empty($CFG->enablerssfeeds) && !empty($CFG->scripting_forum_enablerssfeeds) && $scripting_forum->rsstype && $scripting_forum->rssarticles) {
+if (!empty($CFG->enablerssfeeds) && !empty($CFG->scripting_forum_enablerssfeeds) &&
+        $scripting_forum->rsstype && $scripting_forum->rssarticles) {
     require_once("$CFG->libdir/rsslib.php");
 
-    $rsstitle = format_string($course->shortname, true, array('context' => context_course::instance($course->id))) . ': ' . format_string($scripting_forum->name);
+    $rsstitle = format_string($course->shortname, true,
+            array('context' => context_course::instance($course->id))) . ': ' .
+            format_string($scripting_forum->name);
     rss_add_http_header($modcontext, 'mod_scripting_forum', $scripting_forum, $rsstitle);
 }
 
@@ -68,7 +74,6 @@ if ($move > 0 and confirm_sesskey()) {
     if (!$scripting_forumto = $DB->get_record('scripting_forum', array('id' => $move))) {
         print_error('cannotmovetonotexist', 'scripting_forum', $return);
     }
-
     require_capability('mod/scripting_forum:movediscussions', $modcontext);
 
     if ($scripting_forum->type == 'single') {
@@ -119,36 +124,45 @@ if ($move > 0 and confirm_sesskey()) {
     $subscriptiontime = time();
     foreach ($potentialsubscribers as $subuser) {
         $userid = $subuser->id;
-        $targetsubscription = \mod_scripting_forum\subscriptions::is_subscribed($userid, $scripting_forumto, null, $cmto);
-        $discussionsubscribed = \mod_scripting_forum\subscriptions::is_subscribed($userid, $scripting_forum, $discussion->id);
-        $scripting_forumsubscribed = \mod_scripting_forum\subscriptions::is_subscribed($userid, $scripting_forum);
+        $targetsubscription = \mod_scripting_forum\subscriptions::is_subscribed($userid,
+                $scripting_forumto, null, $cmto);
+        $discussionsubscribed = \mod_scripting_forum\subscriptions::is_subscribed($userid,
+                $scripting_forum, $discussion->id);
+        $scripting_forumsubscribed = \mod_scripting_forum\subscriptions::is_subscribed($userid,
+                $scripting_forum);
 
         if ($scripting_forumsubscribed && !$discussionsubscribed && $targetsubscription) {
             // The user has opted out of this discussion and the move would cause them to receive notifications again.
             // Ensure they are unsubscribed from the discussion still.
             $subscriptionchanges[$userid] = \mod_scripting_forum\subscriptions::FORUM_DISCUSSION_UNSUBSCRIBED;
         } else if (!$scripting_forumsubscribed && $discussionsubscribed && !$targetsubscription) {
-            // The user has opted into this discussion and would otherwise not receive the subscription after the move.
+            // The user has opted into this discussion and would otherwise not receive
+            // the subscription after the move.
             // Ensure they are subscribed to the discussion still.
             $subscriptionchanges[$userid] = $subscriptiontime;
         }
     }
 
-    $DB->set_field('scripting_forum_discussions', 'scripting_forum', $scripting_forumto->id, array('id' => $discussion->id));
-    $DB->set_field('scripting_forum_read', 'scripting_forumid', $scripting_forumto->id, array('discussionid' => $discussion->id));
+    $DB->set_field('scripting_forum_discussions', 'scripting_forum',
+            $scripting_forumto->id, array('id' => $discussion->id));
+    $DB->set_field('scripting_forum_read', 'scripting_forumid',
+            $scripting_forumto->id, array('discussionid' => $discussion->id));
 
     // Delete the existing per-discussion subscriptions and replace them with the newly calculated ones.
-    $DB->delete_records('scripting_forum_discussion_subs', array('discussion' => $discussion->id));
+    $DB->delete_records('scripting_forum_discussion_subs',
+            array('discussion' => $discussion->id));
     $newdiscussion = clone $discussion;
     $newdiscussion->scripting_forum = $scripting_forumto->id;
     foreach ($subscriptionchanges as $userid => $preference) {
         if ($preference != \mod_scripting_forum\subscriptions::FORUM_DISCUSSION_UNSUBSCRIBED) {
             // Users must have viewdiscussion to a discussion.
             if (has_capability('mod/scripting_forum:viewdiscussion', $destinationctx, $userid)) {
-                \mod_scripting_forum\subscriptions::subscribe_user_to_discussion($userid, $newdiscussion, $destinationctx);
+                \mod_scripting_forum\subscriptions::subscribe_user_to_discussion($userid,
+                            $newdiscussion, $destinationctx);
             }
         } else {
-            \mod_scripting_forum\subscriptions::unsubscribe_user_from_discussion($userid, $newdiscussion, $destinationctx);
+                \mod_scripting_forum\subscriptions::unsubscribe_user_from_discussion($userid,
+                        $newdiscussion, $destinationctx);
         }
     }
 
@@ -177,7 +191,8 @@ if ($move > 0 and confirm_sesskey()) {
 if ($pin !== -1 && confirm_sesskey()) {
     require_capability('mod/scripting_forum:pindiscussions', $modcontext);
 
-    $params = array('context' => $modcontext, 'objectid' => $discussion->id, 'other' => array('scripting_forumid' => $scripting_forum->id));
+    $params = array('context' => $modcontext, 'objectid' => $discussion->id,
+            'other' => array('scripting_forumid' => $scripting_forum->id));
 
     switch ($pin) {
         case FORUM_DISCUSSION_PINNED:
@@ -217,15 +232,19 @@ if ($parent) {
 }
 
 if (! $post = scripting_forum_get_post_full($parent)) {
-    print_error("notexists", 'scripting_forum', "$CFG->wwwroot/mod/scripting_forum/view.php?f=$scripting_forum->id");
+     print_error("notexists", 'scripting_forum',
+                "$CFG->wwwroot/mod/scripting_forum/view.php?f=$scripting_forum->id");
 }
 
 if (!scripting_forum_user_can_see_post($scripting_forum, $discussion, $post, null, $cm)) {
-    print_error('noviewdiscussionspermission', 'scripting_forum', "$CFG->wwwroot/mod/scripting_forum/view.php?id=$scripting_forum->id");
+     print_error('noviewdiscussionspermission', 'scripting_forum',
+                "$CFG->wwwroot/mod/scripting_forum/view.php?id=$scripting_forum->id");
 }
 
 if ($mark == 'read' or $mark == 'unread') {
-    if ($CFG->scripting_forum_usermarksread && scripting_forum_tp_can_track_scripting_forums($scripting_forum) && scripting_forum_tp_is_tracked($scripting_forum)) {
+    if ($CFG->scripting_forum_usermarksread &&
+            scripting_forum_tp_can_track_scripting_forums($scripting_forum) &&
+            scripting_forum_tp_is_tracked($scripting_forum)) {
         if ($mark == 'read') {
             scripting_forum_tp_add_read_record($USER->id, $postid);
         } else {
@@ -243,7 +262,8 @@ if (empty($scripting_forumnode)) {
 } else {
     $scripting_forumnode->make_active();
 }
-$node = $scripting_forumnode->add(format_string($discussion->name), new moodle_url('/mod/scripting_forum/discuss.php', array('d'=>$discussion->id)));
+$node = $scripting_forumnode->add(format_string($discussion->name),
+        new moodle_url('/mod/scripting_forum/discuss.php', array('d'=>$discussion->id)));
 $node->display = false;
 if ($node && $post->id != $discussion->firstpost) {
     $node->add(format_string($post->subject), $PAGE->url);
@@ -261,11 +281,13 @@ echo $OUTPUT->heading(format_string($discussion->name), 3, 'discussionname');
 
 // is_guest should be used here as this also checks whether the user is a guest in the current course.
 // Guests and visitors cannot subscribe - only enrolled users.
-if ((!is_guest($modcontext, $USER) && isloggedin()) && has_capability('mod/scripting_forum:viewdiscussion', $modcontext)) {
+if ((!is_guest($modcontext, $USER) && isloggedin()) &&
+        has_capability('mod/scripting_forum:viewdiscussion', $modcontext)) {
     // Discussion subscription.
     if (\mod_scripting_forum\subscriptions::is_subscribable($scripting_forum)) {
         echo html_writer::div(
-            scripting_forum_get_discussion_subscription_icon($scripting_forum, $post->discussion, null, true),
+                scripting_forum_get_discussion_subscription_icon($scripting_forum,
+                $post->discussion, null, true),
             'discussionsubscription'
         );
         echo scripting_forum_get_discussion_subscription_icon_preloaders();

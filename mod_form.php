@@ -38,7 +38,8 @@ class mod_scripting_forum_mod_form extends moodleform_mod {
 //-------------------------------------------------------------------------------
         $mform->addElement('header', 'general', get_string('general', 'form'));
 
-        $mform->addElement('text', 'name', get_string('scripting_forumname', 'scripting_forum'), array('size'=>'64'));
+        $mform->addElement('text', 'name', get_string('scripting_forumname',
+                'scripting_forum'), array('size'=>'64'));
         if (!empty($CFG->formatstringstriptags)) {
             $mform->setType('name', PARAM_TEXT);
         } else {
@@ -51,16 +52,20 @@ class mod_scripting_forum_mod_form extends moodleform_mod {
 
         $scripting_forumtypes = scripting_forum_get_scripting_forum_types();
         core_collator::asort($scripting_forumtypes, core_collator::SORT_STRING);
-        $mform->addElement('select', 'type', get_string('scripting_forumtype', 'scripting_forum'), $scripting_forumtypes);
+        $mform->addElement('select', 'type',
+                get_string('scripting_forumtype', 'scripting_forum'), $scripting_forumtypes);
         $mform->addHelpButton('type', 'scripting_forumtype', 'scripting_forum');
         $mform->setDefault('type', 'general');
 
         // Attachments and word count.
-        $mform->addElement('header', 'attachmentswordcounthdr', get_string('attachmentswordcount', 'scripting_forum'));
+        $mform->addElement('header', 'attachmentswordcounthdr',
+                get_string('attachmentswordcount', 'scripting_forum'));
 
-        $choices = get_max_upload_sizes($CFG->maxbytes, $COURSE->maxbytes, 0, $CFG->scripting_forum_maxbytes);
+        $choices = get_max_upload_sizes($CFG->maxbytes,
+                $COURSE->maxbytes, 0, $CFG->scripting_forum_maxbytes);
         $choices[1] = get_string('uploadnotallowed');
-        $mform->addElement('select', 'maxbytes', get_string('maxattachmentsize', 'scripting_forum'), $choices);
+        $mform->addElement('select', 'maxbytes',
+                get_string('maxattachmentsize', 'scripting_forum'), $choices);
         $mform->addHelpButton('maxbytes', 'maxattachmentsize', 'scripting_forum');
         $mform->setDefault('maxbytes', $CFG->scripting_forum_maxbytes);
 
@@ -80,23 +85,27 @@ class mod_scripting_forum_mod_form extends moodleform_mod {
             50 => 50,
             100 => 100
         );
-        $mform->addElement('select', 'maxattachments', get_string('maxattachments', 'scripting_forum'), $choices);
+        $mform->addElement('select', 'maxattachments',
+                get_string('maxattachments', 'scripting_forum'), $choices);
         $mform->addHelpButton('maxattachments', 'maxattachments', 'scripting_forum');
         $mform->setDefault('maxattachments', $CFG->scripting_forum_maxattachments);
 
-        $mform->addElement('selectyesno', 'displaywordcount', get_string('displaywordcount', 'scripting_forum'));
+        $mform->addElement('selectyesno', 'displaywordcount',
+                get_string('displaywordcount', 'scripting_forum'));
         $mform->addHelpButton('displaywordcount', 'displaywordcount', 'scripting_forum');
         $mform->setDefault('displaywordcount', 0);
 
         // Subscription and tracking.
-        $mform->addElement('header', 'subscriptionandtrackinghdr', get_string('subscriptionandtracking', 'scripting_forum'));
+        $mform->addElement('header', 'subscriptionandtrackinghdr',
+                get_string('subscriptionandtracking', 'scripting_forum'));
 
         $options = array();
         $options[FORUM_CHOOSESUBSCRIBE] = get_string('subscriptionoptional', 'scripting_forum');
         $options[FORUM_FORCESUBSCRIBE] = get_string('subscriptionforced', 'scripting_forum');
         $options[FORUM_INITIALSUBSCRIBE] = get_string('subscriptionauto', 'scripting_forum');
         $options[FORUM_DISALLOWSUBSCRIBE] = get_string('subscriptiondisabled','scripting_forum');
-        $mform->addElement('select', 'forcesubscribe', get_string('subscriptionmode', 'scripting_forum'), $options);
+        $mform->addElement('select', 'forcesubscribe',
+                get_string('subscriptionmode', 'scripting_forum'), $options);
         $mform->addHelpButton('forcesubscribe', 'subscriptionmode', 'scripting_forum');
 
         $options = array();
@@ -113,7 +122,8 @@ class mod_scripting_forum_mod_form extends moodleform_mod {
         }
         $mform->setDefault('trackingtype', $default);
 
-        if ($CFG->enablerssfeeds && isset($CFG->scripting_forum_enablerssfeeds) && $CFG->scripting_forum_enablerssfeeds) {
+        if ($CFG->enablerssfeeds && isset($CFG->scripting_forum_enablerssfeeds) &&
+                $CFG->scripting_forum_enablerssfeeds) {
 //-------------------------------------------------------------------------------
             $mform->addElement('header', 'rssheader', get_string('rss'));
             $choices = array();
@@ -159,7 +169,8 @@ class mod_scripting_forum_mod_form extends moodleform_mod {
         $options[60*60*24*5] = '5 '.get_string('days');
         $options[60*60*24*6] = '6 '.get_string('days');
         $options[60*60*24*7] = '1 '.get_string('week');
-        $mform->addElement('select', 'blockperiod', get_string('blockperiod', 'scripting_forum'), $options);
+        $mform->addElement('select', 'blockperiod',
+                get_string('blockperiod', 'scripting_forum'), $options);
         $mform->addHelpButton('blockperiod', 'blockperiod', 'scripting_forum');
 
         $mform->addElement('text', 'blockafter', get_string('blockafter', 'scripting_forum'));
@@ -239,24 +250,30 @@ class mod_scripting_forum_mod_form extends moodleform_mod {
         $mform =& $this->_form;
 
         $group=array();
-        $group[] =& $mform->createElement('checkbox', 'completionpostsenabled', '', get_string('completionposts','scripting_forum'));
+        $group[] =& $mform->createElement('checkbox', 'completionpostsenabled',
+                '', get_string('completionposts','scripting_forum'));
         $group[] =& $mform->createElement('text', 'completionposts', '', array('size'=>3));
         $mform->setType('completionposts',PARAM_INT);
-        $mform->addGroup($group, 'completionpostsgroup', get_string('completionpostsgroup','scripting_forum'), array(' '), false);
+        $mform->addGroup($group, 'completionpostsgroup',
+                get_string('completionpostsgroup','scripting_forum'), array(' '), false);
         $mform->disabledIf('completionposts','completionpostsenabled','notchecked');
 
         $group=array();
-        $group[] =& $mform->createElement('checkbox', 'completiondiscussionsenabled', '', get_string('completiondiscussions','scripting_forum'));
+        $group[] =& $mform->createElement('checkbox', 'completiondiscussionsenabled', '',
+                get_string('completiondiscussions','scripting_forum'));
         $group[] =& $mform->createElement('text', 'completiondiscussions', '', array('size'=>3));
         $mform->setType('completiondiscussions',PARAM_INT);
-        $mform->addGroup($group, 'completiondiscussionsgroup', get_string('completiondiscussionsgroup','scripting_forum'), array(' '), false);
+        $mform->addGroup($group, 'completiondiscussionsgroup',
+                get_string('completiondiscussionsgroup','scripting_forum'), array(' '), false);
         $mform->disabledIf('completiondiscussions','completiondiscussionsenabled','notchecked');
 
         $group=array();
-        $group[] =& $mform->createElement('checkbox', 'completionrepliesenabled', '', get_string('completionreplies','scripting_forum'));
+        $group[] =& $mform->createElement('checkbox', 'completionrepliesenabled', '',
+                get_string('completionreplies','scripting_forum'));
         $group[] =& $mform->createElement('text', 'completionreplies', '', array('size'=>3));
         $mform->setType('completionreplies',PARAM_INT);
-        $mform->addGroup($group, 'completionrepliesgroup', get_string('completionrepliesgroup','scripting_forum'), array(' '), false);
+        $mform->addGroup($group, 'completionrepliesgroup',
+                get_string('completionrepliesgroup','scripting_forum'), array(' '), false);
         $mform->disabledIf('completionreplies','completionrepliesenabled','notchecked');
 
         return array('completiondiscussionsgroup','completionrepliesgroup','completionpostsgroup');

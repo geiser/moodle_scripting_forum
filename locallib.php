@@ -85,7 +85,8 @@ class scripting_forum_portfolio_caller extends portfolio_module_caller_base {
             throw new portfolio_caller_exception('invaliddiscussionid', 'scripting_forum');
         }
 
-        if (!$this->scripting_forum = $DB->get_record('scripting_forum', array('id' => $this->discussion->scripting_forum))) {
+        if (!$this->scripting_forum = $DB->get_record('scripting_forum',
+                array('id' => $this->discussion->forum))) {
             throw new portfolio_caller_exception('invalidscripting_forumid', 'scripting_forum');
         }
 
@@ -99,8 +100,10 @@ class scripting_forum_portfolio_caller extends portfolio_module_caller_base {
             if ($this->attachment) {
                 $this->set_file_and_format_data($this->attachment);
             } else {
-                $attach = $fs->get_area_files($this->modcontext->id, 'mod_scripting_forum', 'attachment', $this->post->id, 'timemodified', false);
-                $embed  = $fs->get_area_files($this->modcontext->id, 'mod_scripting_forum', 'post', $this->post->id, 'timemodified', false);
+                $attach = $fs->get_area_files($this->modcontext->id,
+                            'mod_scripting_forum', 'attachment', $this->post->id, 'timemodified', false);
+                $embed  = $fs->get_area_files($this->modcontext->id,
+                        'mod_scripting_forum', 'post', $this->post->id, 'timemodified', false);
                 $files = array_merge($attach, $embed);
                 $this->set_file_and_format_data($files);
             }
@@ -114,15 +117,18 @@ class scripting_forum_portfolio_caller extends portfolio_module_caller_base {
             $this->posts = scripting_forum_get_all_discussion_posts($this->discussion->id, 'p.created ASC');
             $this->multifiles = array();
             foreach ($this->posts as $post) {
-                $attach = $fs->get_area_files($this->modcontext->id, 'mod_scripting_forum', 'attachment', $post->id, 'timemodified', false);
-                $embed  = $fs->get_area_files($this->modcontext->id, 'mod_scripting_forum', 'post', $post->id, 'timemodified', false);
+                $attach = $fs->get_area_files($this->modcontext->id,
+                            'mod_scripting_forum', 'attachment', $post->id, 'timemodified', false);
+                $embed  = $fs->get_area_files($this->modcontext->id,
+                        'mod_scripting_forum', 'post', $post->id, 'timemodified', false);
                 $files = array_merge($attach, $embed);
                 if ($files) {
                     $this->keyedfiles[$post->id] = $files;
                 } else {
                     continue;
                 }
-                $this->multifiles = array_merge($this->multifiles, array_values($this->keyedfiles[$post->id]));
+                $this->multifiles = array_merge($this->multifiles,
+                        array_values($this->keyedfiles[$post->id]));
             }
         }
         if (empty($this->multifiles) && !empty($this->singlefile)) {
@@ -183,9 +189,11 @@ class scripting_forum_portfolio_caller extends portfolio_module_caller_base {
         if ($this->attachment) { // simplest case first - single file attachment
             $this->copy_files(array($this->singlefile), $this->attachment);
             if ($writingleap) { // if we're writing leap, make the manifest to go along with the file
-                $entry = new portfolio_format_leap2a_file($this->singlefile->get_filename(), $this->singlefile);
+                $entry = new portfolio_format_leap2a_file($this->singlefile->get_filename(),
+                            $this->singlefile);
                 $leapwriter->add_entry($entry);
-                return $this->exporter->write_new_file($leapwriter->to_xml(), $this->exporter->get('format')->manifest_name(), true);
+                return $this->exporter->write_new_file($leapwriter->to_xml(),
+                        $this->exporter->get('format')->manifest_name(), true);
             }
 
         } else if (empty($this->post)) {  // exporting whole discussion
@@ -244,12 +252,15 @@ class scripting_forum_portfolio_caller extends portfolio_module_caller_base {
      * @return int id of new entry
      */
     private function prepare_post_leap2a(portfolio_format_leap2a_writer $leapwriter, $post, $posthtml) {
-        $entry = new portfolio_format_leap2a_entry('scripting_forumpost' . $post->id,  $post->subject, 'resource', $posthtml);
+        $entry = new portfolio_format_leap2a_entry('scripting_forumpost' . $post->id,
+                    $post->subject, 'resource', $posthtml);
         $entry->published = $post->created;
         $entry->updated = $post->modified;
         $entry->author = $post->author;
-        if (is_array($this->keyedfiles) && array_key_exists($post->id, $this->keyedfiles) && is_array($this->keyedfiles[$post->id])) {
-            $leapwriter->link_files($entry, $this->keyedfiles[$post->id], 'scripting_forumpost' . $post->id . 'attachment');
+        if (is_array($this->keyedfiles) && array_key_exists($post->id, $this->keyedfiles) &&
+               is_array($this->keyedfiles[$post->id])) {
+            $leapwriter->link_files($entry, $this->keyedfiles[$post->id],
+                         'scripting_forumpost' . $post->id . 'attachment');
         }
         $entry->add_category('web', 'resource_type');
         $leapwriter->add_entry($entry);
@@ -297,8 +308,10 @@ class scripting_forum_portfolio_caller extends portfolio_module_caller_base {
         // format the post body
         $options = portfolio_format_text_options();
         $format = $this->get('exporter')->get('format');
-        $formattedtext = format_text($post->message, $post->messageformat, $options, $this->get('course')->id);
-        $formattedtext = portfolio_rewrite_pluginfile_urls($formattedtext, $this->modcontext->id, 'mod_scripting_forum', 'post', $post->id, $format);
+        $formattedtext = format_text($post->message,
+                $post->messageformat, $options, $this->get('course')->id);
+        $formattedtext = portfolio_rewrite_pluginfile_urls($formattedtext,
+                $this->modcontext->id, 'mod_scripting_forum', 'post', $post->id, $format);
 
         $output = '<table border="0" cellpadding="3" cellspacing="0" class="scripting_forumpost">';
 
@@ -326,7 +339,9 @@ class scripting_forum_portfolio_caller extends portfolio_module_caller_base {
 
         $output .= $formattedtext;
 
-        if (is_array($this->keyedfiles) && array_key_exists($post->id, $this->keyedfiles) && is_array($this->keyedfiles[$post->id]) && count($this->keyedfiles[$post->id]) > 0) {
+        if (is_array($this->keyedfiles) &&
+                array_key_exists($post->id, $this->keyedfiles) &&
+                is_array($this->keyedfiles[$post->id]) && count($this->keyedfiles[$post->id]) > 0) {
             $output .= '<div class="attachments">';
             $output .= '<br /><b>' .  get_string('attachments', 'scripting_forum') . '</b>:<br /><br />';
             foreach ($this->keyedfiles[$post->id] as $file) {
@@ -390,7 +405,8 @@ class scripting_forum_portfolio_caller extends portfolio_module_caller_base {
     }
 
     public static function base_supported_formats() {
-        return array(PORTFOLIO_FORMAT_FILE, PORTFOLIO_FORMAT_RICHHTML, PORTFOLIO_FORMAT_PLAINHTML, PORTFOLIO_FORMAT_LEAP2A);
+        return array(PORTFOLIO_FORMAT_FILE, PORTFOLIO_FORMAT_RICHHTML,
+                    PORTFOLIO_FORMAT_PLAINHTML, PORTFOLIO_FORMAT_LEAP2A);
     }
 }
 
@@ -491,13 +507,14 @@ class scripting_forum_file_info_container extends file_info {
     /**
      * Help function to return files matching extensions or their count
      *
-     * @param string|array $extensions, either '*' or array of lowercase extensions, i.e. array('.gif','.jpg')
+     * @param string|array $extensions, either '*' or array of lowercase extensions (e.g. '.gif','.jpg')
      * @param bool|int $countonly if false returns the children, if an int returns just the
      *    count of children but stops counting when $countonly number of children is reached
      * @param bool $returnemptyfolders if true returns items that don't have matching files inside
      * @return array|int array of file_info instances or the count
      */
-    private function get_filtered_children($extensions = '*', $countonly = false, $returnemptyfolders = false) {
+    private function get_filtered_children($extensions = '*',
+            $countonly = false, $returnemptyfolders = false) {
         global $DB;
         $params = array('contextid' => $this->context->id,
             'component' => $this->component,
@@ -521,7 +538,8 @@ class scripting_forum_file_info_container extends file_info {
         $rs = $DB->get_recordset_sql($sql, $params);
         $children = array();
         foreach ($rs as $record) {
-            if (($child = $this->browser->get_file_info($this->context, 'mod_scripting_forum', $this->filearea, $record->itemid))
+            if (($child = $this->browser->get_file_info($this->context,
+                        'mod_scripting_forum', $this->filearea, $record->itemid))
                     && ($returnemptyfolders || $child->count_non_empty_children($extensions))) {
                 $children[] = $child;
             }
@@ -540,7 +558,7 @@ class scripting_forum_file_info_container extends file_info {
      * Returns list of children which are either files matching the specified extensions
      * or folders that contain at least one such file.
      *
-     * @param string|array $extensions, either '*' or array of lowercase extensions, i.e. array('.gif','.jpg')
+     * @param string|array $extensions, either '*' or array of lowercase extensions, ('.gif','.jpg')
      * @return array of file_info instances
      */
     public function get_non_empty_children($extensions = '*') {
