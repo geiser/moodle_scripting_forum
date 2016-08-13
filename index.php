@@ -59,8 +59,8 @@ $event = \mod_scripting_forum\event\course_module_instance_list_viewed::create($
 $event->add_record_snapshot('course', $course);
 $event->trigger();
 
-$strscripting_forums       = get_string('scripting_forums', 'scripting_forum');
-$strscripting_forum        = get_string('scripting_forum', 'scripting_forum');
+$strscripting_forums = get_string('scripting_forums', 'scripting_forum');
+$strscripting_forum  = get_string('scripting_forum', 'scripting_forum');
 $strdescription  = get_string('description');
 $strdiscussions  = get_string('discussions', 'scripting_forum');
 $strsubscribed   = get_string('subscribed', 'scripting_forum');
@@ -114,7 +114,8 @@ if ($can_subscribe) {
     $generaltable->head[] = $strsubscribed;
     $generaltable->align[] = 'center';
 
-    $generaltable->head[] = $stremaildigest . ' ' . $OUTPUT->help_icon('emaildigesttype', 'mod_scripting_forum');
+    $generaltable->head[] = $stremaildigest . ' ' .
+            $OUTPUT->help_icon('emaildigesttype', 'mod_scripting_forum');
     $generaltable->align[] = 'center';
 }
 
@@ -137,7 +138,7 @@ $scripting_forums = $DB->get_records_sql("
     SELECT f.*,
            d.maildigest
       FROM {scripting_forum} f
- LEFT JOIN {scripting_forum_digests} d ON d.scripting_forum = f.id AND d.userid = ?
+ LEFT JOIN {scripting_forum_digests} d ON d.forum = f.id AND d.userid = ?
      WHERE f.course = ?
     ", array($USER->id, $course->id));
 
@@ -198,17 +199,25 @@ if (!is_null($subscribe)) {
             $cansub = false;
         }
         if (!\mod_scripting_forum\subscriptions::is_forcesubscribed($scripting_forum)) {
-            $subscribed = \mod_scripting_forum\subscriptions::is_subscribed($USER->id, $scripting_forum, null, $cm);
-            $canmanageactivities = has_capability('moodle/course:manageactivities', $coursecontext, $USER->id);
-            if (($canmanageactivities || \mod_scripting_forum\subscriptions::is_subscribable($scripting_forum)) && $subscribe && !$subscribed && $cansub) {
-                \mod_scripting_forum\subscriptions::subscribe_user($USER->id, $scripting_forum, $modcontext, true);
+            $subscribed = \mod_scripting_forum\subscriptions::is_subscribed($USER->id,
+                        $scripting_forum, null, $cm);
+            $canmanageactivities = has_capability('moodle/course:manageactivities',
+                    $coursecontext, $USER->id);
+            if (($canmanageactivities ||
+                \mod_scripting_forum\subscriptions::is_subscribable($scripting_forum)) &&
+                $subscribe && !$subscribed && $cansub) {
+                \mod_scripting_forum\subscriptions::subscribe_user($USER->id,
+                                $scripting_forum, $modcontext, true);
             } else if (!$subscribe && $subscribed) {
-                \mod_scripting_forum\subscriptions::unsubscribe_user($USER->id, $scripting_forum, $modcontext, true);
+                \mod_scripting_forum\subscriptions::unsubscribe_user($USER->id,
+                            $scripting_forum, $modcontext, true);
             }
         }
     }
-    $returnto = scripting_forum_go_back_to(new moodle_url('/mod/scripting_forum/index.php', array('id' => $course->id)));
-    $shortname = format_string($course->shortname, true, array('context' => context_course::instance($course->id)));
+    $returnto = scripting_forum_go_back_to(new moodle_url('/mod/scripting_forum/index.php',
+            array('id' => $course->id)));
+    $shortname = format_string($course->shortname,
+            true, array('context' => context_course::instance($course->id)));
     if ($subscribe) {
         redirect(
                 $returnto,
@@ -251,9 +260,11 @@ if ($generalscripting_forums) {
                     $unreadlink = '<span class="read">0</span>';
                 }
 
-                if (($scripting_forum->trackingtype == FORUM_TRACKING_FORCED) && ($CFG->scripting_forum_allowforcedreadtracking)) {
+                if (($scripting_forum->trackingtype == FORUM_TRACKING_FORCED) &&
+                    ($CFG->scripting_forum_allowforcedreadtracking)) {
                     $trackedlink = $stryes;
-                } else if ($scripting_forum->trackingtype === FORUM_TRACKING_OFF || ($USER->trackscripting_forums == 0)) {
+                } else if ($scripting_forum->trackingtype === FORUM_TRACKING_OFF ||
+                            ($USER->trackscripting_forums == 0)) {
                     $trackedlink = '-';
                 } else {
                     $aurl = new moodle_url('/mod/scripting_forum/settracking.php', array(
@@ -261,15 +272,18 @@ if ($generalscripting_forums) {
                             'sesskey' => sesskey(),
                         ));
                     if (!isset($untracked[$scripting_forum->id])) {
-                        $trackedlink = $OUTPUT->single_button($aurl, $stryes, 'post', array('title'=>$strnotrackscripting_forum));
+                        $trackedlink = $OUTPUT->single_button($aurl,
+                        $stryes, 'post', array('title'=>$strnotrackscripting_forum));
                     } else {
-                        $trackedlink = $OUTPUT->single_button($aurl, $strno, 'post', array('title'=>$strtrackscripting_forum));
+                        $trackedlink = $OUTPUT->single_button($aurl,
+                            $strno, 'post', array('title'=>$strtrackscripting_forum));
                     }
                 }
             }
         }
 
-        $scripting_forum->intro = shorten_text(format_module_intro('scripting_forum', $scripting_forum, $cm->id), $CFG->scripting_forum_shortpost);
+        $scripting_forum->intro = shorten_text(format_module_intro('scripting_forum',
+                $scripting_forum, $cm->id), $CFG->scripting_forum_shortpost);
         $scripting_forumname = format_string($scripting_forum->name, true);
 
         if ($cm->visible) {
@@ -277,8 +291,10 @@ if ($generalscripting_forums) {
         } else {
             $style = 'class="dimmed"';
         }
-        $scripting_forumlink = "<a href=\"view.php?f=$scripting_forum->id\" $style>".format_string($scripting_forum->name,true)."</a>";
-        $discussionlink = "<a href=\"view.php?f=$scripting_forum->id\" $style>".$count."</a>";
+        $scripting_forumlink = "<a href=\"view.php?f=$scripting_forum->id\" $style>".
+                format_string($scripting_forum->name,true)."</a>";
+        $discussionlink = "<a href=\"view.php?f=$scripting_forum->id\" $style>".
+                $count."</a>";
 
         $row = array ($scripting_forumlink, $scripting_forum->intro, $discussionlink);
         if ($usetracking) {
@@ -287,7 +303,8 @@ if ($generalscripting_forums) {
         }
 
         if ($can_subscribe) {
-            $row[] = scripting_forum_get_subscribe_link($scripting_forum, $context, array('subscribed' => $stryes,
+            $row[] = scripting_forum_get_subscribe_link($scripting_forum,
+                    $context, array('subscribed' => $stryes,
                     'unsubscribed' => $strno, 'forcesubscribed' => $stryes,
                     'cantsubscribe' => '-'), false, false, true);
 
@@ -316,7 +333,8 @@ if ($generalscripting_forums) {
                     $userid = $USER->id;
                 }
                 //Get html code for RSS link
-                $row[] = rss_get_link($context->id, $userid, 'mod_scripting_forum', $scripting_forum->id, $tooltiptext);
+                $row[] = rss_get_link($context->id, $userid,
+                        'mod_scripting_forum', $scripting_forum->id, $tooltiptext);
             } else {
                 $row[] = '&nbsp;';
             }
@@ -344,7 +362,8 @@ if ($can_subscribe) {
     $learningtable->head[] = $strsubscribed;
     $learningtable->align[] = 'center';
 
-    $learningtable->head[] = $stremaildigest . ' ' . $OUTPUT->help_icon('emaildigesttype', 'mod_scripting_forum');
+    $learningtable->head[] = $stremaildigest . ' ' .
+            $OUTPUT->help_icon('emaildigesttype', 'mod_scripting_forum');
     $learningtable->align[] = 'center';
 }
 
@@ -382,29 +401,38 @@ if ($course->id != SITEID) {    // Only real courses have learning scripting_for
                     if (isset($untracked[$scripting_forum->id])) {
                         $unreadlink  = '-';
                     } else if ($unread = scripting_forum_tp_count_scripting_forum_unread_posts($cm, $course)) {
-                        $unreadlink = '<span class="unread"><a href="view.php?f='.$scripting_forum->id.'">'.$unread.'</a>';
+                        $unreadlink = '<span class="unread"><a href="view.php?f='.
+                                    $scripting_forum->id.'">'.$unread.'</a>';
                         $unreadlink .= '<a title="'.$strmarkallread.'" href="markposts.php?f='.
-                                       $scripting_forum->id.'&amp;mark=read&sesskey=' . sesskey() . '"><img src="'.$OUTPUT->pix_url('t/markasread') . '" alt="'.$strmarkallread.'" class="iconsmall" /></a></span>';
+                                $scripting_forum->id.'&amp;mark=read&sesskey=' .
+                                sesskey() . '"><img src="'.$OUTPUT->pix_url('t/markasread') .
+                                '" alt="'.$strmarkallread.'" class="iconsmall" /></a></span>';
                     } else {
                         $unreadlink = '<span class="read">0</span>';
                     }
 
-                    if (($scripting_forum->trackingtype == FORUM_TRACKING_FORCED) && ($CFG->scripting_forum_allowforcedreadtracking)) {
+                    if (($scripting_forum->trackingtype == FORUM_TRACKING_FORCED) &&
+                            ($CFG->scripting_forum_allowforcedreadtracking)) {
                         $trackedlink = $stryes;
-                    } else if ($scripting_forum->trackingtype === FORUM_TRACKING_OFF || ($USER->trackscripting_forums == 0)) {
+                    } else if ($scripting_forum->trackingtype === FORUM_TRACKING_OFF ||
+                                    ($USER->trackscripting_forums == 0)) {
                         $trackedlink = '-';
                     } else {
-                        $aurl = new moodle_url('/mod/scripting_forum/settracking.php', array('id'=>$scripting_forum->id));
+                        $aurl = new moodle_url('/mod/scripting_forum/settracking.php',
+                                    array('id'=>$scripting_forum->id));
                         if (!isset($untracked[$scripting_forum->id])) {
-                            $trackedlink = $OUTPUT->single_button($aurl, $stryes, 'post', array('title'=>$strnotrackscripting_forum));
+                            $trackedlink = $OUTPUT->single_button($aurl,
+                                    $stryes, 'post', array('title'=>$strnotrackscripting_forum));
                         } else {
-                            $trackedlink = $OUTPUT->single_button($aurl, $strno, 'post', array('title'=>$strtrackscripting_forum));
+                            $trackedlink = $OUTPUT->single_button($aurl,
+                                    $strno, 'post', array('title'=>$strtrackscripting_forum));
                         }
                     }
                 }
             }
 
-            $scripting_forum->intro = shorten_text(format_module_intro('scripting_forum', $scripting_forum, $cm->id), $CFG->scripting_forum_shortpost);
+            $scripting_forum->intro = shorten_text(format_module_intro('scripting_forum',
+                    $scripting_forum, $cm->id), $CFG->scripting_forum_shortpost);
 
             if ($cm->sectionnum != $currentsection) {
                 $printsection = get_section_name($course, $cm->sectionnum);
@@ -423,17 +451,20 @@ if ($course->id != SITEID) {    // Only real courses have learning scripting_for
             } else {
                 $style = 'class="dimmed"';
             }
-            $scripting_forumlink = "<a href=\"view.php?f=$scripting_forum->id\" $style>".format_string($scripting_forum->name,true)."</a>";
+            $scripting_forumlink = "<a href=\"view.php?f=$scripting_forum->id\" $style>".
+                    format_string($scripting_forum->name,true)."</a>";
             $discussionlink = "<a href=\"view.php?f=$scripting_forum->id\" $style>".$count."</a>";
 
-            $row = array ($printsection, $scripting_forumlink, $scripting_forum->intro, $discussionlink);
+            $row = array ($printsection, $scripting_forumlink,
+                    $scripting_forum->intro, $discussionlink);
             if ($usetracking) {
                 $row[] = $unreadlink;
                 $row[] = $trackedlink;    // Tracking.
             }
 
             if ($can_subscribe) {
-                $row[] = scripting_forum_get_subscribe_link($scripting_forum, $context, array('subscribed' => $stryes,
+                $row[] = scripting_forum_get_subscribe_link($scripting_forum,
+                            $context, array('subscribed' => $stryes,
                     'unsubscribed' => $strno, 'forcesubscribed' => $stryes,
                     'cantsubscribe' => '-'), false, false, true);
 
@@ -456,7 +487,8 @@ if ($course->id != SITEID) {    // Only real courses have learning scripting_for
                         $tooltiptext = get_string('rsssubscriberssposts', 'scripting_forum');
                     }
                     //Get html code for RSS link
-                    $row[] = rss_get_link($context->id, $USER->id, 'mod_scripting_forum', $scripting_forum->id, $tooltiptext);
+                    $row[] = rss_get_link($context->id, $USER->id,
+                            'mod_scripting_forum', $scripting_forum->id, $tooltiptext);
                 } else {
                     $row[] = '&nbsp;';
                 }
@@ -479,11 +511,13 @@ echo $OUTPUT->header();
 if (!isguestuser() && isloggedin() && $can_subscribe) {
     echo $OUTPUT->box_start('subscription');
     echo html_writer::tag('div',
-        html_writer::link(new moodle_url('/mod/scripting_forum/index.php', array('id'=>$course->id, 'subscribe'=>1, 'sesskey'=>sesskey())),
+        html_writer::link(new moodle_url('/mod/scripting_forum/index.php',
+            array('id'=>$course->id, 'subscribe'=>1, 'sesskey'=>sesskey())),
             get_string('allsubscribe', 'scripting_forum')),
         array('class'=>'helplink'));
     echo html_writer::tag('div',
-        html_writer::link(new moodle_url('/mod/scripting_forum/index.php', array('id'=>$course->id, 'subscribe'=>0, 'sesskey'=>sesskey())),
+        html_writer::link(new moodle_url('/mod/scripting_forum/index.php',
+            array('id'=>$course->id, 'subscribe'=>0, 'sesskey'=>sesskey())),
             get_string('allunsubscribe', 'scripting_forum')),
         array('class'=>'helplink'));
     echo $OUTPUT->box_end();

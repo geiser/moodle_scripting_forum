@@ -1,6 +1,6 @@
 <?php
 
-// This file is part of Moodle - http://moodle.org/
+// This file is based on part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,21 +16,22 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file is used to display and organise forum subscribers
+ * This file is used to display and organise scripting_forum subscribers
  *
- * @package   mod_forum
- * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
+ * @package   mod_scripting_forum
+ * @copyright 2016 Geiser Chalco     {@link http://github.com/geiser}
+ * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once("../../config.php");
 require_once("lib.php");
 
-$id    = required_param('id',PARAM_INT);           // forum
+$id    = required_param('id',PARAM_INT);           // scripting_forum
 $group = optional_param('group',0,PARAM_INT);      // change of group
 $edit  = optional_param('edit',-1,PARAM_BOOL);     // Turn editing on and off
 
-$url = new moodle_url('/mod/forum/subscribers.php', array('id'=>$id));
+$url = new moodle_url('/mod/scripting_forum/subscribers.php', array('id'=>$id));
 if ($group !== 0) {
     $url->param('group', $group);
 }
@@ -39,33 +40,36 @@ if ($edit !== 0) {
 }
 $PAGE->set_url($url);
 
-$forum = $DB->get_record('forum', array('id'=>$id), '*', MUST_EXIST);
-$course = $DB->get_record('course', array('id'=>$forum->course), '*', MUST_EXIST);
-if (! $cm = get_coursemodule_from_instance('forum', $forum->id, $course->id)) {
+$scripting_forum = $DB->get_record('scripting_forum', array('id'=>$id), '*', MUST_EXIST);
+$course = $DB->get_record('course', array('id'=>$scripting_forum->course), '*', MUST_EXIST);
+if (! $cm = get_coursemodule_from_instance('scripting_forum', $scripting_forum->id, $course->id)) {
     $cm->id = 0;
 }
 
 require_login($course, false, $cm);
 
 $context = context_module::instance($cm->id);
-if (!has_capability('mod/forum:viewsubscribers', $context)) {
-    print_error('nopermissiontosubscribe', 'forum');
+if (!has_capability('mod/scripting_forum:viewsubscribers', $context)) {
+    print_error('nopermissiontosubscribe', 'scripting_forum');
 }
 
 unset($SESSION->fromdiscussion);
 
 $params = array(
     'context' => $context,
-    'other' => array('forumid' => $forum->id),
+    'other' => array('scripting_forumid' => $scripting_forum->id),
 );
-$event = \mod_forum\event\subscribers_viewed::create($params);
+$event = \mod_scripting_forum\event\subscribers_viewed::create($params);
 $event->trigger();
 
-$forumoutput = $PAGE->get_renderer('mod_forum');
+$scripting_forumoutput = $PAGE->get_renderer('mod_scripting_forum');
 $currentgroup = groups_get_activity_group($cm);
-$options = array('forumid'=>$forum->id, 'currentgroup'=>$currentgroup, 'context'=>$context);
-$existingselector = new mod_forum_existing_subscriber_selector('existingsubscribers', $options);
-$subscriberselector = new mod_forum_potential_subscriber_selector('potentialsubscribers', $options);
+$options = array('scripting_forumid'=>$scripting_forum->id,
+        'currentgroup'=>$currentgroup, 'context'=>$context);
+$existingselector = new mod_scripting_forum_existing_subscriber_selector('existingsubscribers',
+        $options);
+$subscriberselector = new mod_scripting_forum_potential_subscriber_selector('potentialsubscribers',
+        $options);
 $subscriberselector->set_existing_subscribers($existingselector->find_users(''));
 
 if (data_submitted()) {
@@ -79,15 +83,15 @@ if (data_submitted()) {
     if ($subscribe) {
         $users = $subscriberselector->get_selected_users();
         foreach ($users as $user) {
-            if (!\mod_forum\subscriptions::subscribe_user($user->id, $forum)) {
-                print_error('cannotaddsubscriber', 'forum', '', $user->id);
+            if (!\mod_scripting_forum\subscriptions::subscribe_user($user->id, $scripting_forum)) {
+                print_error('cannotaddsubscriber', 'scripting_forum', '', $user->id);
             }
         }
     } else if ($unsubscribe) {
         $users = $existingselector->get_selected_users();
         foreach ($users as $user) {
-            if (!\mod_forum\subscriptions::unsubscribe_user($user->id, $forum)) {
-                print_error('cannotremovesubscriber', 'forum', '', $user->id);
+            if (!\mod_scripting_forum\subscriptions::unsubscribe_user($user->id, $scripting_forum)) {
+                print_error('cannotremovesubscriber', 'scripting_forum', '', $user->id);
             }
         }
     }
@@ -96,28 +100,30 @@ if (data_submitted()) {
     $subscriberselector->set_existing_subscribers($existingselector->find_users(''));
 }
 
-$strsubscribers = get_string("subscribers", "forum");
+$strsubscribers = get_string("subscribers", "scripting_forum");
 $PAGE->navbar->add($strsubscribers);
 $PAGE->set_title($strsubscribers);
 $PAGE->set_heading($COURSE->fullname);
-if (has_capability('mod/forum:managesubscriptions', $context) && \mod_forum\subscriptions::is_forcesubscribed($forum) === false) {
+if (has_capability('mod/scripting_forum:managesubscriptions', $context)
+    && \mod_scripting_forum\subscriptions::is_forcesubscribed($scripting_forum) === false) {
     if ($edit != -1) {
         $USER->subscriptionsediting = $edit;
     }
-    $PAGE->set_button(forum_update_subscriptions_button($course->id, $id));
+    $PAGE->set_button(scripting_forum_update_subscriptions_button($course->id, $id));
 } else {
     unset($USER->subscriptionsediting);
 }
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('forum', 'forum').' '.$strsubscribers);
+echo $OUTPUT->heading(get_string('scripting_forum', 'scripting_forum').' '.$strsubscribers);
 if (empty($USER->subscriptionsediting)) {
-    $subscribers = \mod_forum\subscriptions::fetch_subscribed_users($forum, $currentgroup, $context);
-    if (\mod_forum\subscriptions::is_forcesubscribed($forum)) {
-        $subscribers = mod_forum_filter_hidden_users($cm, $context, $subscribers);
+    $subscribers = \mod_scripting_forum\subscriptions::fetch_subscribed_users($scripting_forum,
+                $currentgroup, $context);
+    if (\mod_scripting_forum\subscriptions::is_forcesubscribed($scripting_forum)) {
+        $subscribers = mod_scripting_forum_filter_hidden_users($cm, $context, $subscribers);
     }
-    echo $forumoutput->subscriber_overview($subscribers, $forum, $course);
+    echo $scripting_forumoutput->subscriber_overview($subscribers, $scripting_forum, $course);
 } else {
-    echo $forumoutput->subscriber_selection_form($existingselector, $subscriberselector);
+    echo $scripting_forumoutput->subscriber_selection_form($existingselector, $subscriberselector);
 }
 echo $OUTPUT->footer();
 
@@ -133,7 +139,8 @@ echo $OUTPUT->footer();
  * @param array $users the list of users to filter.
  * @return array the filtered list of users.
  */
-function mod_forum_filter_hidden_users(stdClass $cm, context_module $context, array $users) {
+function mod_scripting_forum_filter_hidden_users(stdClass $cm,
+        context_module $context, array $users) {
     if ($cm->visible) {
         return $users;
     } else {
@@ -148,3 +155,4 @@ function mod_forum_filter_hidden_users(stdClass $cm, context_module $context, ar
         return $filteredusers;
     }
 }
+

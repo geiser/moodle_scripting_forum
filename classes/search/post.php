@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is based on part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,21 +17,22 @@
 /**
  * Forum posts search area
  *
- * @package    mod_forum
+ * @package    mod_scripting_forum
+ * @copyright  2016 Geiser Chalco {@link http://github.com/geiser}
  * @copyright  2015 David Monllao {@link http://www.davidmonllao.com}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_forum\search;
+namespace mod_scripting_forum\search;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot . '/mod/forum/lib.php');
+require_once($CFG->dirroot . '/mod/scripting_forum/lib.php');
 
 /**
  * Forum posts search area.
  *
- * @package    mod_forum
+ * @package    mod_scripting_forum
  * @copyright  2015 David Monllao {@link http://www.davidmonllao.com}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -40,7 +41,7 @@ class post extends \core_search\area\base_mod {
     /**
      * @var array Internal quick static cache.
      */
-    protected $forumsdata = array();
+    protected $scripting_forumsdata = array();
 
     /**
      * @var array Internal quick static cache.
@@ -53,7 +54,7 @@ class post extends \core_search\area\base_mod {
     protected $postsdata = array();
 
     /**
-     * Returns recordset containing required data for indexing forum posts.
+     * Returns recordset containing required data for indexing scripting_forum posts.
      *
      * @param int $modifiedfrom timestamp
      * @return moodle_recordset
@@ -61,10 +62,10 @@ class post extends \core_search\area\base_mod {
     public function get_recordset_by_timestamp($modifiedfrom = 0) {
         global $DB;
 
-        $sql = 'SELECT fp.*, f.id AS forumid, f.course AS courseid
-                  FROM {forum_posts} fp
-                  JOIN {forum_discussions} fd ON fd.id = fp.discussion
-                  JOIN {forum} f ON f.id = fd.forum
+        $sql = 'SELECT fp.*, f.id AS scripting_forumid, f.course AS courseid
+                  FROM {scripting_forum_posts} fp
+                  JOIN {scripting_forum_discussions} fd ON fd.id = fp.discussion
+                  JOIN {scripting_forum} f ON f.id = fd.forum
                  WHERE fp.modified >= ? ORDER BY fp.modified ASC';
         return $DB->get_recordset_sql($sql, array($modifiedfrom));
     }
@@ -79,7 +80,7 @@ class post extends \core_search\area\base_mod {
     public function get_document($record, $options = array()) {
 
         try {
-            $cm = $this->get_cm('forum', $record->forumid, $record->courseid);
+            $cm = $this->get_cm('scripting_forum', $record->scripting_forumid, $record->courseid);
             $context = \context_module::instance($cm->id);
         } catch (\dml_missing_record_exception $ex) {
             // Notify it as we run here as admin, we should see everything.
@@ -121,7 +122,7 @@ class post extends \core_search\area\base_mod {
     }
 
     /**
-     * Add the forum post attachments.
+     * Add the scripting_forum post attachments.
      *
      * @param document $document The current document
      * @return null
@@ -142,12 +143,12 @@ class post extends \core_search\area\base_mod {
         // Because this is used during indexing, we don't want to cache posts. Would result in memory leak.
         unset($this->postsdata[$postid]);
 
-        $cm = $this->get_cm('forum', $post->forum, $document->get('courseid'));
+        $cm = $this->get_cm('scripting_forum', $post->forum, $document->get('courseid'));
         $context = \context_module::instance($cm->id);
 
         // Get the files and attach them.
         $fs = get_file_storage();
-        $files = $fs->get_area_files($context->id, 'mod_forum', 'attachment', $postid, "filename", false);
+        $files = $fs->get_area_files($context->id, 'mod_scripting_forum', 'attachment', $postid, "filename", false);
         foreach ($files as $file) {
             $document->add_stored_file($file);
         }
@@ -166,9 +167,9 @@ class post extends \core_search\area\base_mod {
 
         try {
             $post = $this->get_post($id);
-            $forum = $this->get_forum($post->forum);
+            $scripting_forum = $this->get_scripting_forum($post->forum);
             $discussion = $this->get_discussion($post->discussion);
-            $cminfo = $this->get_cm('forum', $forum->id, $forum->course);
+            $cminfo = $this->get_cm('scripting_forum', $scripting_forum->id, $scripting_forum->course);
             $cm = $cminfo->get_course_module_record();
         } catch (\dml_missing_record_exception $ex) {
             return \core_search\manager::ACCESS_DELETED;
@@ -181,7 +182,7 @@ class post extends \core_search\area\base_mod {
             return \core_search\manager::ACCESS_DENIED;
         }
 
-        if (!forum_user_can_see_post($forum, $discussion, $post, $USER, $cm)) {
+        if (!scripting_forum_user_can_see_post($scripting_forum, $discussion, $post, $USER, $cm)) {
             return \core_search\manager::ACCESS_DENIED;
         }
 
@@ -189,7 +190,7 @@ class post extends \core_search\area\base_mod {
     }
 
     /**
-     * Link to the forum post discussion
+     * Link to the scripting_forum post discussion
      *
      * @param \core_search\document $doc
      * @return \moodle_url
@@ -197,22 +198,22 @@ class post extends \core_search\area\base_mod {
     public function get_doc_url(\core_search\document $doc) {
         // The post is already in static cache, we fetch it in self::search_access.
         $post = $this->get_post($doc->get('itemid'));
-        return new \moodle_url('/mod/forum/discuss.php', array('d' => $post->discussion));
+        return new \moodle_url('/mod/scripting_forum/discuss.php', array('d' => $post->discussion));
     }
 
     /**
-     * Link to the forum.
+     * Link to the scripting_forum.
      *
      * @param \core_search\document $doc
      * @return \moodle_url
      */
     public function get_context_url(\core_search\document $doc) {
         $contextmodule = \context::instance_by_id($doc->get('contextid'));
-        return new \moodle_url('/mod/forum/view.php', array('id' => $contextmodule->instanceid));
+        return new \moodle_url('/mod/scripting_forum/view.php', array('id' => $contextmodule->instanceid));
     }
 
     /**
-     * Returns the specified forum post from its internal cache.
+     * Returns the specified scripting_forum post from its internal cache.
      *
      * @throws \dml_missing_record_exception
      * @param int $postid
@@ -220,30 +221,30 @@ class post extends \core_search\area\base_mod {
      */
     protected function get_post($postid) {
         if (empty($this->postsdata[$postid])) {
-            $this->postsdata[$postid] = forum_get_post_full($postid);
+            $this->postsdata[$postid] = scripting_forum_get_post_full($postid);
             if (!$this->postsdata[$postid]) {
-                throw new \dml_missing_record_exception('forum_posts');
+                throw new \dml_missing_record_exception('scripting_forum_posts');
             }
         }
         return $this->postsdata[$postid];
     }
 
     /**
-     * Returns the specified forum checking the internal cache.
+     * Returns the specified scripting_forum checking the internal cache.
      *
      * Store minimal information as this might grow.
      *
      * @throws \dml_exception
-     * @param int $forumid
+     * @param int $scripting_forumid
      * @return stdClass
      */
-    protected function get_forum($forumid) {
+    protected function get_scripting_forum($scripting_forumid) {
         global $DB;
 
-        if (empty($this->forumsdata[$forumid])) {
-            $this->forumsdata[$forumid] = $DB->get_record('forum', array('id' => $forumid), '*', MUST_EXIST);
+        if (empty($this->scripting_forumsdata[$scripting_forumid])) {
+            $this->scripting_forumsdata[$scripting_forumid] = $DB->get_record('scripting_forum', array('id' => $scripting_forumid), '*', MUST_EXIST);
         }
-        return $this->forumsdata[$forumid];
+        return $this->scripting_forumsdata[$scripting_forumid];
     }
 
     /**
@@ -257,9 +258,10 @@ class post extends \core_search\area\base_mod {
         global $DB;
 
         if (empty($this->discussionsdata[$discussionid])) {
-            $this->discussionsdata[$discussionid] = $DB->get_record('forum_discussions',
+            $this->discussionsdata[$discussionid] = $DB->get_record('scripting_forum_discussions',
                 array('id' => $discussionid), '*', MUST_EXIST);
         }
         return $this->discussionsdata[$discussionid];
     }
 }
+

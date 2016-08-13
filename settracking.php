@@ -1,6 +1,6 @@
 <?php
 
-// This file is part of Moodle - http://moodle.org/
+// This file is based on part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,9 +16,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Set tracking option for the forum.
+ * Set tracking option for the scripting_forum.
  *
- * @package   mod_forum
+ * @package   mod_scripting_forum
+ * @copyright 2015 geiser
  * @copyright 2005 mchurch
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,55 +27,57 @@
 require_once("../../config.php");
 require_once("lib.php");
 
-$id         = required_param('id',PARAM_INT);                           // The forum to subscribe or unsubscribe to
+$id         = required_param('id',PARAM_INT);                           // The scripting_forum to subscribe or unsubscribe to
 $returnpage = optional_param('returnpage', 'index.php', PARAM_FILE);    // Page to return to.
 
 require_sesskey();
 
-if (! $forum = $DB->get_record("forum", array("id" => $id))) {
-    print_error('invalidforumid', 'forum');
+if (! $scripting_forum = $DB->get_record("scripting_forum", array("id" => $id))) {
+    print_error('invalidscripting_forumid', 'scripting_forum');
 }
 
-if (! $course = $DB->get_record("course", array("id" => $forum->course))) {
+if (! $course = $DB->get_record("course", array("id" => $scripting_forum->course))) {
     print_error('invalidcoursemodule');
 }
 
-if (! $cm = get_coursemodule_from_instance("forum", $forum->id, $course->id)) {
+if (! $cm = get_coursemodule_from_instance("scripting_forum", $scripting_forum->id, $course->id)) {
     print_error('invalidcoursemodule');
 }
 require_login($course, false, $cm);
-$returnpageurl = new moodle_url('/mod/forum/' . $returnpage, array('id' => $course->id, 'f' => $forum->id));
-$returnto = forum_go_back_to($returnpageurl);
+$returnpageurl = new moodle_url('/mod/scripting_forum/' .
+        $returnpage, array('id' => $course->id, 'f' => $scripting_forum->id));
+$returnto = scripting_forum_go_back_to($returnpageurl);
 
-if (!forum_tp_can_track_forums($forum)) {
+if (!scripting_forum_tp_can_track_scripting_forums($scripting_forum)) {
     redirect($returnto);
 }
 
 $info = new stdClass();
 $info->name  = fullname($USER);
-$info->forum = format_string($forum->name);
+$info->scripting_forum = format_string($scripting_forum->name);
 
 $eventparams = array(
     'context' => context_module::instance($cm->id),
     'relateduserid' => $USER->id,
-    'other' => array('forumid' => $forum->id),
+    'other' => array('scripting_forumid' => $scripting_forum->id),
 );
 
-if (forum_tp_is_tracked($forum) ) {
-    if (forum_tp_stop_tracking($forum->id)) {
-        $event = \mod_forum\event\readtracking_disabled::create($eventparams);
+if (scripting_forum_tp_is_tracked($scripting_forum) ) {
+    if (scripting_forum_tp_stop_tracking($scripting_forum->id)) {
+        $event = \mod_scripting_forum\event\readtracking_disabled::create($eventparams);
         $event->trigger();
-        redirect($returnto, get_string("nownottracking", "forum", $info), 1);
+        redirect($returnto, get_string("nownottracking", "scripting_forum", $info), 1);
     } else {
         print_error('cannottrack', '', get_local_referer(false));
     }
 
 } else { // subscribe
-    if (forum_tp_start_tracking($forum->id)) {
-        $event = \mod_forum\event\readtracking_enabled::create($eventparams);
+    if (scripting_forum_tp_start_tracking($scripting_forum->id)) {
+        $event = \mod_scripting_forum\event\readtracking_enabled::create($eventparams);
         $event->trigger();
-        redirect($returnto, get_string("nowtracking", "forum", $info), 1);
+        redirect($returnto, get_string("nowtracking", "scripting_forum", $info), 1);
     } else {
         print_error('cannottrack', '', get_local_referer(false));
     }
 }
+

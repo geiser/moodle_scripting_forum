@@ -1,6 +1,6 @@
 <?php
 
-// This file is part of Moodle - http://moodle.org/
+// This file is based on part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,22 +16,15 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file contains a custom renderer class used by the forum module.
+ * This file contains a custom renderer class used by the scripting_forum
  *
- * @package   mod_forum
+ * @package   mod_scripting_forum
+ * @copyright 2016 Geiser Chalco
  * @copyright 2009 Sam Hemelryk
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-/**
- * A custom renderer class that extends the plugin_renderer_base and
- * is used by the forum module.
- *
- * @package   mod_forum
- * @copyright 2009 Sam Hemelryk
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- **/
-class mod_forum_renderer extends plugin_renderer_base {
+class mod_scripting_forum_renderer extends plugin_renderer_base {
 
     /**
      * Returns the navigation to the previous and next discussion.
@@ -46,17 +39,17 @@ class mod_forum_renderer extends plugin_renderer_base {
             $html .= html_writer::start_tag('div', array('class' => 'discussion-nav clearfix'));
             $html .= html_writer::start_tag('ul');
             if ($prev) {
-                $url = new moodle_url('/mod/forum/discuss.php', array('d' => $prev->id));
+                $url = new moodle_url('/mod/scripting_forum/discuss.php', array('d' => $prev->id));
                 $html .= html_writer::start_tag('li', array('class' => 'prev-discussion'));
                 $html .= html_writer::link($url, format_string($prev->name),
-                    array('aria-label' => get_string('prevdiscussiona', 'mod_forum', format_string($prev->name))));
+                        array('aria-label' => get_string('prevdiscussiona', 'mod_scripting_forum', format_string($prev->name))));
                 $html .= html_writer::end_tag('li');
             }
             if ($next) {
-                $url = new moodle_url('/mod/forum/discuss.php', array('d' => $next->id));
+                $url = new moodle_url('/mod/scripting_forum/discuss.php', array('d' => $next->id));
                 $html .= html_writer::start_tag('li', array('class' => 'next-discussion'));
                 $html .= html_writer::link($url, format_string($next->name),
-                    array('aria-label' => get_string('nextdiscussiona', 'mod_forum', format_string($next->name))));
+                    array('aria-label' => get_string('nextdiscussiona', 'mod_scripting_forum', format_string($next->name))));
                 $html .= html_writer::end_tag('li');
             }
             $html .= html_writer::end_tag('ul');
@@ -110,31 +103,34 @@ class mod_forum_renderer extends plugin_renderer_base {
      * the subscribers page if editing was turned off
      *
      * @param array $users
-     * @param object $forum
+     * @param object $scripting_forum
      * @param object $course
      * @return string
      */
-    public function subscriber_overview($users, $forum , $course) {
+    public function subscriber_overview($users, $scripting_forum , $course) {
         $output = '';
         $modinfo = get_fast_modinfo($course);
         if (!$users || !is_array($users) || count($users)===0) {
-            $output .= $this->output->heading(get_string("nosubscribers", "forum"));
-        } else if (!isset($modinfo->instances['forum'][$forum->id])) {
+            $output .= $this->output->heading(get_string("nosubscribers", "scripting_forum"));
+        } else if (!isset($modinfo->instances['scripting_forum'][$scripting_forum->id])) {
             $output .= $this->output->heading(get_string("invalidmodule", "error"));
         } else {
-            $cm = $modinfo->instances['forum'][$forum->id];
-            $canviewemail = in_array('email', get_extra_user_fields(context_module::instance($cm->id)));
+            $cm = $modinfo->instances['scripting_forum'][$scripting_forum->id];
+            $canviewemail = in_array('email',
+                    get_extra_user_fields(context_module::instance($cm->id)));
             $strparams = new stdclass();
-            $strparams->name = format_string($forum->name);
+            $strparams->name = format_string($scripting_forum->name);
             $strparams->count = count($users);
-            $output .= $this->output->heading(get_string("subscriberstowithcount", "forum", $strparams));
+            $output .= $this->output->heading(
+                    get_string("subscriberstowithcount", "scripting_forum", $strparams));
             $table = new html_table();
             $table->cellpadding = 5;
             $table->cellspacing = 5;
             $table->tablealign = 'center';
             $table->data = array();
             foreach ($users as $user) {
-                $info = array($this->output->user_picture($user, array('courseid'=>$course->id)), fullname($user));
+                $info = array($this->output->user_picture($user,
+                            array('courseid'=>$course->id)), fullname($user));
                 if ($canviewemail) {
                     array_push($info, $user->email);
                 }
@@ -154,7 +150,7 @@ class mod_forum_renderer extends plugin_renderer_base {
      */
     public function subscribed_users(user_selector_base $existingusers) {
         $output  = $this->output->box_start('subscriberdiv boxaligncenter');
-        $output .= html_writer::tag('p', get_string('forcesubscribed', 'forum'));
+        $output .= html_writer::tag('p', get_string('forcesubscribed', 'scripting_forum'));
         $output .= $existingusers->display(true);
         $output .= $this->output->box_end();
         return $output;
@@ -171,28 +167,32 @@ class mod_forum_renderer extends plugin_renderer_base {
     public function timed_discussion_tooltip($discussion, $visiblenow) {
         $dates = array();
         if ($discussion->timestart) {
-            $dates[] = get_string('displaystart', 'mod_forum').': '.userdate($discussion->timestart);
+            $dates[] = get_string('displaystart', 'mod_scripting_forum').
+                        ': '.userdate($discussion->timestart);
         }
         if ($discussion->timeend) {
-            $dates[] = get_string('displayend', 'mod_forum').': '.userdate($discussion->timeend);
+            $dates[] = get_string('displayend', 'mod_scripting_forum').
+                        ': '.userdate($discussion->timeend);
         }
 
         $str = $visiblenow ? 'timedvisible' : 'timedhidden';
-        $dates[] = get_string($str, 'mod_forum');
+        $dates[] = get_string($str, 'mod_scripting_forum');
 
         $tooltip = implode("\n", $dates);
-        return $this->pix_icon('i/calendar', $tooltip, 'moodle', array('class' => 'smallicon timedpost'));
+        return $this->pix_icon('i/calendar',
+                $tooltip, 'moodle', array('class' => 'smallicon timedpost'));
     }
 
     /**
-     * Display a forum post in the relevant context.
+     * Display a scripting_forum post in the relevant context.
      *
-     * @param \mod_forum\output\forum_post $post The post to display.
+     * @param \mod_scripting_forum\output\scripting_forum_post $post The post to display.
      * @return string
      */
-    public function render_forum_post_email(\mod_forum\output\forum_post_email $post) {
+    public function render_scripting_forum_post_email(\mod_scripting_forum\output\scripting_forum_post_email $post) {
         $data = $post->export_for_template($this, $this->target === RENDERER_TARGET_TEXTEMAIL);
-        return $this->render_from_template('mod_forum/' . $this->forum_post_template(), $data);
+        return $this->render_from_template('mod_scripting_forum/' .
+                $this->scripting_forum_post_template(), $data);
     }
 
     /**
@@ -200,7 +200,9 @@ class mod_forum_renderer extends plugin_renderer_base {
      *
      * @return string
      */
-    public function forum_post_template() {
-        return 'forum_post';
+    public function scripting_forum_post_template() {
+        return 'scripting_forum_post';
     }
+
 }
+

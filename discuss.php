@@ -102,7 +102,8 @@ if ($move > 0 and confirm_sesskey()) {
     $destinationctx = context_module::instance($cmto->id);
     require_capability('mod/scripting_forum:startdiscussion', $destinationctx);
 
-    if (!scripting_forum_move_attachments($discussion, $scripting_forum->id, $scripting_forumto->id)) {
+    if (!scripting_forum_move_attachments($discussion,
+            $scripting_forum->id, $scripting_forumto->id)) {
         echo $OUTPUT->notification("Errors occurred while moving attachment directories - check your file permissions");
     }
     // For each subscribed user in this scripting_forum and discussion, copy over per-discussion subscriptions if required.
@@ -132,7 +133,8 @@ if ($move > 0 and confirm_sesskey()) {
                 $scripting_forum);
 
         if ($scripting_forumsubscribed && !$discussionsubscribed && $targetsubscription) {
-            // The user has opted out of this discussion and the move would cause them to receive notifications again.
+            // The user has opted out of this discussion and the move would cause
+            // them to receive notifications again.
             // Ensure they are unsubscribed from the discussion still.
             $subscriptionchanges[$userid] = \mod_scripting_forum\subscriptions::FORUM_DISCUSSION_UNSUBSCRIBED;
         } else if (!$scripting_forumsubscribed && $discussionsubscribed && !$targetsubscription) {
@@ -148,7 +150,8 @@ if ($move > 0 and confirm_sesskey()) {
     $DB->set_field('scripting_forum_read', 'scripting_forumid',
             $scripting_forumto->id, array('discussionid' => $discussion->id));
 
-    // Delete the existing per-discussion subscriptions and replace them with the newly calculated ones.
+    // Delete the existing per-discussion subscriptions and
+    // replace them with the newly calculated ones.
     $DB->delete_records('scripting_forum_discussion_subs',
             array('discussion' => $discussion->id));
     $newdiscussion = clone $discussion;
@@ -297,42 +300,52 @@ if ((!is_guest($modcontext, $USER) && isloggedin()) &&
 
 /// Check to see if groups are being used in this scripting_forum
 /// If so, make sure the current person is allowed to see this discussion
-/// Also, if we know they should be able to reply, then explicitly set $canreply for performance reasons
+/// Also, if we know they should be able to reply, then explicitly
+/// set $canreply for performance reasons
 
-$canreply = scripting_forum_user_can_post($scripting_forum, $discussion, $USER, $cm, $course, $modcontext);
+$canreply = scripting_forum_user_can_post($scripting_forum,
+        $discussion, $USER, $cm, $course, $modcontext);
 if (!$canreply and $scripting_forum->type !== 'news') {
     if (isguestuser() or !isloggedin()) {
         $canreply = true;
     }
     if (!is_enrolled($modcontext) and !is_viewing($modcontext)) {
-        // allow guests and not-logged-in to see the link - they are prompted to log in after clicking the link
-        // normal users with temporary guest access see this link too, they are asked to enrol instead
+        // allow guests and not-logged-in to see the link -
+        // they are prompted to log in after clicking the link
+        // normal users with temporary guest access see this link too,
+        // they are asked to enrol instead
         $canreply = enrol_selfenrol_available($course->id);
     }
 }
 
 // Output the links to neighbour discussions.
 $neighbours = scripting_forum_get_discussion_neighbours($cm, $discussion, $scripting_forum);
-$neighbourlinks = $renderer->neighbouring_discussion_navigation($neighbours['prev'], $neighbours['next']);
+$neighbourlinks = $renderer->neighbouring_discussion_navigation($neighbours['prev'],
+        $neighbours['next']);
 echo $neighbourlinks;
 
 /// Print the controls across the top
 echo '<div class="discussioncontrols clearfix"><div class="controlscontainer">';
 
-if (!empty($CFG->enableportfolios) && has_capability('mod/scripting_forum:exportdiscussion', $modcontext)) {
+if (!empty($CFG->enableportfolios) &&
+    has_capability('mod/scripting_forum:exportdiscussion', $modcontext)) {
     require_once($CFG->libdir.'/portfoliolib.php');
     $button = new portfolio_add_button();
-    $button->set_callback_options('scripting_forum_portfolio_caller', array('discussionid' => $discussion->id), 'mod_scripting_forum');
-    $button = $button->to_html(PORTFOLIO_ADD_FULL_FORM, get_string('exportdiscussion', 'mod_scripting_forum'));
+    $button->set_callback_options('scripting_forum_portfolio_caller',
+            array('discussionid' => $discussion->id), 'mod_scripting_forum');
+    $button = $button->to_html(PORTFOLIO_ADD_FULL_FORM,
+            get_string('exportdiscussion', 'mod_scripting_forum'));
     $buttonextraclass = '';
     if (empty($button)) {
         // no portfolio plugin available.
         $button = '&nbsp;';
         $buttonextraclass = ' noavailable';
     }
-    echo html_writer::tag('div', $button, array('class' => 'discussioncontrol exporttoportfolio'.$buttonextraclass));
+    echo html_writer::tag('div', $button,
+            array('class' => 'discussioncontrol exporttoportfolio'.$buttonextraclass));
 } else {
-    echo html_writer::tag('div', '&nbsp;', array('class'=>'discussioncontrol nullcontrol'));
+    echo html_writer::tag('div', '&nbsp;',
+            array('class'=>'discussioncontrol nullcontrol'));
 }
 
 // groups selector not needed here
@@ -340,9 +353,8 @@ echo '<div class="discussioncontrol displaymode">';
 scripting_forum_print_mode_form($discussion->id, $displaymode);
 echo "</div>";
 
-if ($scripting_forum->type != 'single'
-            && has_capability('mod/scripting_forum:movediscussions', $modcontext)) {
-
+if ($scripting_forum->type != 'single' &&
+        has_capability('mod/scripting_forum:movediscussions', $modcontext)) {
     echo '<div class="discussioncontrol movediscussion">';
     // Popup menu to move discussions to other scripting_forums. The discussion in a
     // single discussion scripting_forum can't be moved.
@@ -350,9 +362,11 @@ if ($scripting_forum->type != 'single'
     if (isset($modinfo->instances['scripting_forum'])) {
         $scripting_forummenu = array();
         // Check scripting_forum types and eliminate simple discussions.
-        $scripting_forumcheck = $DB->get_records('scripting_forum', array('course' => $course->id),'', 'id, type');
+        $scripting_forumcheck = $DB->get_records('scripting_forum',
+                array('course' => $course->id),'', 'id, type');
         foreach ($modinfo->instances['scripting_forum'] as $scripting_forumcm) {
-            if (!$scripting_forumcm->uservisible || !has_capability('mod/scripting_forum:startdiscussion',
+           if (!$scripting_forumcm->uservisible ||
+               !has_capability('mod/scripting_forum:startdiscussion',
                 context_module::instance($scripting_forumcm->id))) {
                 continue;
             }
@@ -371,7 +385,8 @@ if ($scripting_forum->type != 'single'
         if (!empty($scripting_forummenu)) {
             echo '<div class="movediscussionoption">';
             $select = new url_select($scripting_forummenu, '',
-                    array('/mod/scripting_forum/discuss.php?d=' . $discussion->id => get_string("movethisdiscussionto", "scripting_forum")),
+                    array('/mod/scripting_forum/discuss.php?d=' .
+                    $discussion->id => get_string("movethisdiscussionto", "scripting_forum")),
                     'scripting_forummenu', get_string('move'));
             echo $OUTPUT->render($select);
             echo "</div>";
@@ -388,8 +403,10 @@ if (has_capability('mod/scripting_forum:pindiscussions', $modcontext)) {
         $pinlink = FORUM_DISCUSSION_PINNED;
         $pintext = get_string('discussionpin', 'scripting_forum');
     }
-    $button = new single_button(new moodle_url('discuss.php', array('pin' => $pinlink, 'd' => $discussion->id)), $pintext, 'post');
-    echo html_writer::tag('div', $OUTPUT->render($button), array('class' => 'discussioncontrol pindiscussion'));
+    $button = new single_button(new moodle_url('discuss.php',
+            array('pin' => $pinlink, 'd' => $discussion->id)), $pintext, 'post');
+    echo html_writer::tag('div', $OUTPUT->render($button),
+            array('class' => 'discussioncontrol pindiscussion'));
 }
 
 
@@ -402,21 +419,25 @@ if (!empty($scripting_forum->blockafter) && !empty($scripting_forum->blockperiod
     echo $OUTPUT->notification(get_string('thisscripting_forumisthrottled','scripting_forum',$a));
 }
 
-if ($scripting_forum->type == 'qanda' && !has_capability('mod/scripting_forum:viewqandawithoutposting', $modcontext) &&
-            !scripting_forum_user_has_posted($scripting_forum->id,$discussion->id,$USER->id)) {
+if ($scripting_forum->type == 'qanda' &&
+    !has_capability('mod/scripting_forum:viewqandawithoutposting', $modcontext) &&
+    !scripting_forum_user_has_posted($scripting_forum->id,$discussion->id,$USER->id)) {
     echo $OUTPUT->notification(get_string('qandanotify', 'scripting_forum'));
 }
 
 if ($move == -1 and confirm_sesskey()) {
-    echo $OUTPUT->notification(get_string('discussionmoved', 'scripting_forum', format_string($scripting_forum->name,true)), 'notifysuccess');
+    echo $OUTPUT->notification(get_string('discussionmoved',
+         'scripting_forum', format_string($scripting_forum->name,true)), 'notifysuccess');
 }
 
 $canrate = has_capability('mod/scripting_forum:rate', $modcontext);
-scripting_forum_print_discussion($course, $cm, $scripting_forum, $discussion, $post, $displaymode, $canreply, $canrate);
+scripting_forum_print_discussion($course, $cm, $scripting_forum,
+        $discussion, $post, $displaymode, $canreply, $canrate);
 
 echo $neighbourlinks;
 
 // Add the subscription toggle JS.
-$PAGE->requires->yui_module('moodle-mod_scripting_forum-subscriptiontoggle', 'Y.M.mod_scripting_forum.subscriptiontoggle.init');
+$PAGE->requires->yui_module('moodle-mod_scripting_forum-subscriptiontoggle',
+        'Y.M.mod_scripting_forum.subscriptiontoggle.init');
 
 echo $OUTPUT->footer();

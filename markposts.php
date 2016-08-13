@@ -17,8 +17,8 @@
 
 /**
  * @package   mod_scripting_forum
- * @copyright 2016 onwards Geiser Chalco {@link https://github.com/geiser}
- * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
+ * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
+ * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -66,7 +66,8 @@ if (isguestuser()) {   // Guests can't change scripting_forum
     $PAGE->set_title($course->shortname);
     $PAGE->set_heading($course->fullname);
     echo $OUTPUT->header();
-    echo $OUTPUT->confirm(get_string('noguesttracking', 'scripting_forum').'<br /><br />'.get_string('liketologin'), get_login_url(), $returnto);
+    echo $OUTPUT->confirm(get_string('noguesttracking', 'scripting_forum').
+            '<br /><br />'.get_string('liketologin'), get_login_url(), $returnto);
     echo $OUTPUT->footer();
     exit;
 }
@@ -77,7 +78,8 @@ $info->scripting_forum = format_string($scripting_forum->name);
 
 if ($mark == 'read') {
     if (!empty($d)) {
-        if (! $discussion = $DB->get_record('scripting_forum_discussions', array('id'=> $d, 'scripting_forum'=> $scripting_forum->id))) {
+        if (! $discussion = $DB->get_record('scripting_forum_discussions',
+            array('id'=> $d, 'scripting_forum'=> $scripting_forum->id))) {
             print_error('invaliddiscussionid', 'scripting_forum');
         }
 

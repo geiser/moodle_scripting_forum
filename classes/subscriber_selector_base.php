@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is based on part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,9 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * A type of forum.
+ * A type of scripting_forum.
  *
- * @package    mod_forum
+ * @package    mod_scripting_forum
+ * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Andrew Robert Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -27,20 +28,20 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot.'/user/selector/lib.php');
 
 /**
- * Abstract class used by forum subscriber selection controls
- * @package   mod_forum
+ * Abstract class used by scripting_forum subscriber selection controls
+ * @package   mod_scripting_forum
  * @copyright 2009 Sam Hemelryk
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-abstract class mod_forum_subscriber_selector_base extends user_selector_base {
+abstract class mod_scripting_forum_subscriber_selector_base extends user_selector_base {
 
     /**
-     * The id of the forum this selector is being used for
+     * The id of the scripting_forum this selector is being used for
      * @var int
      */
-    protected $forumid = null;
+    protected $scripting_forumid = null;
     /**
-     * The context of the forum this selector is being used for
+     * The context of the scripting_forum this selector is being used for
      * @var object
      */
     protected $context = null;
@@ -64,8 +65,8 @@ abstract class mod_forum_subscriber_selector_base extends user_selector_base {
         if (isset($options['currentgroup'])) {
             $this->currentgroup = $options['currentgroup'];
         }
-        if (isset($options['forumid'])) {
-            $this->forumid = $options['forumid'];
+        if (isset($options['scripting_forumid'])) {
+            $this->scripting_forumid = $options['scripting_forumid'];
         }
     }
 
@@ -80,7 +81,7 @@ abstract class mod_forum_subscriber_selector_base extends user_selector_base {
         $options['file'] =  substr(__FILE__, strlen($CFG->dirroot.'/'));
         $options['context'] = $this->context;
         $options['currentgroup'] = $this->currentgroup;
-        $options['forumid'] = $this->forumid;
+        $options['scripting_forumid'] = $this->scripting_forumid;
         return $options;
     }
 

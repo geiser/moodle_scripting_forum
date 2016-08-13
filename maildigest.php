@@ -17,8 +17,8 @@
 
 /**
  * @package   mod_scripting_forum
- * @copyright 2016 onwards Geiser Chalco {@link https://github.com/geiser}
- * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
+ * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
+ * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -34,7 +34,8 @@ require_sesskey();
 
 $scripting_forum = $DB->get_record('scripting_forum', array('id' => $id));
 $course  = $DB->get_record('course', array('id' => $scripting_forum->course), '*', MUST_EXIST);
-$cm      = get_coursemodule_from_instance('scripting_forum', $scripting_forum->id, $course->id, false, MUST_EXIST);
+$cm      = get_coursemodule_from_instance('scripting_forum',
+        $scripting_forum->id, $course->id, false, MUST_EXIST);
 $context = context_module::instance($cm->id);
 
 require_login($course, false, $cm);

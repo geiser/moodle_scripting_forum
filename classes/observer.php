@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is base on part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,9 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Event observers used in forum.
+ * Event observers used in scripting_forum.
  *
- * @package    mod_forum
+ * @package    mod_scripting_forum
+ * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2013 Rajesh Taneja <rajesh@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,9 +26,9 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Event observer for mod_forum.
+ * Event observer for mod_scripting_forum.
  */
-class mod_forum_observer {
+class mod_scripting_forum_observer {
 
     /**
      * Triggered via user_enrolment_deleted event.
@@ -41,16 +42,21 @@ class mod_forum_observer {
         // Get user enrolment info from event.
         $cp = (object)$event->other['userenrolment'];
         if ($cp->lastenrol) {
-            if (!$forums = $DB->get_records('forum', array('course' => $cp->courseid), '', 'id')) {
+            if (!$scripting_forums = $DB->get_records('scripting_forum',
+                        array('course' => $cp->courseid), '', 'id')) {
                 return;
             }
-            list($forumselect, $params) = $DB->get_in_or_equal(array_keys($forums), SQL_PARAMS_NAMED);
+            list($scripting_forumselect, $params) = $DB->get_in_or_equal(array_keys($scripting_forums), SQL_PARAMS_NAMED);
             $params['userid'] = $cp->userid;
 
-            $DB->delete_records_select('forum_digests', 'userid = :userid AND forum '.$forumselect, $params);
-            $DB->delete_records_select('forum_subscriptions', 'userid = :userid AND forum '.$forumselect, $params);
-            $DB->delete_records_select('forum_track_prefs', 'userid = :userid AND forumid '.$forumselect, $params);
-            $DB->delete_records_select('forum_read', 'userid = :userid AND forumid '.$forumselect, $params);
+            $DB->delete_records_select('scripting_forum_digests',
+                    'userid = :userid AND scripting_forum '.$scripting_forumselect, $params);
+            $DB->delete_records_select('scripting_forum_subscriptions',
+                    'userid = :userid AND scripting_forum '.$scripting_forumselect, $params);
+            $DB->delete_records_select('scripting_forum_track_prefs',
+                    'userid = :userid AND scripting_forumid '.$scripting_forumselect, $params);
+            $DB->delete_records_select('scripting_forum_read',
+                    'userid = :userid AND scripting_forumid '.$scripting_forumselect, $params);
         }
     }
 
@@ -66,32 +72,35 @@ class mod_forum_observer {
         $context = context::instance_by_id($event->contextid, MUST_EXIST);
 
         // If contextlevel is course then only subscribe user. Role assignment
-        // at course level means user is enroled in course and can subscribe to forum.
+        // at course level means user is enroled in course and can subscribe to scripting_forum.
         if ($context->contextlevel != CONTEXT_COURSE) {
             return;
         }
 
         // Forum lib required for the constant used below.
-        require_once($CFG->dirroot . '/mod/forum/lib.php');
+        require_once($CFG->dirroot . '/mod/scripting_forum/lib.php');
 
         $userid = $event->relateduserid;
         $sql = "SELECT f.id, f.course as course, cm.id AS cmid, f.forcesubscribe
-                  FROM {forum} f
+                  FROM {scripting_forum} f
                   JOIN {course_modules} cm ON (cm.instance = f.id)
                   JOIN {modules} m ON (m.id = cm.module)
-             LEFT JOIN {forum_subscriptions} fs ON (fs.forum = f.id AND fs.userid = :userid)
+                  LEFT JOIN {scripting_forum_subscriptions} fs ON
+                  (fs.scripting_forum = f.id AND fs.userid = :userid)
                  WHERE f.course = :courseid
                    AND f.forcesubscribe = :initial
-                   AND m.name = 'forum'
+                   AND m.name = 'scripting_forum'
                    AND fs.id IS NULL";
-        $params = array('courseid' => $context->instanceid, 'userid' => $userid, 'initial' => FORUM_INITIALSUBSCRIBE);
+        $params = array('courseid' => $context->instanceid,
+                'userid' => $userid, 'initial' => FORUM_INITIALSUBSCRIBE);
 
-        $forums = $DB->get_records_sql($sql, $params);
-        foreach ($forums as $forum) {
+        $scripting_forums = $DB->get_records_sql($sql, $params);
+        foreach ($scripting_forums as $scripting_forum) {
             // If user doesn't have allowforcesubscribe capability then don't subscribe.
-            $modcontext = context_module::instance($forum->cmid);
-            if (has_capability('mod/forum:allowforcesubscribe', $modcontext, $userid)) {
-                \mod_forum\subscriptions::subscribe_user($userid, $forum, $modcontext);
+            $modcontext = context_module::instance($scripting_forum->cmid);
+            if (has_capability('mod/scripting_forum:allowforcesubscribe', $modcontext, $userid)) {
+                \mod_scripting_forum\subscriptions::subscribe_user($userid,
+                        $scripting_forum, $modcontext);
             }
         }
     }
@@ -105,12 +114,15 @@ class mod_forum_observer {
     public static function course_module_created(\core\event\course_module_created $event) {
         global $CFG;
 
-        if ($event->other['modulename'] === 'forum') {
-            // Include the forum library to make use of the forum_instance_created function.
-            require_once($CFG->dirroot . '/mod/forum/lib.php');
+        if ($event->other['modulename'] === 'scripting_forum') {
+            // Include the scripting_forum library to make use of
+            // the scripting_forum_instance_created function.
+            require_once($CFG->dirroot . '/mod/scripting_forum/lib.php');
 
-            $forum = $event->get_record_snapshot('forum', $event->other['instanceid']);
-            forum_instance_created($event->get_context(), $forum);
+            $scripting_forum = $event->get_record_snapshot('scripting_forum',
+                    $event->other['instanceid']);
+            scripting_forum_instance_created($event->get_context(), $scripting_forum);
         }
     }
 }
+

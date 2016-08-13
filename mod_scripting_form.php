@@ -17,8 +17,8 @@
 
 /**
  * @package   mod_scripting_forum
- * @copyright 2016 onwards Geiser Chalco {@link https://github.com/geiser}
- * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
+ * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
+ * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

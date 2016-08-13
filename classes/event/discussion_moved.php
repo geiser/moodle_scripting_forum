@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is based on part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,29 +15,31 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The mod_forum discussion moved event.
+ * The mod_scripting_forum discussion moved event.
  *
- * @package    mod_forum
+ * @package    mod_scripting_forum
+ * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_forum\event;
+namespace mod_scripting_forum\event;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The mod_forum discussion moved event class.
+ * The mod_scripting_forum discussion moved event class.
  *
  * @property-read array $other {
  *      Extra information about the event.
  *
- *      - int fromforumid: The id of the forum the discussion is being moved from.
- *      - int toforumid: The id of the forum the discussion is being moved to.
+ *      - int fromscripting_forumid: The id of the scripting_forum the discussion is being moved from.
+ *      - int toscripting_forumid: The id of the scripting_forum the discussion is being moved to.
  * }
  *
- * @package    mod_forum
+ * @package    mod_scripting_forum
  * @since      Moodle 2.7
+ * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -50,7 +52,7 @@ class discussion_moved extends \core\event\base {
     protected function init() {
         $this->data['crud'] = 'u';
         $this->data['edulevel'] = self::LEVEL_OTHER;
-        $this->data['objecttable'] = 'forum_discussions';
+        $this->data['objecttable'] = 'scripting_forum_discussions';
     }
 
     /**
@@ -60,7 +62,7 @@ class discussion_moved extends \core\event\base {
      */
     public function get_description() {
         return "The user with id '$this->userid' has moved the discussion with id '$this->objectid' from the " .
-            "forum with id '{$this->other['fromforumid']}' to the forum with id '{$this->other['toforumid']}'.";
+            "scripting_forum with id '{$this->other['fromscripting_forumid']}' to the scripting_forum with id '{$this->other['toscripting_forumid']}'.";
     }
 
     /**
@@ -69,7 +71,7 @@ class discussion_moved extends \core\event\base {
      * @return string
      */
     public static function get_name() {
-        return get_string('eventdiscussionmoved', 'mod_forum');
+        return get_string('eventdiscussionmoved', 'mod_scripting_forum');
     }
 
     /**
@@ -78,7 +80,7 @@ class discussion_moved extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/mod/forum/discuss.php', array('d' => $this->objectid));
+        return new \moodle_url('/mod/scripting_forum/discuss.php', array('d' => $this->objectid));
     }
 
     /**
@@ -87,7 +89,7 @@ class discussion_moved extends \core\event\base {
      * @return array|null
      */
     protected function get_legacy_logdata() {
-        return array($this->courseid, 'forum', 'move discussion', 'discuss.php?d=' . $this->objectid,
+        return array($this->courseid, 'scripting_forum', 'move discussion', 'discuss.php?d=' . $this->objectid,
             $this->objectid, $this->contextinstanceid);
     }
 
@@ -99,12 +101,12 @@ class discussion_moved extends \core\event\base {
      */
     protected function validate_data() {
         parent::validate_data();
-        if (!isset($this->other['fromforumid'])) {
-            throw new \coding_exception('The \'fromforumid\' value must be set in other.');
+        if (!isset($this->other['fromscripting_forumid'])) {
+            throw new \coding_exception('The \'fromscripting_forumid\' value must be set in other.');
         }
 
-        if (!isset($this->other['toforumid'])) {
-            throw new \coding_exception('The \'toforumid\' value must be set in other.');
+        if (!isset($this->other['toscripting_forumid'])) {
+            throw new \coding_exception('The \'toscripting_forumid\' value must be set in other.');
         }
 
         if ($this->contextlevel != CONTEXT_MODULE) {
@@ -113,14 +115,15 @@ class discussion_moved extends \core\event\base {
     }
 
     public static function get_objectid_mapping() {
-        return array('db' => 'forum_discussions', 'restore' => 'forum_discussion');
+        return array('db' => 'scripting_forum_discussions', 'restore' => 'scripting_forum_discussion');
     }
 
     public static function get_other_mapping() {
         $othermapped = array();
-        $othermapped['fromforumid'] = array('db' => 'forum', 'restore' => 'forum');
-        $othermapped['toforumid'] = array('db' => 'forum', 'restore' => 'forum');
+        $othermapped['fromscripting_forumid'] = array('db' => 'scripting_forum', 'restore' => 'scripting_forum');
+        $othermapped['toscripting_forumid'] = array('db' => 'scripting_forum', 'restore' => 'scripting_forum');
 
         return $othermapped;
     }
 }
+

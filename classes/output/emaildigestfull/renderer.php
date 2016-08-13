@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is based on part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,12 +17,13 @@
 /**
  * Forum post renderable.
  *
- * @package    mod_forum
+ * @package    mod_scripting_forum
+ * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2015 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_forum\output\emaildigestfull;
+namespace mod_scripting_forum\output\emaildigestfull;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -30,18 +31,20 @@ defined('MOODLE_INTERNAL') || die();
  * Forum post renderable.
  *
  * @since      Moodle 3.0
- * @package    mod_forum
+ * @package    mod_scripting_forum
+ * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2015 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class renderer extends \mod_forum\output\email\renderer {
+class renderer extends \mod_scripting_forum\output\email\renderer {
 
     /**
      * The template name for this renderer.
      *
      * @return string
      */
-    public function forum_post_template() {
-        return 'forum_post_emaildigestfull_htmlemail';
+    public function scripting_forum_post_template() {
+        return 'scripting_forum_post_emaildigestfull_htmlemail';
     }
 }
+
