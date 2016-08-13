@@ -26,7 +26,8 @@ require_once($CFG->libdir . '/portfolio/caller.php');
 
 /**
  * @package   mod_scripting_forum
- * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
+ * @copyright 2016 Geiser Chalco {@link http://github.com/geiser}
+ * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class scripting_forum_portfolio_caller extends portfolio_module_caller_base {

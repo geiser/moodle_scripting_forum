@@ -19,7 +19,7 @@
  * Edit and save a new post to a discussion
  *
  * @package   mod_scripting_forum
- * @copyright 2016 Geiser Chalco {@link http://github.com/geiser.git}
+ * @copyright 2016 Geiser Chalco {@link http://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
