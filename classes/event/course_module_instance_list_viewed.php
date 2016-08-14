@@ -15,22 +15,22 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The mod_scripting_forum instance list viewed event.
+ * The mod_scriptingforum instance list viewed event.
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scripting_forum\event;
+namespace mod_scriptingforum\event;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The mod_scripting_forum instance list viewed event class.
+ * The mod_scriptingforum instance list viewed event class.
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @since      Moodle 2.7
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Dan Poltawski <dan@moodle.com>

@@ -15,29 +15,29 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The mod_scripting_forum discussion_subscription deleted event.
+ * The mod_scriptingforum discussion_subscription deleted event.
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scripting_forum\event;
+namespace mod_scriptingforum\event;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The mod_scripting_forum discussion_subscription deleted event class.
+ * The mod_scriptingforum discussion_subscription deleted event class.
  *
  * @property-read array $other {
  *      Extra information about the event.
  *
- *      - int scripting_forumid: The id of the scripting_forum which the discussion is in.
+ *      - int scriptingforumid: The id of the scriptingforum which the discussion is in.
  *      - int discussion: The id of the discussion which has been unsubscribed from.
  * }
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @since      Moodle 2.8
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Andrew Nicols <andrew@nicols.co.uk>
@@ -52,7 +52,7 @@ class discussion_subscription_deleted extends \core\event\base {
     protected function init() {
         $this->data['crud'] = 'd';
         $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
-        $this->data['objecttable'] = 'scripting_forum_discussion_subs';
+        $this->data['objecttable'] = 'scriptingforum_discussion_subs';
     }
 
     /**
@@ -62,7 +62,7 @@ class discussion_subscription_deleted extends \core\event\base {
      */
     public function get_description() {
         return "The user with id '$this->userid' unsubscribed the user with id '$this->relateduserid' from the discussion " .
-            " with id '{$this->other['discussion']}' in the scripting_forum with the course module id '$this->contextinstanceid'.";
+            " with id '{$this->other['discussion']}' in the scriptingforum with the course module id '$this->contextinstanceid'.";
     }
 
     /**
@@ -71,7 +71,7 @@ class discussion_subscription_deleted extends \core\event\base {
      * @return string
      */
     public static function get_name() {
-        return get_string('eventdiscussionsubscriptiondeleted', 'mod_scripting_forum');
+        return get_string('eventdiscussionsubscriptiondeleted', 'mod_scriptingforum');
     }
 
     /**
@@ -80,8 +80,8 @@ class discussion_subscription_deleted extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/mod/scripting_forum/subscribe.php', array(
-            'id' => $this->other['scripting_forumid'],
+        return new \moodle_url('/mod/scriptingforum/subscribe.php', array(
+            'id' => $this->other['scriptingforumid'],
             'd' => $this->other['discussion'],
         ));
     }
@@ -99,8 +99,8 @@ class discussion_subscription_deleted extends \core\event\base {
             throw new \coding_exception('The \'relateduserid\' must be set.');
         }
 
-        if (!isset($this->other['scripting_forumid'])) {
-            throw new \coding_exception('The \'scripting_forumid\' value must be set in other.');
+        if (!isset($this->other['scriptingforumid'])) {
+            throw new \coding_exception('The \'scriptingforumid\' value must be set in other.');
         }
 
         if (!isset($this->other['discussion'])) {
@@ -113,16 +113,16 @@ class discussion_subscription_deleted extends \core\event\base {
     }
 
     public static function get_objectid_mapping() {
-        return array('db' => 'scripting_forum_discussion_subs',
-                    'restore' => 'scripting_forum_discussion_sub');
+        return array('db' => 'scriptingforum_discussion_subs',
+                    'restore' => 'scriptingforum_discussion_sub');
     }
 
     public static function get_other_mapping() {
         $othermapped = array();
-        $othermapped['scripting_forumid'] = array('db' => 'scripting_forum',
-                'restore' => 'scripting_forum');
-        $othermapped['discussion'] = array('db' => 'scripting_forum_discussions',
-                'restore' => 'scripting_forum_discussion');
+        $othermapped['scriptingforumid'] = array('db' => 'scriptingforum',
+                'restore' => 'scriptingforum');
+        $othermapped['discussion'] = array('db' => 'scriptingforum_discussions',
+                'restore' => 'scriptingforum_discussion');
         return $othermapped;
     }
 }

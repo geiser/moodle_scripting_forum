@@ -17,7 +17,7 @@
 /**
  * This file provides form for splitting discussions
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2015 Martin Mastny <mastnym@vscht.cz>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -30,14 +30,14 @@ require_once("$CFG->libdir/formslib.php");
 
 
 /**
- * Form which displays fields for splitting scripting_forum post to a separate threads.
+ * Form which displays fields for splitting scriptingforum post to a separate threads.
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2015 Martin Mastny <mastnym@vscht.cz>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class mod_scripting_forum_prune_form extends moodleform {
+class mod_scriptingforum_prune_form extends moodleform {
 
     /**
      * Form constructor.
@@ -47,12 +47,12 @@ class mod_scripting_forum_prune_form extends moodleform {
         $mform = $this->_form;
 
         $mform->addElement('text', 'name',
-                get_string('discussionname', 'scripting_forum'),
+                get_string('discussionname', 'scriptingforum'),
                 array('size' => '60', 'maxlength' => '255'));
         $mform->setType('name', PARAM_TEXT);
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
-        $this->add_action_buttons(true, get_string('prune', 'scripting_forum'));
+        $this->add_action_buttons(true, get_string('prune', 'scriptingforum'));
 
         $mform->addElement('hidden', 'prune');
         $mform->setType('prune', PARAM_INT);

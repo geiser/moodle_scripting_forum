@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scripting_forum
+ * @package   mod_scriptingforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -25,15 +25,15 @@
 $observers = array(
     array(
         'eventname' => '\core\event\user_enrolment_deleted',
-        'callback' => 'mod_scripting_forum_observer::user_enrolment_deleted',
+        'callback' => 'mod_scriptingforum_observer::user_enrolment_deleted',
     ),
     array(
         'eventname' => '\core\event\role_assigned',
-        'callback' => 'mod_scripting_forum_observer::role_assigned'
+        'callback' => 'mod_scriptingforum_observer::role_assigned'
     ),
     array(
         'eventname' => '\core\event\course_module_created',
-        'callback'  => 'mod_scripting_forum_observer::course_module_created',
+        'callback'  => 'mod_scriptingforum_observer::course_module_created',
     ),
 );
 

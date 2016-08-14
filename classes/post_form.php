@@ -16,9 +16,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * File containing the form definition to post in the scripting_forum.
+ * File containing the form definition to post in the scriptingforum.
  *
- * @package   mod_scripting_forum
+ * @package   mod_scriptingforum
  * @copyright Geiser Chalco <geiser@usp.br>
  * @copyright Jamie Pratt <me@jamiep.org>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -29,35 +29,35 @@ require_once($CFG->libdir . '/formslib.php');
 require_once($CFG->dirroot . '/repository/lib.php');
 
 /**
- * Class to post in a scripting_forum.
+ * Class to post in a scriptingforum.
  *
- * @package   mod_scripting_forum
+ * @package   mod_scriptingforum
  * @copyright Jamie Pratt <me@jamiep.org>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class mod_scripting_forum_post_form extends moodleform {
+class mod_scriptingforum_post_form extends moodleform {
 
     /**
-     * Returns the options array to use in filemanager for scripting_forum attachments
+     * Returns the options array to use in filemanager for scriptingforum attachments
      *
-     * @param stdClass $scripting_forum
+     * @param stdClass $scriptingforum
      * @return array
      */
-    public static function attachment_options($scripting_forum) {
+    public static function attachment_options($scriptingforum) {
         global $COURSE, $PAGE, $CFG;
         $maxbytes = get_user_max_upload_file_size($PAGE->context,
-                $CFG->maxbytes, $COURSE->maxbytes, $scripting_forum->maxbytes);
+                $CFG->maxbytes, $COURSE->maxbytes, $scriptingforum->maxbytes);
         return array(
             'subdirs' => 0,
             'maxbytes' => $maxbytes,
-            'maxfiles' => $scripting_forum->maxattachments,
+            'maxfiles' => $scriptingforum->maxattachments,
             'accepted_types' => '*',
             'return_types' => FILE_INTERNAL
         );
     }
 
     /**
-     * Returns the options array to use in scripting_forum text editor
+     * Returns the options array to use in scriptingforum text editor
      *
      * @param context_module $context
      * @param int $postid post id, use null when adding new post
@@ -74,7 +74,7 @@ class mod_scripting_forum_post_form extends moodleform {
             'trusttext'=> true,
             'return_types'=> FILE_INTERNAL | FILE_EXTERNAL,
             'subdirs' => file_area_contains_subdirs($context,
-                             'mod_scripting_forum', 'post', $postid)
+                             'mod_scriptingforum', 'post', $postid)
         );
     }
 
@@ -92,7 +92,7 @@ class mod_scripting_forum_post_form extends moodleform {
         $cm = $this->_customdata['cm'];
         $coursecontext = $this->_customdata['coursecontext'];
         $modcontext = $this->_customdata['modcontext'];
-        $scripting_forum = $this->_customdata['scripting_forum'];
+        $scriptingforum = $this->_customdata['scriptingforum'];
         $post = $this->_customdata['post'];
         $subscribe = $this->_customdata['subscribe'];
         $edit = $this->_customdata['edit'];
@@ -110,64 +110,64 @@ class mod_scripting_forum_post_form extends moodleform {
             }
         }
 
-        $mform->addElement('text', 'subject', get_string('subject', 'scripting_forum'), 'size="48"');
+        $mform->addElement('text', 'subject', get_string('subject', 'scriptingforum'), 'size="48"');
         $mform->setType('subject', PARAM_TEXT);
         $mform->addRule('subject', get_string('required'), 'required', null, 'client');
         $mform->addRule('subject', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
         $mform->addElement('editor', 'message',
-                get_string('message', 'scripting_forum'),
+                get_string('message', 'scriptingforum'),
                 null, self::editor_options($modcontext, (empty($post->id) ? null : $post->id)));
         $mform->setType('message', PARAM_RAW);
         $mform->addRule('message', get_string('required'), 'required', null, 'client');
 
         $manageactivities = has_capability('moodle/course:manageactivities', $coursecontext);
 
-        if (\mod_scripting_forum\subscriptions::is_forcesubscribed($scripting_forum)) {
+        if (\mod_scriptingforum\subscriptions::is_forcesubscribed($scriptingforum)) {
             $mform->addElement('checkbox', 'discussionsubscribe',
-                        get_string('discussionsubscription', 'scripting_forum'));
+                        get_string('discussionsubscription', 'scriptingforum'));
             $mform->freeze('discussionsubscribe');
             $mform->setDefaults('discussionsubscribe', 0);
-            $mform->addHelpButton('discussionsubscribe', 'forcesubscribed', 'scripting_forum');
+            $mform->addHelpButton('discussionsubscribe', 'forcesubscribed', 'scriptingforum');
 
-        } else if (\mod_scripting_forum\subscriptions::subscription_disabled($scripting_forum)
+        } else if (\mod_scriptingforum\subscriptions::subscription_disabled($scriptingforum)
                 && !$manageactivities) {
             $mform->addElement('checkbox',
                                'discussionsubscribe',
-                               get_string('discussionsubscription', 'scripting_forum'));
+                               get_string('discussionsubscription', 'scriptingforum'));
             $mform->freeze('discussionsubscribe');
             $mform->setDefaults('discussionsubscribe', 0);
-            $mform->addHelpButton('discussionsubscribe', 'disallowsubscription', 'scripting_forum');
+            $mform->addHelpButton('discussionsubscribe', 'disallowsubscription', 'scriptingforum');
 
         } else {
             $mform->addElement('checkbox',
                                'discussionsubscribe',
-                               get_string('discussionsubscription', 'scripting_forum'));
-            $mform->addHelpButton('discussionsubscribe', 'discussionsubscription', 'scripting_forum');
+                               get_string('discussionsubscription', 'scriptingforum'));
+            $mform->addHelpButton('discussionsubscribe', 'discussionsubscription', 'scriptingforum');
         }
 
-        if (!empty($scripting_forum->maxattachments) && $scripting_forum->maxbytes != 1 && has_capability('mod/scripting_forum:createattachment', $modcontext))  {  //  1 = No attachments at all
-            $mform->addElement('filemanager', 'attachments', get_string('attachment', 'scripting_forum'), null, self::attachment_options($scripting_forum));
-            $mform->addHelpButton('attachments', 'attachment', 'scripting_forum');
+        if (!empty($scriptingforum->maxattachments) && $scriptingforum->maxbytes != 1 && has_capability('mod/scriptingforum:createattachment', $modcontext))  {  //  1 = No attachments at all
+            $mform->addElement('filemanager', 'attachments', get_string('attachment', 'scriptingforum'), null, self::attachment_options($scriptingforum));
+            $mform->addHelpButton('attachments', 'attachment', 'scriptingforum');
         }
 
-        if (!$post->parent && has_capability('mod/scripting_forum:pindiscussions', $modcontext)) {
-            $mform->addElement('checkbox', 'pinned', get_string('discussionpinned', 'scripting_forum'));
-            $mform->addHelpButton('pinned', 'discussionpinned', 'scripting_forum');
+        if (!$post->parent && has_capability('mod/scriptingforum:pindiscussions', $modcontext)) {
+            $mform->addElement('checkbox', 'pinned', get_string('discussionpinned', 'scriptingforum'));
+            $mform->addHelpButton('pinned', 'discussionpinned', 'scriptingforum');
         }
 
         if (empty($post->id) && $manageactivities) {
-            $mform->addElement('checkbox', 'mailnow', get_string('mailnow', 'scripting_forum'));
+            $mform->addElement('checkbox', 'mailnow', get_string('mailnow', 'scriptingforum'));
         }
 
-        if (!empty($CFG->scripting_forum_enabletimedposts) && !$post->parent && has_capability('mod/scripting_forum:viewhiddentimedposts', $coursecontext)) { // hack alert
-            $mform->addElement('header', 'displayperiod', get_string('displayperiod', 'scripting_forum'));
+        if (!empty($CFG->scriptingforum_enabletimedposts) && !$post->parent && has_capability('mod/scriptingforum:viewhiddentimedposts', $coursecontext)) { // hack alert
+            $mform->addElement('header', 'displayperiod', get_string('displayperiod', 'scriptingforum'));
 
-            $mform->addElement('date_time_selector', 'timestart', get_string('displaystart', 'scripting_forum'), array('optional' => true));
-            $mform->addHelpButton('timestart', 'displaystart', 'scripting_forum');
+            $mform->addElement('date_time_selector', 'timestart', get_string('displaystart', 'scriptingforum'), array('optional' => true));
+            $mform->addHelpButton('timestart', 'displaystart', 'scriptingforum');
 
-            $mform->addElement('date_time_selector', 'timeend', get_string('displayend', 'scripting_forum'), array('optional' => true));
-            $mform->addHelpButton('timeend', 'displayend', 'scripting_forum');
+            $mform->addElement('date_time_selector', 'timeend', get_string('displayend', 'scriptingforum'), array('optional' => true));
+            $mform->addHelpButton('timeend', 'displayend', 'scriptingforum');
 
         } else {
             $mform->addElement('hidden', 'timestart');
@@ -185,7 +185,7 @@ class mod_scripting_forum_post_form extends moodleform {
                 // Check whether this user can post in this group.
                 // We must make this check because all groups are returned
                 // for a visible grouped activity.
-                if (scripting_forum_user_can_post_discussion($scripting_forum,
+                if (scriptingforum_user_can_post_discussion($scriptingforum,
                             $groupid, null, $cm, $modcontext)) {
                     // Build the data for the groupinfo select.
                     $groupinfo[$groupid] = $group->name;
@@ -210,15 +210,15 @@ class mod_scripting_forum_post_form extends moodleform {
 
             // 3) You also need the canposttoowngroups capability.
             $canposttoowngroups = $canposttoowngroups &&
-                    has_capability('mod/scripting_forum:canposttomygroups', $modcontext);
+                    has_capability('mod/scriptingforum:canposttomygroups', $modcontext);
             if ($canposttoowngroups) {
                 // This user is in multiple groups, and can post to all of their own groups.
                 // Note: This is not the same as accessallgroups.
                 // This option will copy a post to all groups that a
                 // user is a member of.
                 $mform->addElement('checkbox', 'posttomygroups',
-                            get_string('posttomygroups', 'scripting_forum'));
-                $mform->addHelpButton('posttomygroups', 'posttomygroups', 'scripting_forum');
+                            get_string('posttomygroups', 'scriptingforum'));
+                $mform->addHelpButton('posttomygroups', 'posttomygroups', 'scriptingforum');
                 $mform->disabledIf('groupinfo', 'posttomygroups', 'checked');
             }
 
@@ -226,7 +226,7 @@ class mod_scripting_forum_post_form extends moodleform {
             // Posts to the 'All participants' group go to all groups, not to each group in a list.
             // It makes sense to allow this, even if
             // there currently aren't any groups because there may be in the future.
-            if (scripting_forum_user_can_post_discussion($scripting_forum,
+            if (scriptingforum_user_can_post_discussion($scriptingforum,
                     -1, null, $cm, $modcontext)) {
                 // Note: We must reverse in this manner because array_unshift renumbers the array.
                 $groupinfo = array_reverse($groupinfo, true );
@@ -242,11 +242,11 @@ class mod_scripting_forum_post_form extends moodleform {
 
             // 2) This is editing of an existing post and the user is allowed to movediscussions.
             // We allow this because the post may have been moved from another
-            // scripting_forum where groups are not available.
+            // scriptingforum where groups are not available.
             // We show this even if no groups are available as groups *may* have
             // been available but now are not.
             $canselectgroupformove = $groupcount && !empty($post->edit)
-                    && has_capability('mod/scripting_forum:movediscussions', $modcontext);
+                    && has_capability('mod/scriptingforum:movediscussions', $modcontext);
 
             // Important: You can *only* change the group for a top level post. Never any reply.
             $canselectgroup = empty($post->parent)
@@ -270,7 +270,7 @@ class mod_scripting_forum_post_form extends moodleform {
         if (isset($post->edit)) { // hack alert
             $submit_string = get_string('savechanges');
         } else {
-            $submit_string = get_string('posttoscripting_forum', 'scripting_forum');
+            $submit_string = get_string('posttoscriptingforum', 'scriptingforum');
         }
 
         $this->add_action_buttons(true, $submit_string);
@@ -278,8 +278,8 @@ class mod_scripting_forum_post_form extends moodleform {
         $mform->addElement('hidden', 'course');
         $mform->setType('course', PARAM_INT);
 
-        $mform->addElement('hidden', 'scripting_forum');
-        $mform->setType('scripting_forum', PARAM_INT);
+        $mform->addElement('hidden', 'scriptingforum');
+        $mform->setType('scriptingforum', PARAM_INT);
 
         $mform->addElement('hidden', 'discussion');
         $mform->setType('discussion', PARAM_INT);
@@ -312,13 +312,13 @@ class mod_scripting_forum_post_form extends moodleform {
         if (($data['timeend']!=0) &&
             ($data['timestart']!=0) &&
             $data['timeend'] <= $data['timestart']) {
-            $errors['timeend'] = get_string('timestartenderror', 'scripting_forum');
+            $errors['timeend'] = get_string('timestartenderror', 'scriptingforum');
         }
         if (empty($data['message']['text'])) {
-            $errors['message'] = get_string('erroremptymessage', 'scripting_forum');
+            $errors['message'] = get_string('erroremptymessage', 'scriptingforum');
         }
         if (empty($data['subject'])) {
-            $errors['subject'] = get_string('erroremptysubject', 'scripting_forum');
+            $errors['subject'] = get_string('erroremptysubject', 'scriptingforum');
         }
         return $errors;
     }

@@ -16,9 +16,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * External scripting_forum API
+ * External scriptingforum API
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @copyright  Geiser Chalco <geiser@usp.br>
  * @copyright  2012 Mark Nelson <markn@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -28,15 +28,15 @@ defined('MOODLE_INTERNAL') || die;
 
 require_once("$CFG->libdir/externallib.php");
 
-class mod_scripting_forum_external extends external_api {
+class mod_scriptingforum_external extends external_api {
 
     /**
-     * Describes the parameters for get_scripting_forum.
+     * Describes the parameters for get_scriptingforum.
      *
      * @return external_external_function_parameters
      * @since Moodle 2.5
      */
-    public static function get_scripting_forums_by_courses_parameters() {
+    public static function get_scriptingforums_by_courses_parameters() {
         return new external_function_parameters (
             array(
                 'courseids' => new external_multiple_structure(new external_value(PARAM_INT, 'course ID',
@@ -46,20 +46,20 @@ class mod_scripting_forum_external extends external_api {
     }
 
     /**
-     * Returns a list of scripting_forums in a provided list of courses,
-     * if no list is provided all scripting_forums that the user can view
+     * Returns a list of scriptingforums in a provided list of courses,
+     * if no list is provided all scriptingforums that the user can view
      * will be returned.
      *
      * @param array $courseids the course ids
-     * @return array the scripting_forum details
+     * @return array the scriptingforum details
      * @since Moodle 2.5
      */
-    public static function get_scripting_forums_by_courses($courseids = array()) {
+    public static function get_scriptingforums_by_courses($courseids = array()) {
         global $CFG;
 
-        require_once($CFG->dirroot . "/mod/scripting_forum/lib.php");
+        require_once($CFG->dirroot . "/mod/scriptingforum/lib.php");
 
-        $params = self::validate_parameters(self::get_scripting_forums_by_courses_parameters(), array('courseids' => $courseids));
+        $params = self::validate_parameters(self::get_scriptingforums_by_courses_parameters(), array('courseids' => $courseids));
 
         $courses = array();
         if (empty($params['courseids'])) {
@@ -67,8 +67,8 @@ class mod_scripting_forum_external extends external_api {
             $params['courseids'] = array_keys($courses);
         }
 
-        // Array to store the scripting_forums to return.
-        $arrscripting_forums = array();
+        // Array to store the scriptingforums to return.
+        $arrscriptingforums = array();
         $warnings = array();
 
         // Ensure there are courseids to loop through.
@@ -76,51 +76,51 @@ class mod_scripting_forum_external extends external_api {
 
             list($courses, $warnings) = external_util::validate_courses($params['courseids'], $courses);
 
-            // Get the scripting_forums in this course. This function checks users visibility permissions.
-            $scripting_forums = get_all_instances_in_courses("scripting_forum", $courses);
-            foreach ($scripting_forums as $scripting_forum) {
+            // Get the scriptingforums in this course. This function checks users visibility permissions.
+            $scriptingforums = get_all_instances_in_courses("scriptingforum", $courses);
+            foreach ($scriptingforums as $scriptingforum) {
 
-                $course = $courses[$scripting_forum->course];
-                $cm = get_coursemodule_from_instance('scripting_forum', $scripting_forum->id, $course->id);
+                $course = $courses[$scriptingforum->course];
+                $cm = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id, $course->id);
                 $context = context_module::instance($cm->id);
 
-                // Skip scripting_forums we are not allowed to see discussions.
-                if (!has_capability('mod/scripting_forum:viewdiscussion', $context)) {
+                // Skip scriptingforums we are not allowed to see discussions.
+                if (!has_capability('mod/scriptingforum:viewdiscussion', $context)) {
                     continue;
                 }
 
-                $scripting_forum->name = external_format_string($scripting_forum->name, $context->id);
+                $scriptingforum->name = external_format_string($scriptingforum->name, $context->id);
                 // Format the intro before being returning using the format setting.
-                list($scripting_forum->intro, $scripting_forum->introformat) = external_format_text($scripting_forum->intro, $scripting_forum->introformat,
-                                                                                $context->id, 'mod_scripting_forum', 'intro', 0);
+                list($scriptingforum->intro, $scriptingforum->introformat) = external_format_text($scriptingforum->intro, $scriptingforum->introformat,
+                                                                                $context->id, 'mod_scriptingforum', 'intro', 0);
                 // Discussions count. This function does static request cache.
-                $scripting_forum->numdiscussions = scripting_forum_count_discussions($scripting_forum, $cm, $course);
-                $scripting_forum->cmid = $scripting_forum->coursemodule;
-                $scripting_forum->cancreatediscussions = scripting_forum_user_can_post_discussion($scripting_forum, null, -1, $cm, $context);
+                $scriptingforum->numdiscussions = scriptingforum_count_discussions($scriptingforum, $cm, $course);
+                $scriptingforum->cmid = $scriptingforum->coursemodule;
+                $scriptingforum->cancreatediscussions = scriptingforum_user_can_post_discussion($scriptingforum, null, -1, $cm, $context);
 
-                // Add the scripting_forum to the array to return.
-                $arrscripting_forums[$scripting_forum->id] = $scripting_forum;
+                // Add the scriptingforum to the array to return.
+                $arrscriptingforums[$scriptingforum->id] = $scriptingforum;
             }
         }
 
-        return $arrscripting_forums;
+        return $arrscriptingforums;
     }
 
     /**
-     * Describes the get_scripting_forum return value.
+     * Describes the get_scriptingforum return value.
      *
      * @return external_single_structure
      * @since Moodle 2.5
      */
-     public static function get_scripting_forums_by_courses_returns() {
+     public static function get_scriptingforums_by_courses_returns() {
         return new external_multiple_structure(
             new external_single_structure(
                 array(
                     'id' => new external_value(PARAM_INT, 'Forum id'),
                     'course' => new external_value(PARAM_INT, 'Course id'),
-                    'type' => new external_value(PARAM_TEXT, 'The scripting_forum type'),
+                    'type' => new external_value(PARAM_TEXT, 'The scriptingforum type'),
                     'name' => new external_value(PARAM_RAW, 'Forum name'),
-                    'intro' => new external_value(PARAM_RAW, 'The scripting_forum intro'),
+                    'intro' => new external_value(PARAM_RAW, 'The scriptingforum intro'),
                     'introformat' => new external_format_value('intro'),
                     'assessed' => new external_value(PARAM_INT, 'Aggregate type'),
                     'assesstimestart' => new external_value(PARAM_INT, 'Assess start time'),
@@ -140,20 +140,20 @@ class mod_scripting_forum_external extends external_api {
                     'completionreplies' => new external_value(PARAM_INT, 'Student must post replies'),
                     'completionposts' => new external_value(PARAM_INT, 'Student must post discussions or replies'),
                     'cmid' => new external_value(PARAM_INT, 'Course module id'),
-                    'numdiscussions' => new external_value(PARAM_INT, 'Number of discussions in the scripting_forum', VALUE_OPTIONAL),
+                    'numdiscussions' => new external_value(PARAM_INT, 'Number of discussions in the scriptingforum', VALUE_OPTIONAL),
                     'cancreatediscussions' => new external_value(PARAM_BOOL, 'If the user can create discussions', VALUE_OPTIONAL),
-                ), 'scripting_forum'
+                ), 'scriptingforum'
             )
         );
     }
 
     /**
-     * Describes the parameters for get_scripting_forum_discussion_posts.
+     * Describes the parameters for get_scriptingforum_discussion_posts.
      *
      * @return external_external_function_parameters
      * @since Moodle 2.7
      */
-    public static function get_scripting_forum_discussion_posts_parameters() {
+    public static function get_scriptingforum_discussion_posts_parameters() {
         return new external_function_parameters (
             array(
                 'discussionid' => new external_value(PARAM_INT, 'discussion ID', VALUE_REQUIRED),
@@ -165,23 +165,23 @@ class mod_scripting_forum_external extends external_api {
     }
 
     /**
-     * Returns a list of scripting_forum posts for a discussion
+     * Returns a list of scriptingforum posts for a discussion
      *
      * @param int $discussionid the post ids
      * @param string $sortby sort by this element (id, created or modified)
      * @param string $sortdirection sort direction: ASC or DESC
      *
-     * @return array the scripting_forum post details
+     * @return array the scriptingforum post details
      * @since Moodle 2.7
      */
-    public static function get_scripting_forum_discussion_posts($discussionid, $sortby = "created", $sortdirection = "DESC") {
+    public static function get_scriptingforum_discussion_posts($discussionid, $sortby = "created", $sortdirection = "DESC") {
         global $CFG, $DB, $USER, $PAGE;
 
         $posts = array();
         $warnings = array();
 
         // Validate the parameter.
-        $params = self::validate_parameters(self::get_scripting_forum_discussion_posts_parameters(),
+        $params = self::validate_parameters(self::get_scriptingforum_discussion_posts_parameters(),
             array(
                 'discussionid' => $discussionid,
                 'sortby' => $sortby,
@@ -205,43 +205,43 @@ class mod_scripting_forum_external extends external_api {
                 'allowed values are: ' . implode(',', $directionallowedvalues));
         }
 
-        $discussion = $DB->get_record('scripting_forum_discussions', array('id' => $discussionid), '*', MUST_EXIST);
-        $scripting_forum = $DB->get_record('scripting_forum', array('id' => $discussion->scripting_forum), '*', MUST_EXIST);
-        $course = $DB->get_record('course', array('id' => $scripting_forum->course), '*', MUST_EXIST);
-        $cm = get_coursemodule_from_instance('scripting_forum', $scripting_forum->id, $course->id, false, MUST_EXIST);
+        $discussion = $DB->get_record('scriptingforum_discussions', array('id' => $discussionid), '*', MUST_EXIST);
+        $scriptingforum = $DB->get_record('scriptingforum', array('id' => $discussion->scriptingforum), '*', MUST_EXIST);
+        $course = $DB->get_record('course', array('id' => $scriptingforum->course), '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id, $course->id, false, MUST_EXIST);
 
         // Validate the module context. It checks everything that affects the module visibility (including groupings, etc..).
         $modcontext = context_module::instance($cm->id);
         self::validate_context($modcontext);
 
-        // This require must be here, see mod/scripting_forum/discuss.php.
-        require_once($CFG->dirroot . "/mod/scripting_forum/lib.php");
+        // This require must be here, see mod/scriptingforum/discuss.php.
+        require_once($CFG->dirroot . "/mod/scriptingforum/lib.php");
 
-        // Check they have the view scripting_forum capability.
-        require_capability('mod/scripting_forum:viewdiscussion', $modcontext, null, true, 'noviewdiscussionspermission', 'scripting_forum');
+        // Check they have the view scriptingforum capability.
+        require_capability('mod/scriptingforum:viewdiscussion', $modcontext, null, true, 'noviewdiscussionspermission', 'scriptingforum');
 
-        if (! $post = scripting_forum_get_post_full($discussion->firstpost)) {
-            throw new moodle_exception('notexists', 'scripting_forum');
+        if (! $post = scriptingforum_get_post_full($discussion->firstpost)) {
+            throw new moodle_exception('notexists', 'scriptingforum');
         }
 
         // This function check groups, qanda, timed discussions, etc.
-        if (!scripting_forum_user_can_see_post($scripting_forum, $discussion, $post, null, $cm)) {
-            throw new moodle_exception('noviewdiscussionspermission', 'scripting_forum');
+        if (!scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, null, $cm)) {
+            throw new moodle_exception('noviewdiscussionspermission', 'scriptingforum');
         }
 
         $canviewfullname = has_capability('moodle/site:viewfullnames', $modcontext);
 
         // We will add this field in the response.
-        $canreply = scripting_forum_user_can_post($scripting_forum, $discussion, $USER, $cm, $course, $modcontext);
+        $canreply = scriptingforum_user_can_post($scriptingforum, $discussion, $USER, $cm, $course, $modcontext);
 
-        $scripting_forumtracked = scripting_forum_tp_is_tracked($scripting_forum);
+        $scriptingforumtracked = scriptingforum_tp_is_tracked($scriptingforum);
 
         $sort = 'p.' . $sortby . ' ' . $sortdirection;
-        $allposts = scripting_forum_get_all_discussion_posts($discussion->id, $sort, $scripting_forumtracked);
+        $allposts = scriptingforum_get_all_discussion_posts($discussion->id, $sort, $scriptingforumtracked);
 
         foreach ($allposts as $post) {
 
-            if (!scripting_forum_user_can_see_post($scripting_forum, $discussion, $post, null, $cm)) {
+            if (!scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, null, $cm)) {
                 $warning = array();
                 $warning['item'] = 'post';
                 $warning['itemid'] = $post->id;
@@ -251,7 +251,7 @@ class mod_scripting_forum_external extends external_api {
                 continue;
             }
 
-            // Function scripting_forum_get_all_discussion_posts adds postread field.
+            // Function scriptingforum_get_all_discussion_posts adds postread field.
             // Note that the value returned can be a boolean or an integer. The WS expects a boolean.
             if (empty($post->postread)) {
                 $post->postread = false;
@@ -278,18 +278,18 @@ class mod_scripting_forum_external extends external_api {
             $post->subject = external_format_string($post->subject, $modcontext->id);
             // Rewrite embedded images URLs.
             list($post->message, $post->messageformat) =
-                external_format_text($post->message, $post->messageformat, $modcontext->id, 'mod_scripting_forum', 'post', $post->id);
+                external_format_text($post->message, $post->messageformat, $modcontext->id, 'mod_scriptingforum', 'post', $post->id);
 
             // List attachments.
             if (!empty($post->attachment)) {
                 $post->attachments = array();
 
                 $fs = get_file_storage();
-                if ($files = $fs->get_area_files($modcontext->id, 'mod_scripting_forum', 'attachment', $post->id, "filename", false)) {
+                if ($files = $fs->get_area_files($modcontext->id, 'mod_scriptingforum', 'attachment', $post->id, "filename", false)) {
                     foreach ($files as $file) {
                         $filename = $file->get_filename();
                         $fileurl = moodle_url::make_webservice_pluginfile_url(
-                                        $modcontext->id, 'mod_scripting_forum', 'attachment', $post->id, '/', $filename);
+                                        $modcontext->id, 'mod_scriptingforum', 'attachment', $post->id, '/', $filename);
 
                         $post->attachments[] = array(
                             'filename' => $filename,
@@ -310,12 +310,12 @@ class mod_scripting_forum_external extends external_api {
     }
 
     /**
-     * Describes the get_scripting_forum_discussion_posts return value.
+     * Describes the get_scriptingforum_discussion_posts return value.
      *
      * @return external_single_structure
      * @since Moodle 2.7
      */
-    public static function get_scripting_forum_discussion_posts_returns() {
+    public static function get_scriptingforum_discussion_posts_returns() {
         return new external_single_structure(
             array(
                 'posts' => new external_multiple_structure(
@@ -358,15 +358,15 @@ class mod_scripting_forum_external extends external_api {
     }
 
     /**
-     * Describes the parameters for get_scripting_forum_discussions_paginated.
+     * Describes the parameters for get_scriptingforum_discussions_paginated.
      *
      * @return external_external_function_parameters
      * @since Moodle 2.8
      */
-    public static function get_scripting_forum_discussions_paginated_parameters() {
+    public static function get_scriptingforum_discussions_paginated_parameters() {
         return new external_function_parameters (
             array(
-                'scripting_forumid' => new external_value(PARAM_INT, 'scripting_forum instance id', VALUE_REQUIRED),
+                'scriptingforumid' => new external_value(PARAM_INT, 'scriptingforum instance id', VALUE_REQUIRED),
                 'sortby' => new external_value(PARAM_ALPHA,
                     'sort by this element: id, timemodified, timestart or timeend', VALUE_DEFAULT, 'timemodified'),
                 'sortdirection' => new external_value(PARAM_ALPHA, 'sort direction: ASC or DESC', VALUE_DEFAULT, 'DESC'),
@@ -377,29 +377,29 @@ class mod_scripting_forum_external extends external_api {
     }
 
     /**
-     * Returns a list of scripting_forum discussions optionally sorted and paginated.
+     * Returns a list of scriptingforum discussions optionally sorted and paginated.
      *
-     * @param int $scripting_forumid the scripting_forum instance id
+     * @param int $scriptingforumid the scriptingforum instance id
      * @param string $sortby sort by this element (id, timemodified, timestart or timeend)
      * @param string $sortdirection sort direction: ASC or DESC
      * @param int $page page number
      * @param int $perpage items per page
      *
-     * @return array the scripting_forum discussion details including warnings
+     * @return array the scriptingforum discussion details including warnings
      * @since Moodle 2.8
      */
-    public static function get_scripting_forum_discussions_paginated($scripting_forumid, $sortby = 'timemodified', $sortdirection = 'DESC',
+    public static function get_scriptingforum_discussions_paginated($scriptingforumid, $sortby = 'timemodified', $sortdirection = 'DESC',
                                                     $page = -1, $perpage = 0) {
         global $CFG, $DB, $USER, $PAGE;
 
-        require_once($CFG->dirroot . "/mod/scripting_forum/lib.php");
+        require_once($CFG->dirroot . "/mod/scriptingforum/lib.php");
 
         $warnings = array();
         $discussions = array();
 
-        $params = self::validate_parameters(self::get_scripting_forum_discussions_paginated_parameters(),
+        $params = self::validate_parameters(self::get_scriptingforum_discussions_paginated_parameters(),
             array(
-                'scripting_forumid' => $scripting_forumid,
+                'scriptingforumid' => $scriptingforumid,
                 'sortby' => $sortby,
                 'sortdirection' => $sortdirection,
                 'page' => $page,
@@ -408,7 +408,7 @@ class mod_scripting_forum_external extends external_api {
         );
 
         // Compact/extract functions are not recommended.
-        $scripting_forumid        = $params['scripting_forumid'];
+        $scriptingforumid        = $params['scriptingforumid'];
         $sortby         = $params['sortby'];
         $sortdirection  = $params['sortdirection'];
         $page           = $params['page'];
@@ -427,42 +427,42 @@ class mod_scripting_forum_external extends external_api {
                 'allowed values are: ' . implode(',', $directionallowedvalues));
         }
 
-        $scripting_forum = $DB->get_record('scripting_forum', array('id' => $scripting_forumid), '*', MUST_EXIST);
-        $course = $DB->get_record('course', array('id' => $scripting_forum->course), '*', MUST_EXIST);
-        $cm = get_coursemodule_from_instance('scripting_forum', $scripting_forum->id, $course->id, false, MUST_EXIST);
+        $scriptingforum = $DB->get_record('scriptingforum', array('id' => $scriptingforumid), '*', MUST_EXIST);
+        $course = $DB->get_record('course', array('id' => $scriptingforum->course), '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id, $course->id, false, MUST_EXIST);
 
         // Validate the module context. It checks everything that affects the module visibility (including groupings, etc..).
         $modcontext = context_module::instance($cm->id);
         self::validate_context($modcontext);
 
-        // Check they have the view scripting_forum capability.
-        require_capability('mod/scripting_forum:viewdiscussion', $modcontext, null, true, 'noviewdiscussionspermission', 'scripting_forum');
+        // Check they have the view scriptingforum capability.
+        require_capability('mod/scriptingforum:viewdiscussion', $modcontext, null, true, 'noviewdiscussionspermission', 'scriptingforum');
 
         $sort = 'd.pinned DESC, d.' . $sortby . ' ' . $sortdirection;
-        $alldiscussions = scripting_forum_get_discussions($cm, $sort, true, -1, -1, true, $page, $perpage, FORUM_POSTS_ALL_USER_GROUPS);
+        $alldiscussions = scriptingforum_get_discussions($cm, $sort, true, -1, -1, true, $page, $perpage, FORUM_POSTS_ALL_USER_GROUPS);
 
         if ($alldiscussions) {
             $canviewfullname = has_capability('moodle/site:viewfullnames', $modcontext);
 
-            // Get the unreads array, this takes a scripting_forum id and returns data for all discussions.
+            // Get the unreads array, this takes a scriptingforum id and returns data for all discussions.
             $unreads = array();
-            if ($cantrack = scripting_forum_tp_can_track_scripting_forums($scripting_forum)) {
-                if ($scripting_forumtracked = scripting_forum_tp_is_tracked($scripting_forum)) {
-                    $unreads = scripting_forum_get_discussions_unread($cm);
+            if ($cantrack = scriptingforum_tp_can_track_scriptingforums($scriptingforum)) {
+                if ($scriptingforumtracked = scriptingforum_tp_is_tracked($scriptingforum)) {
+                    $unreads = scriptingforum_get_discussions_unread($cm);
                 }
             }
-            // The scripting_forum function returns the replies for all the discussions in a given scripting_forum.
-            $replies = scripting_forum_count_discussion_replies($scripting_forumid, $sort, -1, $page, $perpage);
+            // The scriptingforum function returns the replies for all the discussions in a given scriptingforum.
+            $replies = scriptingforum_count_discussion_replies($scriptingforumid, $sort, -1, $page, $perpage);
 
             foreach ($alldiscussions as $discussion) {
 
-                // This function checks for qanda scripting_forums.
-                // Note that the scripting_forum_get_discussions returns as id the post id, not the discussion id so we need to do this.
+                // This function checks for qanda scriptingforums.
+                // Note that the scriptingforum_get_discussions returns as id the post id, not the discussion id so we need to do this.
                 $discussionrec = clone $discussion;
                 $discussionrec->id = $discussion->discussion;
-                if (!scripting_forum_user_can_see_discussion($scripting_forum, $discussionrec, $modcontext)) {
+                if (!scriptingforum_user_can_see_discussion($scriptingforum, $discussionrec, $modcontext)) {
                     $warning = array();
-                    // Function scripting_forum_get_discussions returns scripting_forum_posts ids not scripting_forum_discussions ones.
+                    // Function scriptingforum_get_discussions returns scriptingforum_posts ids not scriptingforum_discussions ones.
                     $warning['item'] = 'post';
                     $warning['itemid'] = $discussion->id;
                     $warning['warningcode'] = '1';
@@ -472,7 +472,7 @@ class mod_scripting_forum_external extends external_api {
                 }
 
                 $discussion->numunread = 0;
-                if ($cantrack && $scripting_forumtracked) {
+                if ($cantrack && $scriptingforumtracked) {
                     if (isset($unreads[$discussion->discussion])) {
                         $discussion->numunread = (int) $unreads[$discussion->discussion];
                     }
@@ -513,14 +513,14 @@ class mod_scripting_forum_external extends external_api {
                 // Rewrite embedded images URLs.
                 list($discussion->message, $discussion->messageformat) =
                     external_format_text($discussion->message, $discussion->messageformat,
-                                            $modcontext->id, 'mod_scripting_forum', 'post', $discussion->id);
+                                            $modcontext->id, 'mod_scriptingforum', 'post', $discussion->id);
 
                 // List attachments.
                 if (!empty($discussion->attachment)) {
                     $discussion->attachments = array();
 
                     $fs = get_file_storage();
-                    if ($files = $fs->get_area_files($modcontext->id, 'mod_scripting_forum', 'attachment',
+                    if ($files = $fs->get_area_files($modcontext->id, 'mod_scriptingforum', 'attachment',
                                                         $discussion->id, "filename", false)) {
                         foreach ($files as $file) {
                             $filename = $file->get_filename();
@@ -529,7 +529,7 @@ class mod_scripting_forum_external extends external_api {
                                 'filename' => $filename,
                                 'mimetype' => $file->get_mimetype(),
                                 'fileurl'  => file_encode_url($CFG->wwwroot.'/webservice/pluginfile.php',
-                                                '/'.$modcontext->id.'/mod_scripting_forum/attachment/'.$discussion->id.'/'.$filename)
+                                                '/'.$modcontext->id.'/mod_scriptingforum/attachment/'.$discussion->id.'/'.$filename)
                             );
                         }
                     }
@@ -547,12 +547,12 @@ class mod_scripting_forum_external extends external_api {
     }
 
     /**
-     * Describes the get_scripting_forum_discussions_paginated return value.
+     * Describes the get_scriptingforum_discussions_paginated return value.
      *
      * @return external_single_structure
      * @since Moodle 2.8
      */
-    public static function get_scripting_forum_discussions_paginated_returns() {
+    public static function get_scriptingforum_discussions_paginated_returns() {
         return new external_single_structure(
             array(
                 'discussions' => new external_multiple_structure(
@@ -608,10 +608,10 @@ class mod_scripting_forum_external extends external_api {
      * @return external_function_parameters
      * @since Moodle 2.9
      */
-    public static function view_scripting_forum_parameters() {
+    public static function view_scriptingforum_parameters() {
         return new external_function_parameters(
             array(
-                'scripting_forumid' => new external_value(PARAM_INT, 'scripting_forum instance id')
+                'scriptingforumid' => new external_value(PARAM_INT, 'scriptingforum instance id')
             )
         );
     }
@@ -619,32 +619,32 @@ class mod_scripting_forum_external extends external_api {
     /**
      * Trigger the course module viewed event and update the module completion status.
      *
-     * @param int $scripting_forumid the scripting_forum instance id
+     * @param int $scriptingforumid the scriptingforum instance id
      * @return array of warnings and status result
      * @since Moodle 2.9
      * @throws moodle_exception
      */
-    public static function view_scripting_forum($scripting_forumid) {
+    public static function view_scriptingforum($scriptingforumid) {
         global $DB, $CFG;
-        require_once($CFG->dirroot . "/mod/scripting_forum/lib.php");
+        require_once($CFG->dirroot . "/mod/scriptingforum/lib.php");
 
-        $params = self::validate_parameters(self::view_scripting_forum_parameters(),
+        $params = self::validate_parameters(self::view_scriptingforum_parameters(),
                                             array(
-                                                'scripting_forumid' => $scripting_forumid
+                                                'scriptingforumid' => $scriptingforumid
                                             ));
         $warnings = array();
 
         // Request and permission validation.
-        $scripting_forum = $DB->get_record('scripting_forum', array('id' => $params['scripting_forumid']), '*', MUST_EXIST);
-        list($course, $cm) = get_course_and_cm_from_instance($scripting_forum, 'scripting_forum');
+        $scriptingforum = $DB->get_record('scriptingforum', array('id' => $params['scriptingforumid']), '*', MUST_EXIST);
+        list($course, $cm) = get_course_and_cm_from_instance($scriptingforum, 'scriptingforum');
 
         $context = context_module::instance($cm->id);
         self::validate_context($context);
 
-        require_capability('mod/scripting_forum:viewdiscussion', $context, null, true, 'noviewdiscussionspermission', 'scripting_forum');
+        require_capability('mod/scriptingforum:viewdiscussion', $context, null, true, 'noviewdiscussionspermission', 'scriptingforum');
 
-        // Call the scripting_forum/lib API.
-        scripting_forum_view($scripting_forum, $course, $cm, $context);
+        // Call the scriptingforum/lib API.
+        scriptingforum_view($scriptingforum, $course, $cm, $context);
 
         $result = array();
         $result['status'] = true;
@@ -658,7 +658,7 @@ class mod_scripting_forum_external extends external_api {
      * @return external_description
      * @since Moodle 2.9
      */
-    public static function view_scripting_forum_returns() {
+    public static function view_scriptingforum_returns() {
         return new external_single_structure(
             array(
                 'status' => new external_value(PARAM_BOOL, 'status: true if success'),
@@ -673,7 +673,7 @@ class mod_scripting_forum_external extends external_api {
      * @return external_function_parameters
      * @since Moodle 2.9
      */
-    public static function view_scripting_forum_discussion_parameters() {
+    public static function view_scriptingforum_discussion_parameters() {
         return new external_function_parameters(
             array(
                 'discussionid' => new external_value(PARAM_INT, 'discussion id')
@@ -689,28 +689,28 @@ class mod_scripting_forum_external extends external_api {
      * @since Moodle 2.9
      * @throws moodle_exception
      */
-    public static function view_scripting_forum_discussion($discussionid) {
+    public static function view_scriptingforum_discussion($discussionid) {
         global $DB, $CFG;
-        require_once($CFG->dirroot . "/mod/scripting_forum/lib.php");
+        require_once($CFG->dirroot . "/mod/scriptingforum/lib.php");
 
-        $params = self::validate_parameters(self::view_scripting_forum_discussion_parameters(),
+        $params = self::validate_parameters(self::view_scriptingforum_discussion_parameters(),
                                             array(
                                                 'discussionid' => $discussionid
                                             ));
         $warnings = array();
 
-        $discussion = $DB->get_record('scripting_forum_discussions', array('id' => $params['discussionid']), '*', MUST_EXIST);
-        $scripting_forum = $DB->get_record('scripting_forum', array('id' => $discussion->scripting_forum), '*', MUST_EXIST);
-        list($course, $cm) = get_course_and_cm_from_instance($scripting_forum, 'scripting_forum');
+        $discussion = $DB->get_record('scriptingforum_discussions', array('id' => $params['discussionid']), '*', MUST_EXIST);
+        $scriptingforum = $DB->get_record('scriptingforum', array('id' => $discussion->scriptingforum), '*', MUST_EXIST);
+        list($course, $cm) = get_course_and_cm_from_instance($scriptingforum, 'scriptingforum');
 
         // Validate the module context. It checks everything that affects the module visibility (including groupings, etc..).
         $modcontext = context_module::instance($cm->id);
         self::validate_context($modcontext);
 
-        require_capability('mod/scripting_forum:viewdiscussion', $modcontext, null, true, 'noviewdiscussionspermission', 'scripting_forum');
+        require_capability('mod/scriptingforum:viewdiscussion', $modcontext, null, true, 'noviewdiscussionspermission', 'scriptingforum');
 
-        // Call the scripting_forum/lib API.
-        scripting_forum_discussion_view($modcontext, $scripting_forum, $discussion);
+        // Call the scriptingforum/lib API.
+        scriptingforum_discussion_view($modcontext, $scriptingforum, $discussion);
 
         $result = array();
         $result['status'] = true;
@@ -724,7 +724,7 @@ class mod_scripting_forum_external extends external_api {
      * @return external_description
      * @since Moodle 2.9
      */
-    public static function view_scripting_forum_discussion_returns() {
+    public static function view_scriptingforum_discussion_returns() {
         return new external_single_structure(
             array(
                 'status' => new external_value(PARAM_BOOL, 'status: true if success'),
@@ -777,7 +777,7 @@ class mod_scripting_forum_external extends external_api {
      */
     public static function add_discussion_post($postid, $subject, $message, $options = array()) {
         global $DB, $CFG, $USER;
-        require_once($CFG->dirroot . "/mod/scripting_forum/lib.php");
+        require_once($CFG->dirroot . "/mod/scriptingforum/lib.php");
 
         $params = self::validate_parameters(self::add_discussion_post_parameters(),
                                             array(
@@ -812,27 +812,27 @@ class mod_scripting_forum_external extends external_api {
 
         $warnings = array();
 
-        if (!$parent = scripting_forum_get_post_full($params['postid'])) {
-            throw new moodle_exception('invalidparentpostid', 'scripting_forum');
+        if (!$parent = scriptingforum_get_post_full($params['postid'])) {
+            throw new moodle_exception('invalidparentpostid', 'scriptingforum');
         }
 
-        if (!$discussion = $DB->get_record("scripting_forum_discussions", array("id" => $parent->discussion))) {
-            throw new moodle_exception('notpartofdiscussion', 'scripting_forum');
+        if (!$discussion = $DB->get_record("scriptingforum_discussions", array("id" => $parent->discussion))) {
+            throw new moodle_exception('notpartofdiscussion', 'scriptingforum');
         }
 
         // Request and permission validation.
-        $scripting_forum = $DB->get_record('scripting_forum', array('id' => $discussion->scripting_forum), '*', MUST_EXIST);
-        list($course, $cm) = get_course_and_cm_from_instance($scripting_forum, 'scripting_forum');
+        $scriptingforum = $DB->get_record('scriptingforum', array('id' => $discussion->scriptingforum), '*', MUST_EXIST);
+        list($course, $cm) = get_course_and_cm_from_instance($scriptingforum, 'scriptingforum');
 
         $context = context_module::instance($cm->id);
         self::validate_context($context);
 
-        if (!scripting_forum_user_can_post($scripting_forum, $discussion, $USER, $cm, $course, $context)) {
-            throw new moodle_exception('nopostscripting_forum', 'scripting_forum');
+        if (!scriptingforum_user_can_post($scriptingforum, $discussion, $USER, $cm, $course, $context)) {
+            throw new moodle_exception('nopostscriptingforum', 'scriptingforum');
         }
 
-        $thresholdwarning = scripting_forum_check_throttling($scripting_forum, $cm);
-        scripting_forum_check_blocking_threshold($thresholdwarning);
+        $thresholdwarning = scriptingforum_check_throttling($scriptingforum, $cm);
+        scriptingforum_check_blocking_threshold($thresholdwarning);
 
         // Create the post.
         $post = new stdClass();
@@ -845,7 +845,7 @@ class mod_scripting_forum_external extends external_api {
         $post->itemid = $options['inlineattachmentsid'];
         $post->attachments   = $options['attachmentsid'];
         $fakemform = $post->attachments;
-        if ($postid = scripting_forum_add_new_post($post, $fakemform)) {
+        if ($postid = scriptingforum_add_new_post($post, $fakemform)) {
 
             $post->id = $postid;
 
@@ -855,27 +855,27 @@ class mod_scripting_forum_external extends external_api {
                 'objectid' => $post->id,
                 'other' => array(
                     'discussionid' => $discussion->id,
-                    'scripting_forumid' => $scripting_forum->id,
-                    'scripting_forumtype' => $scripting_forum->type,
+                    'scriptingforumid' => $scriptingforum->id,
+                    'scriptingforumtype' => $scriptingforum->type,
                 )
             );
-            $event = \mod_scripting_forum\event\post_created::create($params);
-            $event->add_record_snapshot('scripting_forum_posts', $post);
-            $event->add_record_snapshot('scripting_forum_discussions', $discussion);
+            $event = \mod_scriptingforum\event\post_created::create($params);
+            $event->add_record_snapshot('scriptingforum_posts', $post);
+            $event->add_record_snapshot('scriptingforum_discussions', $discussion);
             $event->trigger();
 
             // Update completion state.
             $completion = new completion_info($course);
             if ($completion->is_enabled($cm) &&
-                    ($scripting_forum->completionreplies || $scripting_forum->completionposts)) {
+                    ($scriptingforum->completionreplies || $scriptingforum->completionposts)) {
                 $completion->update_state($cm, COMPLETION_COMPLETE);
             }
 
             $settings = new stdClass();
             $settings->discussionsubscribe = $options['discussionsubscribe'];
-            scripting_forum_post_subscription($settings, $scripting_forum, $discussion);
+            scriptingforum_post_subscription($settings, $scriptingforum, $discussion);
         } else {
-            throw new moodle_exception('couldnotadd', 'scripting_forum');
+            throw new moodle_exception('couldnotadd', 'scriptingforum');
         }
 
         $result = array();
@@ -908,7 +908,7 @@ class mod_scripting_forum_external extends external_api {
     public static function add_discussion_parameters() {
         return new external_function_parameters(
             array(
-                'scripting_forumid' => new external_value(PARAM_INT, 'Forum instance ID'),
+                'scriptingforumid' => new external_value(PARAM_INT, 'Forum instance ID'),
                 'subject' => new external_value(PARAM_TEXT, 'New Discussion subject'),
                 'message' => new external_value(PARAM_RAW, 'New Discussion message (only html format allowed)'),
                 'groupid' => new external_value(PARAM_INT, 'The group, default to -1', VALUE_DEFAULT, -1),
@@ -932,9 +932,9 @@ class mod_scripting_forum_external extends external_api {
     }
 
     /**
-     * Add a new discussion into an existing scripting_forum.
+     * Add a new discussion into an existing scriptingforum.
      *
-     * @param int $scripting_forumid the scripting_forum instance id
+     * @param int $scriptingforumid the scriptingforum instance id
      * @param string $subject new discussion subject
      * @param string $message new discussion message (only html format allowed)
      * @param int $groupid the user course group
@@ -943,13 +943,13 @@ class mod_scripting_forum_external extends external_api {
      * @since Moodle 3.0
      * @throws moodle_exception
      */
-    public static function add_discussion($scripting_forumid, $subject, $message, $groupid = -1, $options = array()) {
+    public static function add_discussion($scriptingforumid, $subject, $message, $groupid = -1, $options = array()) {
         global $DB, $CFG;
-        require_once($CFG->dirroot . "/mod/scripting_forum/lib.php");
+        require_once($CFG->dirroot . "/mod/scriptingforum/lib.php");
 
         $params = self::validate_parameters(self::add_discussion_parameters(),
                                             array(
-                                                'scripting_forumid' => $scripting_forumid,
+                                                'scriptingforumid' => $scriptingforumid,
                                                 'subject' => $subject,
                                                 'message' => $message,
                                                 'groupid' => $groupid,
@@ -986,8 +986,8 @@ class mod_scripting_forum_external extends external_api {
         $warnings = array();
 
         // Request and permission validation.
-        $scripting_forum = $DB->get_record('scripting_forum', array('id' => $params['scripting_forumid']), '*', MUST_EXIST);
-        list($course, $cm) = get_course_and_cm_from_instance($scripting_forum, 'scripting_forum');
+        $scriptingforum = $DB->get_record('scriptingforum', array('id' => $params['scriptingforumid']), '*', MUST_EXIST);
+        list($course, $cm) = get_course_and_cm_from_instance($scriptingforum, 'scriptingforum');
 
         $context = context_module::instance($cm->id);
         self::validate_context($context);
@@ -1002,22 +1002,22 @@ class mod_scripting_forum_external extends external_api {
             if ($groupid === -1 or empty($params['groupid'])) {
                 $groupid = groups_get_activity_group($cm);
             } else {
-                // Here we rely in the group passed, scripting_forum_user_can_post_discussion will validate the group.
+                // Here we rely in the group passed, scriptingforum_user_can_post_discussion will validate the group.
                 $groupid = $params['groupid'];
             }
         }
 
-        if (!scripting_forum_user_can_post_discussion($scripting_forum, $groupid, -1, $cm, $context)) {
-            throw new moodle_exception('cannotcreatediscussion', 'scripting_forum');
+        if (!scriptingforum_user_can_post_discussion($scriptingforum, $groupid, -1, $cm, $context)) {
+            throw new moodle_exception('cannotcreatediscussion', 'scriptingforum');
         }
 
-        $thresholdwarning = scripting_forum_check_throttling($scripting_forum, $cm);
-        scripting_forum_check_blocking_threshold($thresholdwarning);
+        $thresholdwarning = scriptingforum_check_throttling($scriptingforum, $cm);
+        scriptingforum_check_blocking_threshold($thresholdwarning);
 
         // Create the discussion.
         $discussion = new stdClass();
         $discussion->course = $course->id;
-        $discussion->scripting_forum = $scripting_forum->id;
+        $discussion->scriptingforum = $scriptingforum->id;
         $discussion->message = $params['message'];
         $discussion->messageformat = FORMAT_HTML;   // Force formatting for now.
         $discussion->messagetrust = trusttext_trusted($context);
@@ -1030,13 +1030,13 @@ class mod_scripting_forum_external extends external_api {
         $discussion->timeend = 0;
         $discussion->attachments = $options['attachmentsid'];
 
-        if (has_capability('mod/scripting_forum:pindiscussions', $context) && $options['discussionpinned']) {
+        if (has_capability('mod/scriptingforum:pindiscussions', $context) && $options['discussionpinned']) {
             $discussion->pinned = FORUM_DISCUSSION_PINNED;
         } else {
             $discussion->pinned = FORUM_DISCUSSION_UNPINNED;
         }
         $fakemform = $options['attachmentsid'];
-        if ($discussionid = scripting_forum_add_discussion($discussion, $fakemform)) {
+        if ($discussionid = scriptingforum_add_discussion($discussion, $fakemform)) {
 
             $discussion->id = $discussionid;
 
@@ -1046,24 +1046,24 @@ class mod_scripting_forum_external extends external_api {
                 'context' => $context,
                 'objectid' => $discussion->id,
                 'other' => array(
-                    'scripting_forumid' => $scripting_forum->id,
+                    'scriptingforumid' => $scriptingforum->id,
                 )
             );
-            $event = \mod_scripting_forum\event\discussion_created::create($params);
-            $event->add_record_snapshot('scripting_forum_discussions', $discussion);
+            $event = \mod_scriptingforum\event\discussion_created::create($params);
+            $event->add_record_snapshot('scriptingforum_discussions', $discussion);
             $event->trigger();
 
             $completion = new completion_info($course);
             if ($completion->is_enabled($cm) &&
-                    ($scripting_forum->completiondiscussions || $scripting_forum->completionposts)) {
+                    ($scriptingforum->completiondiscussions || $scriptingforum->completionposts)) {
                 $completion->update_state($cm, COMPLETION_COMPLETE);
             }
 
             $settings = new stdClass();
             $settings->discussionsubscribe = $options['discussionsubscribe'];
-            scripting_forum_post_subscription($settings, $scripting_forum, $discussion);
+            scriptingforum_post_subscription($settings, $scriptingforum, $discussion);
         } else {
-            throw new moodle_exception('couldnotadd', 'scripting_forum');
+            throw new moodle_exception('couldnotadd', 'scriptingforum');
         }
 
         $result = array();
@@ -1096,7 +1096,7 @@ class mod_scripting_forum_external extends external_api {
     public static function can_add_discussion_parameters() {
         return new external_function_parameters(
             array(
-                'scripting_forumid' => new external_value(PARAM_INT, 'Forum instance ID'),
+                'scriptingforumid' => new external_value(PARAM_INT, 'Forum instance ID'),
                 'groupid' => new external_value(PARAM_INT, 'The group to check, default to active group.
                                                 Use -1 to check if the user can post in all the groups.', VALUE_DEFAULT, null)
             )
@@ -1104,33 +1104,33 @@ class mod_scripting_forum_external extends external_api {
     }
 
     /**
-     * Check if the current user can add discussions in the given scripting_forum (and optionally for the given group).
+     * Check if the current user can add discussions in the given scriptingforum (and optionally for the given group).
      *
-     * @param int $scripting_forumid the scripting_forum instance id
+     * @param int $scriptingforumid the scriptingforum instance id
      * @param int $groupid the group to check, default to active group. Use -1 to check if the user can post in all the groups.
      * @return array of warnings and the status (true if the user can add discussions)
      * @since Moodle 3.1
      * @throws moodle_exception
      */
-    public static function can_add_discussion($scripting_forumid, $groupid = null) {
+    public static function can_add_discussion($scriptingforumid, $groupid = null) {
         global $DB, $CFG;
-        require_once($CFG->dirroot . "/mod/scripting_forum/lib.php");
+        require_once($CFG->dirroot . "/mod/scriptingforum/lib.php");
 
         $params = self::validate_parameters(self::can_add_discussion_parameters(),
                                             array(
-                                                'scripting_forumid' => $scripting_forumid,
+                                                'scriptingforumid' => $scriptingforumid,
                                                 'groupid' => $groupid,
                                             ));
         $warnings = array();
 
         // Request and permission validation.
-        $scripting_forum = $DB->get_record('scripting_forum', array('id' => $params['scripting_forumid']), '*', MUST_EXIST);
-        list($course, $cm) = get_course_and_cm_from_instance($scripting_forum, 'scripting_forum');
+        $scriptingforum = $DB->get_record('scriptingforum', array('id' => $params['scriptingforumid']), '*', MUST_EXIST);
+        list($course, $cm) = get_course_and_cm_from_instance($scriptingforum, 'scriptingforum');
 
         $context = context_module::instance($cm->id);
         self::validate_context($context);
 
-        $status = scripting_forum_user_can_post_discussion($scripting_forum, $params['groupid'], -1, $cm, $context);
+        $status = scriptingforum_user_can_post_discussion($scriptingforum, $params['groupid'], -1, $cm, $context);
 
         $result = array();
         $result['status'] = $status;
@@ -1154,3 +1154,4 @@ class mod_scripting_forum_external extends external_api {
     }
 
 }
+

@@ -18,7 +18,7 @@
 /**
  * Edit and save a new post to a discussion
  *
- * @package   mod_scripting_forum
+ * @package   mod_scriptingforum
  * @copyright 2016 Geiser Chalco {@link http://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -29,7 +29,7 @@ require_once('lib.php');
 require_once($CFG->libdir.'/completionlib.php');
 
 $reply   = optional_param('reply', 0, PARAM_INT);
-$scripting_forum = optional_param('scripting_forum', 0, PARAM_INT);
+$scriptingforum = optional_param('scriptingforum', 0, PARAM_INT);
 $edit    = optional_param('edit', 0, PARAM_INT);
 $delete  = optional_param('delete', 0, PARAM_INT);
 $prune   = optional_param('prune', 0, PARAM_INT);
@@ -37,9 +37,9 @@ $name    = optional_param('name', '', PARAM_CLEAN);
 $confirm = optional_param('confirm', 0, PARAM_INT);
 $groupid = optional_param('groupid', null, PARAM_INT);
 
-$PAGE->set_url('/mod/scripting_forum/post.php', array(
+$PAGE->set_url('/mod/scriptingforum/post.php', array(
         'reply' => $reply,
-        'scripting_forum' => $scripting_forum,
+        'scriptingforum' => $scriptingforum,
         'edit'  => $edit,
         'delete'=> $delete,
         'prune' => $prune,
@@ -48,7 +48,7 @@ $PAGE->set_url('/mod/scripting_forum/post.php', array(
         'groupid'=>$groupid,
         ));
 //these page_params will be passed as hidden variables later in the form.
-$page_params = array('reply'=>$reply, 'scripting_forum'=>$scripting_forum, 'edit'=>$edit);
+$page_params = array('reply'=>$reply, 'scriptingforum'=>$scriptingforum, 'edit'=>$edit);
 
 $sitecontext = context_system::instance();
 
@@ -59,43 +59,43 @@ if (!isloggedin() or isguestuser()) {
         require_login();
     }
 
-    if (!empty($scripting_forum)) {      // User is starting a new discussion in a scripting_forum
-        if (! $scripting_forum = $DB->get_record('scripting_forum',
-                    array('id' => $scripting_forum))) {
-            print_error('invalidscripting_forumid', 'scripting_forum');
+    if (!empty($scriptingforum)) {      // User is starting a new discussion in a scriptingforum
+        if (! $scriptingforum = $DB->get_record('scriptingforum',
+                    array('id' => $scriptingforum))) {
+            print_error('invalidscriptingforumid', 'scriptingforum');
         }
     } else if (!empty($reply)) {      // User is writing a new reply
-        if (! $parent = scripting_forum_get_post_full($reply)) {
-            print_error('invalidparentpostid', 'scripting_forum');
+        if (! $parent = scriptingforum_get_post_full($reply)) {
+            print_error('invalidparentpostid', 'scriptingforum');
         }
-        if (! $discussion = $DB->get_record('scripting_forum_discussions',
+        if (! $discussion = $DB->get_record('scriptingforum_discussions',
                 array('id' => $parent->discussion))) {
-            print_error('notpartofdiscussion', 'scripting_forum');
+            print_error('notpartofdiscussion', 'scriptingforum');
         }
-        if (! $scripting_forum = $DB->get_record('scripting_forum',
+        if (! $scriptingforum = $DB->get_record('scriptingforum',
                 array('id' => $discussion->forum))) {
-            print_error('invalidscripting_forumid');
+            print_error('invalidscriptingforumid');
         }
     }
-    if (! $course = $DB->get_record('course', array('id' => $scripting_forum->course))) {
+    if (! $course = $DB->get_record('course', array('id' => $scriptingforum->course))) {
         print_error('invalidcourseid');
     }
 
-    if (!$cm = get_coursemodule_from_instance('scripting_forum',
-            $scripting_forum->id, $course->id)) { // For the logs
+    if (!$cm = get_coursemodule_from_instance('scriptingforum',
+            $scriptingforum->id, $course->id)) { // For the logs
         print_error('invalidcoursemodule');
     } else {
         $modcontext = context_module::instance($cm->id);
     }
 
-    $PAGE->set_cm($cm, $course, $scripting_forum);
+    $PAGE->set_cm($cm, $course, $scriptingforum);
     $PAGE->set_context($modcontext);
     $PAGE->set_title($course->shortname);
     $PAGE->set_heading($course->fullname);
     $referer = get_local_referer(false);
 
     echo $OUTPUT->header();
-    echo $OUTPUT->confirm(get_string('noguestpost', 'scripting_forum').
+    echo $OUTPUT->confirm(get_string('noguestpost', 'scriptingforum').
             '<br /><br />'.get_string('liketologin'), get_login_url(), $referer);
     echo $OUTPUT->footer();
     exit;
@@ -103,17 +103,17 @@ if (!isloggedin() or isguestuser()) {
 
 require_login(0, false);   // Script is useless unless they're logged in
 
-if (!empty($scripting_forum)) {      // User is starting a new discussion in a scripting_forum
-    if (! $scripting_forum = $DB->get_record("scripting_forum",
-                array("id" => $scripting_forum))) {
-        print_error('invalidscripting_forumid', 'scripting_forum');
+if (!empty($scriptingforum)) {      // User is starting a new discussion in a scriptingforum
+    if (! $scriptingforum = $DB->get_record("scriptingforum",
+                array("id" => $scriptingforum))) {
+        print_error('invalidscriptingforumid', 'scriptingforum');
     }
     if (! $course = $DB->get_record("course",
-            array("id" => $scripting_forum->course))) {
+            array("id" => $scriptingforum->course))) {
         print_error('invalidcourseid');
     }
-    if (! $cm = get_coursemodule_from_instance("scripting_forum",
-            $scripting_forum->id, $course->id)) {
+    if (! $cm = get_coursemodule_from_instance("scriptingforum",
+            $scriptingforum->id, $course->id)) {
         print_error("invalidcoursemodule");
     }
 
@@ -121,7 +121,7 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
     $modcontext    = context_module::instance($cm->id);
     $coursecontext = context_course::instance($course->id);
 
-    if (! scripting_forum_user_can_post_discussion($scripting_forum, $groupid, -1, $cm)) {
+    if (! scriptingforum_user_can_post_discussion($scriptingforum, $groupid, -1, $cm)) {
         if (!isguestuser()) {
             if (!is_enrolled($coursecontext)) {
                 if (enrol_selfenrol_available($course->id)) {
@@ -129,12 +129,12 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
                     $SESSION->enrolcancel = get_local_referer(false);
                     redirect(new moodle_url('/enrol/index.php',
                         array('id' => $course->id,
-                        'returnurl' => '/mod/scripting_forum/view.php?f='.$scripting_forum->id)),
+                        'returnurl' => '/mod/scriptingforum/view.php?f='.$scriptingforum->id)),
                         get_string('youneedtoenrol'));
                 }
             }
         }
-        print_error('nopostscripting_forum', 'scripting_forum');
+        print_error('nopostscriptingforum', 'scriptingforum');
     }
 
     if (!$cm->visible and !has_capability('moodle/course:viewhiddenactivities', $modcontext)) {
@@ -147,7 +147,7 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
 
     $post = new stdClass();
     $post->course        = $course->id;
-    $post->forum         = $scripting_forum->id;
+    $post->forum         = $scriptingforum->id;
     $post->discussion    = 0;           // ie discussion # not defined yet
     $post->parent        = 0;
     $post->subject       = '';
@@ -167,44 +167,44 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
 
 } else if (!empty($reply)) {      // User is writing a new reply
 
-    if (! $parent = scripting_forum_get_post_full($reply)) {
-        print_error('invalidparentpostid', 'scripting_forum');
+    if (! $parent = scriptingforum_get_post_full($reply)) {
+        print_error('invalidparentpostid', 'scriptingforum');
     }
-    if (! $discussion = $DB->get_record("scripting_forum_discussions",
+    if (! $discussion = $DB->get_record("scriptingforum_discussions",
             array("id" => $parent->discussion))) {
-        print_error('notpartofdiscussion', 'scripting_forum');
+        print_error('notpartofdiscussion', 'scriptingforum');
     }
-    if (! $scripting_forum = $DB->get_record("scripting_forum",
+    if (! $scriptingforum = $DB->get_record("scriptingforum",
             array("id" => $discussion->forum))) {
-        print_error('invalidscripting_forumid', 'scripting_forum');
+        print_error('invalidscriptingforumid', 'scriptingforum');
     }
     if (! $course = $DB->get_record("course", array("id" => $discussion->course))) {
         print_error('invalidcourseid');
     }
-    if (! $cm = get_coursemodule_from_instance("scripting_forum",
-            $scripting_forum->id, $course->id)) {
+    if (! $cm = get_coursemodule_from_instance("scriptingforum",
+            $scriptingforum->id, $course->id)) {
         print_error('invalidcoursemodule');
     }
 
     // Ensure lang, theme, etc. is set up properly. MDL-6926
-    $PAGE->set_cm($cm, $course, $scripting_forum);
+    $PAGE->set_cm($cm, $course, $scriptingforum);
 
     // Retrieve the contexts.
     $modcontext    = context_module::instance($cm->id);
     $coursecontext = context_course::instance($course->id);
 
-    if (! scripting_forum_user_can_post($scripting_forum,
+    if (! scriptingforum_user_can_post($scriptingforum,
             $discussion, $USER, $cm, $course, $modcontext)) {
         if (!isguestuser()) {
             if (!is_enrolled($coursecontext)) {  // User is a guest here!
                 $SESSION->wantsurl = qualified_me();
                 $SESSION->enrolcancel = get_local_referer(false);
                 redirect(new moodle_url('/enrol/index.php', array('id' => $course->id,
-                    'returnurl' => '/mod/scripting_forum/view.php?f=' . $scripting_forum->id)),
+                    'returnurl' => '/mod/scriptingforum/view.php?f=' . $scriptingforum->id)),
                     get_string('youneedtoenrol'));
             }
         }
-        print_error('nopostscripting_forum', 'scripting_forum');
+        print_error('nopostscriptingforum', 'scriptingforum');
     }
 
     // Make sure user can post here
@@ -216,10 +216,10 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
     if ($groupmode == SEPARATEGROUPS and
         !has_capability('moodle/site:accessallgroups', $modcontext)) {
         if ($discussion->groupid == -1) {
-            print_error('nopostscripting_forum', 'scripting_forum');
+            print_error('nopostscriptingforum', 'scriptingforum');
         } else {
             if (!groups_is_member($discussion->groupid)) {
-                print_error('nopostscripting_forum', 'scripting_forum');
+                print_error('nopostscriptingforum', 'scriptingforum');
             }
         }
     }
@@ -232,7 +232,7 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
 
     $post = new stdClass();
     $post->course      = $course->id;
-    $post->forum       = $scripting_forum->id;
+    $post->forum       = $scriptingforum->id;
     $post->discussion  = $parent->discussion;
     $post->parent      = $parent->id;
     $post->subject     = $parent->subject;
@@ -241,7 +241,7 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
 
     $post->groupid = ($discussion->groupid == -1) ? 0 : $discussion->groupid;
 
-    $strre = get_string('re', 'scripting_forum');
+    $strre = get_string('re', 'scriptingforum');
     if (!(substr($post->subject, 0, strlen($strre)) == $strre)) {
         $post->subject = $strre.' '.$post->subject;
     }
@@ -251,53 +251,53 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
 
 } else if (!empty($edit)) {  // User is editing their own post
 
-    if (! $post = scripting_forum_get_post_full($edit)) {
-        print_error('invalidpostid', 'scripting_forum');
+    if (! $post = scriptingforum_get_post_full($edit)) {
+        print_error('invalidpostid', 'scriptingforum');
     }
     if ($post->parent) {
-        if (! $parent = scripting_forum_get_post_full($post->parent)) {
-            print_error('invalidparentpostid', 'scripting_forum');
+        if (! $parent = scriptingforum_get_post_full($post->parent)) {
+            print_error('invalidparentpostid', 'scriptingforum');
         }
     }
 
-    if (! $discussion = $DB->get_record("scripting_forum_discussions",
+    if (! $discussion = $DB->get_record("scriptingforum_discussions",
             array("id" => $post->discussion))) {
-        print_error('notpartofdiscussion', 'scripting_forum');
+        print_error('notpartofdiscussion', 'scriptingforum');
     }
-    if (! $scripting_forum = $DB->get_record("scripting_forum",
+    if (! $scriptingforum = $DB->get_record("scriptingforum",
             array("id" => $discussion->forum))) {
-        print_error('invalidscripting_forumid', 'scripting_forum');
+        print_error('invalidscriptingforumid', 'scriptingforum');
     }
     if (! $course = $DB->get_record("course", array("id" => $discussion->course))) {
         print_error('invalidcourseid');
     }
-    if (!$cm = get_coursemodule_from_instance("scripting_forum",
-            $scripting_forum->id, $course->id)) {
+    if (!$cm = get_coursemodule_from_instance("scriptingforum",
+            $scriptingforum->id, $course->id)) {
         print_error('invalidcoursemodule');
     } else {
         $modcontext = context_module::instance($cm->id);
     }
 
-    $PAGE->set_cm($cm, $course, $scripting_forum);
+    $PAGE->set_cm($cm, $course, $scriptingforum);
 
-    if (!($scripting_forum->type == 'news' &&
+    if (!($scriptingforum->type == 'news' &&
             !$post->parent && $discussion->timestart > time())) {
         if (((time() - $post->created) > $CFG->maxeditingtime) and
-                    !has_capability('mod/scripting_forum:editanypost', $modcontext)) {
+                    !has_capability('mod/scriptingforum:editanypost', $modcontext)) {
             print_error('maxtimehaspassed',
-                        'scripting_forum', '', format_time($CFG->maxeditingtime));
+                        'scriptingforum', '', format_time($CFG->maxeditingtime));
         }
     }
     if (($post->userid <> $USER->id) and
-                !has_capability('mod/scripting_forum:editanypost', $modcontext)) {
-        print_error('cannoteditposts', 'scripting_forum');
+                !has_capability('mod/scriptingforum:editanypost', $modcontext)) {
+        print_error('cannoteditposts', 'scriptingforum');
     }
 
 
     // Load up the $post variable.
     $post->edit   = $edit;
     $post->course = $course->id;
-    $post->forum  = $scripting_forum->id;
+    $post->forum  = $scriptingforum->id;
     $post->groupid = ($discussion->groupid == -1) ? 0 : $discussion->groupid;
 
     $post = trusttext_pre_edit($post, 'message', $modcontext);
@@ -307,22 +307,22 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
 
 }else if (!empty($delete)) {  // User is deleting a post
 
-    if (! $post = scripting_forum_get_post_full($delete)) {
-        print_error('invalidpostid', 'scripting_forum');
+    if (! $post = scriptingforum_get_post_full($delete)) {
+        print_error('invalidpostid', 'scriptingforum');
     }
-    if (! $discussion = $DB->get_record("scripting_forum_discussions",
+    if (! $discussion = $DB->get_record("scriptingforum_discussions",
             array("id" => $post->discussion))) {
-        print_error('notpartofdiscussion', 'scripting_forum');
+        print_error('notpartofdiscussion', 'scriptingforum');
     }
-    if (! $scripting_forum = $DB->get_record("scripting_forum",
+    if (! $scriptingforum = $DB->get_record("scriptingforum",
             array("id" => $discussion->forum))) {
-        print_error('invalidscripting_forumid', 'scripting_forum');
+        print_error('invalidscriptingforumid', 'scriptingforum');
     }
-    if (!$cm = get_coursemodule_from_instance("scripting_forum",
-            $scripting_forum->id, $scripting_forum->course)) {
+    if (!$cm = get_coursemodule_from_instance("scriptingforum",
+            $scriptingforum->id, $scriptingforum->course)) {
         print_error('invalidcoursemodule');
     }
-    if (!$course = $DB->get_record('course', array('id' => $scripting_forum->course))) {
+    if (!$course = $DB->get_record('course', array('id' => $scriptingforum->course))) {
         print_error('invalidcourseid');
     }
 
@@ -330,113 +330,113 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
     $modcontext = context_module::instance($cm->id);
 
     if ( !(($post->userid == $USER->id &&
-            has_capability('mod/scripting_forum:deleteownpost', $modcontext))
-                || has_capability('mod/scripting_forum:deleteanypost', $modcontext)) ) {
-        print_error('cannotdeletepost', 'scripting_forum');
+            has_capability('mod/scriptingforum:deleteownpost', $modcontext))
+                || has_capability('mod/scriptingforum:deleteanypost', $modcontext)) ) {
+        print_error('cannotdeletepost', 'scriptingforum');
     }
 
-    $replycount = scripting_forum_count_replies($post);
+    $replycount = scriptingforum_count_replies($post);
 
     if (!empty($confirm) && confirm_sesskey()) {    // User has confirmed the delete
         //check user capability to delete post.
         $timepassed = time() - $post->created;
         if (($timepassed > $CFG->maxeditingtime) &&
-                !has_capability('mod/scripting_forum:deleteanypost', $modcontext)) {
-            print_error("cannotdeletepost", "scripting_forum",
-                        scripting_forum_go_back_to(new moodle_url("/mod/scripting_forum/discuss.php", array('d' => $post->discussion))));
+                !has_capability('mod/scriptingforum:deleteanypost', $modcontext)) {
+            print_error("cannotdeletepost", "scriptingforum",
+                        scriptingforum_go_back_to(new moodle_url("/mod/scriptingforum/discuss.php", array('d' => $post->discussion))));
         }
 
         if ($post->totalscore) {
             notice(get_string('couldnotdeleteratings', 'rating'),
-                   scripting_forum_go_back_to(new moodle_url("/mod/scripting_forum/discuss.php", array('d' => $post->discussion))));
+                   scriptingforum_go_back_to(new moodle_url("/mod/scriptingforum/discuss.php", array('d' => $post->discussion))));
 
-        } else if ($replycount && !has_capability('mod/scripting_forum:deleteanypost', $modcontext)) {
-            print_error("couldnotdeletereplies", "scripting_forum",
-                        scripting_forum_go_back_to(new moodle_url("/mod/scripting_forum/discuss.php", array('d' => $post->discussion))));
+        } else if ($replycount && !has_capability('mod/scriptingforum:deleteanypost', $modcontext)) {
+            print_error("couldnotdeletereplies", "scriptingforum",
+                        scriptingforum_go_back_to(new moodle_url("/mod/scriptingforum/discuss.php", array('d' => $post->discussion))));
 
         } else {
             if (! $post->parent) {  // post is a discussion topic as well, so delete discussion
-                if ($scripting_forum->type == 'single') {
+                if ($scriptingforum->type == 'single') {
                     notice("Sorry, but you are not allowed to delete that discussion!",
-                           scripting_forum_go_back_to(new moodle_url("/mod/scripting_forum/discuss.php", array('d' => $post->discussion))));
+                           scriptingforum_go_back_to(new moodle_url("/mod/scriptingforum/discuss.php", array('d' => $post->discussion))));
                 }
-                scripting_forum_delete_discussion($discussion, false, $course, $cm, $scripting_forum);
+                scriptingforum_delete_discussion($discussion, false, $course, $cm, $scriptingforum);
 
                 $params = array(
                     'objectid' => $discussion->id,
                     'context' => $modcontext,
                     'other' => array(
-                        'scripting_forumid' => $scripting_forum->id,
+                        'scriptingforumid' => $scriptingforum->id,
                     )
                 );
 
-                $event = \mod_scripting_forum\event\discussion_deleted::create($params);
-                $event->add_record_snapshot('scripting_forum_discussions', $discussion);
+                $event = \mod_scriptingforum\event\discussion_deleted::create($params);
+                $event->add_record_snapshot('scriptingforum_discussions', $discussion);
                 $event->trigger();
 
                 redirect("view.php?f=$discussion->forum");
 
-            } else if (scripting_forum_delete_post($post,
-                    has_capability('mod/scripting_forum:deleteanypost', $modcontext),
-                $course, $cm, $scripting_forum)) {
+            } else if (scriptingforum_delete_post($post,
+                    has_capability('mod/scriptingforum:deleteanypost', $modcontext),
+                $course, $cm, $scriptingforum)) {
 
-                if ($scripting_forum->type == 'single') {
-                    // Single discussion scripting_forums are an exception. We show
-                    // the scripting_forum itself since it only has one discussion
+                if ($scriptingforum->type == 'single') {
+                    // Single discussion scriptingforums are an exception. We show
+                    // the scriptingforum itself since it only has one discussion
                     // thread.
-                    $discussionurl = new moodle_url("/mod/scripting_forum/view.php",
-                                array('f' => $scripting_forum->id));
+                    $discussionurl = new moodle_url("/mod/scriptingforum/view.php",
+                                array('f' => $scriptingforum->id));
                 } else {
-                    $discussionurl = new moodle_url("/mod/scripting_forum/discuss.php",
+                    $discussionurl = new moodle_url("/mod/scriptingforum/discuss.php",
                                 array('d' => $discussion->id));
                 }
 
-                redirect(scripting_forum_go_back_to($discussionurl));
+                redirect(scriptingforum_go_back_to($discussionurl));
             } else {
-                print_error('errorwhiledelete', 'scripting_forum');
+                print_error('errorwhiledelete', 'scriptingforum');
             }
         }
 
 
     } else { // User just asked to delete something
 
-        scripting_forum_set_return();
-        $PAGE->navbar->add(get_string('delete', 'scripting_forum'));
+        scriptingforum_set_return();
+        $PAGE->navbar->add(get_string('delete', 'scriptingforum'));
         $PAGE->set_title($course->shortname);
         $PAGE->set_heading($course->fullname);
 
         if ($replycount) {
-            if (!has_capability('mod/scripting_forum:deleteanypost', $modcontext)) {
-                print_error("couldnotdeletereplies", "scripting_forum",
-                      scripting_forum_go_back_to(new moodle_url('/mod/scripting_forum/discuss.php', array('d' => $post->discussion), 'p'.$post->id)));
+            if (!has_capability('mod/scriptingforum:deleteanypost', $modcontext)) {
+                print_error("couldnotdeletereplies", "scriptingforum",
+                      scriptingforum_go_back_to(new moodle_url('/mod/scriptingforum/discuss.php', array('d' => $post->discussion), 'p'.$post->id)));
             }
             echo $OUTPUT->header();
-            echo $OUTPUT->heading(format_string($scripting_forum->name), 2);
-            echo $OUTPUT->confirm(get_string("deletesureplural", "scripting_forum", $replycount+1),
+            echo $OUTPUT->heading(format_string($scriptingforum->name), 2);
+            echo $OUTPUT->confirm(get_string("deletesureplural", "scriptingforum", $replycount+1),
                          "post.php?delete=$delete&confirm=$delete",
-                         $CFG->wwwroot.'/mod/scripting_forum/discuss.php?d='.
+                         $CFG->wwwroot.'/mod/scriptingforum/discuss.php?d='.
                          $post->discussion.'#p'.$post->id);
 
-            scripting_forum_print_post($post, $discussion,
-                    $scripting_forum, $cm, $course, false, false, false);
+            scriptingforum_print_post($post, $discussion,
+                    $scriptingforum, $cm, $course, false, false, false);
 
             if (empty($post->edit)) {
-                $scripting_forumtracked = scripting_forum_tp_is_tracked($scripting_forum);
-                $posts = scripting_forum_get_all_discussion_posts($discussion->id,
-                        "created ASC", $scripting_forumtracked);
-                scripting_forum_print_posts_nested($course, $cm,
-                        $scripting_forum, $discussion, $post, false,
-                        false, $scripting_forumtracked, $posts);
+                $scriptingforumtracked = scriptingforum_tp_is_tracked($scriptingforum);
+                $posts = scriptingforum_get_all_discussion_posts($discussion->id,
+                        "created ASC", $scriptingforumtracked);
+                scriptingforum_print_posts_nested($course, $cm,
+                        $scriptingforum, $discussion, $post, false,
+                        false, $scriptingforumtracked, $posts);
             }
         } else {
             echo $OUTPUT->header();
-            echo $OUTPUT->heading(format_string($scripting_forum->name), 2);
-            echo $OUTPUT->confirm(get_string("deletesure", "scripting_forum", $replycount),
+            echo $OUTPUT->heading(format_string($scriptingforum->name), 2);
+            echo $OUTPUT->confirm(get_string("deletesure", "scriptingforum", $replycount),
                          "post.php?delete=$delete&confirm=$delete",
-                         $CFG->wwwroot.'/mod/scripting_forum/discuss.php?d='.
+                         $CFG->wwwroot.'/mod/scriptingforum/discuss.php?d='.
                          $post->discussion.'#p'.$post->id);
-            scripting_forum_print_post($post, $discussion,
-                    $scripting_forum, $cm, $course, false, false, false);
+            scriptingforum_print_post($post, $discussion,
+                    $scriptingforum, $cm, $course, false, false, false);
         }
 
     }
@@ -446,42 +446,42 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
 
 } else if (!empty($prune)) {  // Pruning
 
-    if (!$post = scripting_forum_get_post_full($prune)) {
-        print_error('invalidpostid', 'scripting_forum');
+    if (!$post = scriptingforum_get_post_full($prune)) {
+        print_error('invalidpostid', 'scriptingforum');
     }
-    if (!$discussion = $DB->get_record("scripting_forum_discussions",
+    if (!$discussion = $DB->get_record("scriptingforum_discussions",
             array("id" => $post->discussion))) {
-        print_error('notpartofdiscussion', 'scripting_forum');
+        print_error('notpartofdiscussion', 'scriptingforum');
     }
-    if (!$scripting_forum = $DB->get_record("scripting_forum",
+    if (!$scriptingforum = $DB->get_record("scriptingforum",
             array("id" => $discussion->forum))) {
-        print_error('invalidscripting_forumid', 'scripting_forum');
+        print_error('invalidscriptingforumid', 'scriptingforum');
     }
-    if ($scripting_forum->type == 'single') {
-        print_error('cannotsplit', 'scripting_forum');
+    if ($scriptingforum->type == 'single') {
+        print_error('cannotsplit', 'scriptingforum');
     }
     if (!$post->parent) {
-        print_error('alreadyfirstpost', 'scripting_forum');
+        print_error('alreadyfirstpost', 'scriptingforum');
     }
-    if (!$cm = get_coursemodule_from_instance("scripting_forum",
-            $scripting_forum->id, $scripting_forum->course)) { // For the logs
+    if (!$cm = get_coursemodule_from_instance("scriptingforum",
+            $scriptingforum->id, $scriptingforum->course)) { // For the logs
         print_error('invalidcoursemodule');
     } else {
         $modcontext = context_module::instance($cm->id);
     }
-    if (!has_capability('mod/scripting_forum:splitdiscussions', $modcontext)) {
-        print_error('cannotsplit', 'scripting_forum');
+    if (!has_capability('mod/scriptingforum:splitdiscussions', $modcontext)) {
+        print_error('cannotsplit', 'scriptingforum');
     }
 
     $PAGE->set_cm($cm);
     $PAGE->set_context($modcontext);
 
-    $prunemform = new mod_scripting_forum_prune_form(null,
+    $prunemform = new mod_scriptingforum_prune_form(null,
             array('prune' => $prune, 'confirm' => $prune));
 
 
     if ($prunemform->is_cancelled()) {
-        redirect(scripting_forum_go_back_to(new moodle_url("/mod/scripting_forum/discuss.php",
+        redirect(scriptingforum_go_back_to(new moodle_url("/mod/scriptingforum/discuss.php",
                  array('d' => $post->discussion))));
     } else if ($fromform = $prunemform->get_data()) {
         // User submits the data.
@@ -497,40 +497,40 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
         $newdiscussion->timestart    = $discussion->timestart;
         $newdiscussion->timeend      = $discussion->timeend;
 
-        $newid = $DB->insert_record('scripting_forum_discussions', $newdiscussion);
+        $newid = $DB->insert_record('scriptingforum_discussions', $newdiscussion);
 
         $newpost = new stdClass();
         $newpost->id      = $post->id;
         $newpost->parent  = 0;
         $newpost->subject = $name;
 
-        $DB->update_record("scripting_forum_posts", $newpost);
+        $DB->update_record("scriptingforum_posts", $newpost);
 
-        scripting_forum_change_discussionid($post->id, $newid);
+        scriptingforum_change_discussionid($post->id, $newid);
 
         // Update last post in each discussion.
-        scripting_forum_discussion_update_last_post($discussion->id);
-        scripting_forum_discussion_update_last_post($newid);
+        scriptingforum_discussion_update_last_post($discussion->id);
+        scriptingforum_discussion_update_last_post($newid);
 
         // Fire events to reflect the split..
         $params = array(
             'context' => $modcontext,
             'objectid' => $discussion->id,
             'other' => array(
-                'scripting_forumid' => $scripting_forum->id,
+                'scriptingforumid' => $scriptingforum->id,
             )
         );
-        $event = \mod_scripting_forum\event\discussion_updated::create($params);
+        $event = \mod_scriptingforum\event\discussion_updated::create($params);
         $event->trigger();
 
         $params = array(
             'context' => $modcontext,
             'objectid' => $newid,
             'other' => array(
-                'scripting_forumid' => $scripting_forum->id,
+                'scriptingforumid' => $scriptingforum->id,
             )
         );
-        $event = \mod_scripting_forum\event\discussion_created::create($params);
+        $event = \mod_scriptingforum\event\discussion_created::create($params);
         $event->trigger();
 
         $params = array(
@@ -538,32 +538,32 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
             'objectid' => $post->id,
             'other' => array(
                 'discussionid' => $newid,
-                'scripting_forumid' => $scripting_forum->id,
-                'scripting_forumtype' => $scripting_forum->type,
+                'scriptingforumid' => $scriptingforum->id,
+                'scriptingforumtype' => $scriptingforum->type,
             )
         );
-        $event = \mod_scripting_forum\event\post_updated::create($params);
-        $event->add_record_snapshot('scripting_forum_discussions', $discussion);
+        $event = \mod_scriptingforum\event\post_updated::create($params);
+        $event->add_record_snapshot('scriptingforum_discussions', $discussion);
         $event->trigger();
 
-        redirect(scripting_forum_go_back_to(new moodle_url("/mod/scripting_forum/discuss.php",
+        redirect(scriptingforum_go_back_to(new moodle_url("/mod/scriptingforum/discuss.php",
                 array('d' => $newid))));
 
     } else {
         // Display the prune form.
-        $course = $DB->get_record('course', array('id' => $scripting_forum->course));
-        $PAGE->navbar->add(format_string($post->subject, true), new moodle_url('/mod/scripting_forum/discuss.php', array('d'=>$discussion->id)));
-        $PAGE->navbar->add(get_string("prune", "scripting_forum"));
+        $course = $DB->get_record('course', array('id' => $scriptingforum->course));
+        $PAGE->navbar->add(format_string($post->subject, true), new moodle_url('/mod/scriptingforum/discuss.php', array('d'=>$discussion->id)));
+        $PAGE->navbar->add(get_string("prune", "scriptingforum"));
         $PAGE->set_title(format_string($discussion->name).": ".format_string($post->subject));
         $PAGE->set_heading($course->fullname);
         echo $OUTPUT->header();
-        echo $OUTPUT->heading(format_string($scripting_forum->name), 2);
-        echo $OUTPUT->heading(get_string('pruneheading', 'scripting_forum'), 3);
+        echo $OUTPUT->heading(format_string($scriptingforum->name), 2);
+        echo $OUTPUT->heading(get_string('pruneheading', 'scriptingforum'), 3);
 
         $prunemform->display();
 
-        scripting_forum_print_post($post, $discussion,
-                $scripting_forum, $cm, $course, false, false, false);
+        scriptingforum_print_post($post, $discussion,
+                $scriptingforum, $cm, $course, false, false, false);
     }
 
     echo $OUTPUT->footer();
@@ -575,14 +575,14 @@ if (!empty($scripting_forum)) {      // User is starting a new discussion in a s
 
 if (!isset($coursecontext)) {
     // Has not yet been set by post.php.
-    $coursecontext = context_course::instance($scripting_forum->course);
+    $coursecontext = context_course::instance($scriptingforum->course);
 }
 
 
 // from now on user must be logged on properly
 
-if (!$cm = get_coursemodule_from_instance('scripting_forum',
-        $scripting_forum->id, $course->id)) { // For the logs
+if (!$cm = get_coursemodule_from_instance('scriptingforum',
+        $scriptingforum->id, $course->id)) { // For the logs
     print_error('invalidcoursemodule');
 }
 $modcontext = context_module::instance($cm->id);
@@ -593,29 +593,29 @@ if (isguestuser()) {
     print_error('noguest');
 }
 
-if (!isset($scripting_forum->maxattachments)) {
-    // TODO - delete this once we add a field to the scripting_forum table
-    $scripting_forum->maxattachments = 3;
+if (!isset($scriptingforum->maxattachments)) {
+    // TODO - delete this once we add a field to the scriptingforum table
+    $scriptingforum->maxattachments = 3;
 }
 
-$thresholdwarning = scripting_forum_check_throttling($scripting_forum, $cm);
-$mform_post = new mod_scripting_forum_post_form('post.php',
+$thresholdwarning = scriptingforum_check_throttling($scriptingforum, $cm);
+$mform_post = new mod_scriptingforum_post_form('post.php',
         array('course' => $course,
               'cm' => $cm,
               'coursecontext' => $coursecontext,
               'modcontext' => $modcontext,
-              'scripting_forum' => $scripting_forum,
+              'scriptingforum' => $scriptingforum,
               'post' => $post,
-              'subscribe' => \mod_scripting_forum\subscriptions::is_subscribed(
-                      $USER->id, $scripting_forum, null, $cm),
+              'subscribe' => \mod_scriptingforum\subscriptions::is_subscribed(
+                      $USER->id, $scriptingforum, null, $cm),
               'thresholdwarning' => $thresholdwarning,
-              'edit' => $edit), 'post', '', array('id' => 'mformscripting_forum'));
+              'edit' => $edit), 'post', '', array('id' => 'mformscriptingforum'));
 
 $draftitemid = file_get_submitted_draft_itemid('attachments');
 file_prepare_draft_area($draftitemid,
-        $modcontext->id, 'mod_scripting_forum', 'attachment',
+        $modcontext->id, 'mod_scriptingforum', 'attachment',
         empty($post->id)?null:$post->id,
-        mod_scripting_forum_post_form::attachment_options($scripting_forum));
+        mod_scriptingforum_post_form::attachment_options($scriptingforum));
 
 //load data into form NOW!
 
@@ -626,54 +626,54 @@ if ($USER->id != $post->userid) {   // Not the original author, so add a message
         $data->name = '<a href="'.$CFG->wwwroot.'/user/view.php?id='.
                     $USER->id.'&course='.$post->course.'">'.fullname($USER).'</a>';
         $post->message .= '<p><span class="edited">('.
-                get_string('editedby', 'scripting_forum', $data).')</span></p>';
+                get_string('editedby', 'scriptingforum', $data).')</span></p>';
     } else {
         $data->name = fullname($USER);
-        $post->message .= "\n\n(".get_string('editedby', 'scripting_forum', $data).')';
+        $post->message .= "\n\n(".get_string('editedby', 'scriptingforum', $data).')';
     }
     unset($data);
 }
 
 $formheading = '';
 if (!empty($parent)) {
-    $heading = get_string("yourreply", "scripting_forum");
-    $formheading = get_string('reply', 'scripting_forum');
+    $heading = get_string("yourreply", "scriptingforum");
+    $formheading = get_string('reply', 'scriptingforum');
 } else {
-    if ($scripting_forum->type == 'qanda') {
-        $heading = get_string('yournewquestion', 'scripting_forum');
+    if ($scriptingforum->type == 'qanda') {
+        $heading = get_string('yournewquestion', 'scriptingforum');
     } else {
-        $heading = get_string('yournewtopic', 'scripting_forum');
+        $heading = get_string('yournewtopic', 'scriptingforum');
     }
 }
 
 $postid = empty($post->id) ? null : $post->id;
 $draftid_editor = file_get_submitted_draft_itemid('message');
 $currenttext = file_prepare_draft_area($draftid_editor,
-        $modcontext->id, 'mod_scripting_forum', 'post', $postid,
-        mod_scripting_forum_post_form::editor_options($modcontext, $postid), $post->message);
+        $modcontext->id, 'mod_scriptingforum', 'post', $postid,
+        mod_scriptingforum_post_form::editor_options($modcontext, $postid), $post->message);
 
 $manageactivities = has_capability('moodle/course:manageactivities', $coursecontext);
-if (\mod_scripting_forum\subscriptions::subscription_disabled($scripting_forum) &&
+if (\mod_scriptingforum\subscriptions::subscription_disabled($scriptingforum) &&
         !$manageactivities) {
     // User does not have permission to subscribe to this discussion at all.
     $discussionsubscribe = false;
-} else if (\mod_scripting_forum\subscriptions::is_forcesubscribed($scripting_forum)) {
+} else if (\mod_scriptingforum\subscriptions::is_forcesubscribed($scriptingforum)) {
     // User does not have permission to unsubscribe from this discussion at all.
     $discussionsubscribe = true;
 } else {
     if (isset($discussion) &&
-        \mod_scripting_forum\subscriptions::is_subscribed($USER->id,
-                $scripting_forum, $discussion->id, $cm)) {
+        \mod_scriptingforum\subscriptions::is_subscribed($USER->id,
+                $scriptingforum, $discussion->id, $cm)) {
         // User is subscribed to the discussion - continue the subscription.
         $discussionsubscribe = true;
     } else if (!isset($discussion) &&
-        \mod_scripting_forum\subscriptions::is_subscribed($USER->id,
-                $scripting_forum, null, $cm)) {
+        \mod_scriptingforum\subscriptions::is_subscribed($USER->id,
+                $scriptingforum, null, $cm)) {
         // Starting a new discussion, and the user is subscribed to
-        // the scripting_forum - subscribe to the discussion.
+        // the scriptingforum - subscribe to the discussion.
         $discussionsubscribe = true;
     } else {
-        // User is not subscribed to either scripting_forum or discussion.
+        // User is not subscribed to either scriptingforum or discussion.
         // Follow user preference.
         $discussionsubscribe = $USER->autosubscribe;
     }
@@ -709,18 +709,18 @@ $mform_post->set_data(array(
             'discussion'=>$discussion->id) : array()));
 
 if ($mform_post->is_cancelled()) {
-    if (!isset($discussion->id) || $scripting_forum->type === 'qanda') {
-        // Q and A scripting_forums don't have a discussion page, so treat them like a new thread..
-        redirect(new moodle_url('/mod/scripting_forum/view.php',
-                    array('f' => $scripting_forum->id)));
+    if (!isset($discussion->id) || $scriptingforum->type === 'qanda') {
+        // Q and A scriptingforums don't have a discussion page, so treat them like a new thread..
+        redirect(new moodle_url('/mod/scriptingforum/view.php',
+                    array('f' => $scriptingforum->id)));
     } else {
-        redirect(new moodle_url('/mod/scripting_forum/discuss.php',
+        redirect(new moodle_url('/mod/scriptingforum/discuss.php',
                     array('d' => $discussion->id)));
     }
 } else if ($fromform = $mform_post->get_data()) {
 
     if (empty($SESSION->fromurl)) {
-        $errordestination = "$CFG->wwwroot/mod/scripting_forum/view.php?f=$scripting_forum->id";
+        $errordestination = "$CFG->wwwroot/mod/scriptingforum/view.php?f=$scriptingforum->id";
     } else {
         $errordestination = $SESSION->fromurl;
     }
@@ -737,7 +737,7 @@ if ($mform_post->is_cancelled()) {
         $message = '';
 
         //fix for bug #4314
-        if (!$realpost = $DB->get_record('scripting_forum_posts',
+        if (!$realpost = $DB->get_record('scriptingforum_posts',
                 array('id' => $fromform->id))) {
             $realpost = new stdClass();
             $realpost->userid = -1;
@@ -749,31 +749,31 @@ if ($mform_post->is_cancelled()) {
         // then he can proceed
         // MDL-7066
         if ( !(($realpost->userid == $USER->id &&
-                (has_capability('mod/scripting_forum:replypost', $modcontext)
-                || has_capability('mod/scripting_forum:startdiscussion', $modcontext))) ||
-            has_capability('mod/scripting_forum:editanypost', $modcontext)) ) {
-            print_error('cannotupdatepost', 'scripting_forum');
+                (has_capability('mod/scriptingforum:replypost', $modcontext)
+                || has_capability('mod/scriptingforum:startdiscussion', $modcontext))) ||
+            has_capability('mod/scriptingforum:editanypost', $modcontext)) ) {
+            print_error('cannotupdatepost', 'scriptingforum');
         }
 
         // If the user has access to all groups and they are changing the group,
         // then update the post.
         if (isset($fromform->groupinfo) &&
-                has_capability('mod/scripting_forum:movediscussions', $modcontext)) {
+                has_capability('mod/scriptingforum:movediscussions', $modcontext)) {
             if (empty($fromform->groupinfo)) {
                 $fromform->groupinfo = -1;
             }
 
-            if (!scripting_forum_user_can_post_discussion($scripting_forum,
+            if (!scriptingforum_user_can_post_discussion($scriptingforum,
                     $fromform->groupinfo, null, $cm, $modcontext)) {
-                print_error('cannotupdatepost', 'scripting_forum');
+                print_error('cannotupdatepost', 'scriptingforum');
             }
 
-            $DB->set_field('scripting_forum_discussions',
+            $DB->set_field('scriptingforum_discussions',
                     'groupid', $fromform->groupinfo, array('firstpost' => $fromform->id));
         }
         // When editing first post/discussion.
         if (!$fromform->parent) {
-            if (has_capability('mod/scripting_forum:pindiscussions', $modcontext)) {
+            if (has_capability('mod/scriptingforum:pindiscussions', $modcontext)) {
                 // Can change pinned if we have capability.
                 $fromform->pinned = !empty($fromform->pinned) ? 
                         FORUM_DISCUSSION_PINNED : FORUM_DISCUSSION_UNPINNED;
@@ -783,39 +783,39 @@ if ($mform_post->is_cancelled()) {
             }
         }
         $updatepost = $fromform; //realpost
-        $updatepost->forum = $scripting_forum->id;
-        if (!scripting_forum_update_post($updatepost, $mform_post, $message)) {
-            print_error("couldnotupdate", "scripting_forum", $errordestination);
+        $updatepost->forum = $scriptingforum->id;
+        if (!scriptingforum_update_post($updatepost, $mform_post, $message)) {
+            print_error("couldnotupdate", "scriptingforum", $errordestination);
         }
 
         // MDL-11818
-        if (($scripting_forum->type == 'single') &&
+        if (($scriptingforum->type == 'single') &&
             ($updatepost->parent == '0')){
             // updating first post of single discussion
-            // type -> updating scripting_forum intro
-            $scripting_forum->intro = $updatepost->message;
-            $scripting_forum->timemodified = time();
-            $DB->update_record("scripting_forum", $scripting_forum);
+            // type -> updating scriptingforum intro
+            $scriptingforum->intro = $updatepost->message;
+            $scriptingforum->timemodified = time();
+            $DB->update_record("scriptingforum", $scriptingforum);
         }
 
         if ($realpost->userid == $USER->id) {
-            $message .= '<br />'.get_string("postupdated", "scripting_forum");
+            $message .= '<br />'.get_string("postupdated", "scriptingforum");
         } else {
             $realuser = $DB->get_record('user', array('id' => $realpost->userid));
             $message .= '<br />'.get_string("editedpostupdated",
-                    "scripting_forum", fullname($realuser));
+                    "scriptingforum", fullname($realuser));
         }
 
-        $subscribemessage = scripting_forum_post_subscription($fromform,
-                $scripting_forum, $discussion);
-        if ($scripting_forum->type == 'single') {
-            // Single discussion scripting_forums are an exception. We show
-            // the scripting_forum itself since it only has one discussion
+        $subscribemessage = scriptingforum_post_subscription($fromform,
+                $scriptingforum, $discussion);
+        if ($scriptingforum->type == 'single') {
+            // Single discussion scriptingforums are an exception. We show
+            // the scriptingforum itself since it only has one discussion
             // thread.
-            $discussionurl = new moodle_url("/mod/scripting_forum/view.php",
-                        array('f' => $scripting_forum->id));
+            $discussionurl = new moodle_url("/mod/scriptingforum/view.php",
+                        array('f' => $scriptingforum->id));
         } else {
-            $discussionurl = new moodle_url("/mod/scripting_forum/discuss.php",
+            $discussionurl = new moodle_url("/mod/scriptingforum/discuss.php",
                         array('d' => $discussion->id), 'p' . $fromform->id);
         }
 
@@ -824,8 +824,8 @@ if ($mform_post->is_cancelled()) {
             'objectid' => $fromform->id,
             'other' => array(
                 'discussionid' => $discussion->id,
-                'scripting_forumid' => $scripting_forum->id,
-                'scripting_forumtype' => $scripting_forum->type,
+                'scriptingforumid' => $scriptingforum->id,
+                'scriptingforumtype' => $scriptingforum->type,
             )
         );
 
@@ -833,12 +833,12 @@ if ($mform_post->is_cancelled()) {
             $params['relateduserid'] = $realpost->userid;
         }
 
-        $event = \mod_scripting_forum\event\post_updated::create($params);
-        $event->add_record_snapshot('scripting_forum_discussions', $discussion);
+        $event = \mod_scriptingforum\event\post_updated::create($params);
+        $event->add_record_snapshot('scriptingforum_discussions', $discussion);
         $event->trigger();
 
         redirect(
-                scripting_forum_go_back_to($discussionurl),
+                scriptingforum_go_back_to($discussionurl),
                 $message . $subscribemessage,
                 null,
                 \core\output\notification::NOTIFY_SUCCESS
@@ -846,32 +846,32 @@ if ($mform_post->is_cancelled()) {
 
     } else if ($fromform->discussion) { // Adding a new post to an existing discussion
         // Before we add this we must check that the user will not exceed the blocking threshold.
-        scripting_forum_check_blocking_threshold($thresholdwarning);
+        scriptingforum_check_blocking_threshold($thresholdwarning);
 
         unset($fromform->groupid);
         $message = '';
         $addpost = $fromform;
-        $addpost->forum=$scripting_forum->id;
-        if ($fromform->id = scripting_forum_add_new_post($addpost, $mform_post, $message)) {
-            $subscribemessage = scripting_forum_post_subscription($fromform,
-                        $scripting_forum, $discussion);
+        $addpost->forum=$scriptingforum->id;
+        if ($fromform->id = scriptingforum_add_new_post($addpost, $mform_post, $message)) {
+            $subscribemessage = scriptingforum_post_subscription($fromform,
+                        $scriptingforum, $discussion);
 
             if (!empty($fromform->mailnow)) {
-                $message .= get_string("postmailnow", "scripting_forum");
+                $message .= get_string("postmailnow", "scriptingforum");
             } else {
-                $message .= '<p>'.get_string("postaddedsuccess", "scripting_forum") . '</p>';
-                $message .= '<p>'.get_string("postaddedtimeleft", "scripting_forum",
+                $message .= '<p>'.get_string("postaddedsuccess", "scriptingforum") . '</p>';
+                $message .= '<p>'.get_string("postaddedtimeleft", "scriptingforum",
                         format_time($CFG->maxeditingtime)) . '</p>';
             }
 
-            if ($scripting_forum->type == 'single') {
-                // Single discussion scripting_forums are an exception. We show
-                // the scripting_forum itself since it only has one discussion
+            if ($scriptingforum->type == 'single') {
+                // Single discussion scriptingforums are an exception. We show
+                // the scriptingforum itself since it only has one discussion
                 // thread.
-                $discussionurl = new moodle_url("/mod/scripting_forum/view.php",
-                            array('f' => $scripting_forum->id), 'p'.$fromform->id);
+                $discussionurl = new moodle_url("/mod/scriptingforum/view.php",
+                            array('f' => $scriptingforum->id), 'p'.$fromform->id);
             } else {
-                $discussionurl = new moodle_url("/mod/scripting_forum/discuss.php",
+                $discussionurl = new moodle_url("/mod/scriptingforum/discuss.php",
                             array('d' => $discussion->id), 'p'.$fromform->id);
             }
 
@@ -880,37 +880,37 @@ if ($mform_post->is_cancelled()) {
                 'objectid' => $fromform->id,
                 'other' => array(
                     'discussionid' => $discussion->id,
-                    'scripting_forumid' => $scripting_forum->id,
-                    'scripting_forumtype' => $scripting_forum->type,
+                    'scriptingforumid' => $scriptingforum->id,
+                    'scriptingforumtype' => $scriptingforum->type,
                 )
             );
-            $event = \mod_scripting_forum\event\post_created::create($params);
-            $event->add_record_snapshot('scripting_forum_posts', $fromform);
-            $event->add_record_snapshot('scripting_forum_discussions', $discussion);
+            $event = \mod_scriptingforum\event\post_created::create($params);
+            $event->add_record_snapshot('scriptingforum_posts', $fromform);
+            $event->add_record_snapshot('scriptingforum_discussions', $discussion);
             $event->trigger();
 
             // Update completion state
             $completion=new completion_info($course);
             if($completion->is_enabled($cm) &&
-                ($scripting_forum->completionreplies || $scripting_forum->completionposts)) {
+                ($scriptingforum->completionreplies || $scriptingforum->completionposts)) {
                 $completion->update_state($cm,COMPLETION_COMPLETE);
             }
 
             redirect(
-                    scripting_forum_go_back_to($discussionurl),
+                    scriptingforum_go_back_to($discussionurl),
                     $message . $subscribemessage,
                     null,
                     \core\output\notification::NOTIFY_SUCCESS
                 );
 
         } else {
-            print_error("couldnotadd", "scripting_forum", $errordestination);
+            print_error("couldnotadd", "scriptingforum", $errordestination);
         }
         exit;
 
     } else { // Adding a new discussion.
         // The location to redirect to after successfully posting.
-        $redirectto = new moodle_url('view.php', array('f' => $fromform->scripting_forum));
+        $redirectto = new moodle_url('view.php', array('f' => $fromform->scriptingforum));
 
         $fromform->mailnow = empty($fromform->mailnow) ? 0 : 1;
 
@@ -918,13 +918,13 @@ if ($mform_post->is_cancelled()) {
         $discussion->name = $fromform->subject;
 
         $newstopic = false;
-        if ($scripting_forum->type == 'news' && !$fromform->parent) {
+        if ($scriptingforum->type == 'news' && !$fromform->parent) {
             $newstopic = true;
         }
         $discussion->timestart = $fromform->timestart;
         $discussion->timeend = $fromform->timeend;
 
-        if (has_capability('mod/scripting_forum:pindiscussions', $modcontext) &&
+        if (has_capability('mod/scriptingforum:pindiscussions', $modcontext) &&
                 !empty($fromform->pinned)) {
             $discussion->pinned = FORUM_DISCUSSION_PINNED;
         } else {
@@ -937,13 +937,13 @@ if ($mform_post->is_cancelled()) {
         // If we are posting a copy to all groups the user has access to.
         if (isset($fromform->posttomygroups)) {
             // Post to each of my groups.
-            require_capability('mod/scripting_forum:canposttomygroups', $modcontext);
+            require_capability('mod/scriptingforum:canposttomygroups', $modcontext);
 
             // Fetch all of this user's groups.
             // Note: all groups are returned when in visible groups mode so we must manually filter.
             $allowedgroups = groups_get_activity_allowed_groups($cm);
             foreach ($allowedgroups as $groupid => $group) {
-                if (scripting_forum_user_can_post_discussion($scripting_forum,
+                if (scriptingforum_user_can_post_discussion($scriptingforum,
                             $groupid, -1, $cm, $modcontext)) {
                     $groupstopostto[] = $groupid;
                 }
@@ -962,54 +962,54 @@ if ($mform_post->is_cancelled()) {
         }
 
         // Before we post this we must check that the user will not exceed the blocking threshold.
-        scripting_forum_check_blocking_threshold($thresholdwarning);
+        scriptingforum_check_blocking_threshold($thresholdwarning);
 
         foreach ($groupstopostto as $group) {
-            if (!scripting_forum_user_can_post_discussion($scripting_forum,
+            if (!scriptingforum_user_can_post_discussion($scriptingforum,
                         $group, -1, $cm, $modcontext)) {
-                print_error('cannotcreatediscussion', 'scripting_forum');
+                print_error('cannotcreatediscussion', 'scriptingforum');
             }
 
             $discussion->groupid = $group;
             $message = '';
-            if ($discussion->id = scripting_forum_add_discussion($discussion,
+            if ($discussion->id = scriptingforum_add_discussion($discussion,
                     $mform_post, $message)) {
                 $params = array(
                     'context' => $modcontext,
                     'objectid' => $discussion->id,
                     'other' => array(
-                        'scripting_forumid' => $scripting_forum->id,
+                        'scriptingforumid' => $scriptingforum->id,
                     )
                 );
-                $event = \mod_scripting_forum\event\discussion_created::create($params);
-                $event->add_record_snapshot('scripting_forum_discussions', $discussion);
+                $event = \mod_scriptingforum\event\discussion_created::create($params);
+                $event->add_record_snapshot('scriptingforum_discussions', $discussion);
                 $event->trigger();
 
                 if ($fromform->mailnow) {
-                    $message .= get_string("postmailnow", "scripting_forum");
+                    $message .= get_string("postmailnow", "scriptingforum");
                 } else {
-                    $message .= '<p>'.get_string("postaddedsuccess", "scripting_forum") . '</p>';
-                    $message .= '<p>'.get_string("postaddedtimeleft", "scripting_forum",
+                    $message .= '<p>'.get_string("postaddedsuccess", "scriptingforum") . '</p>';
+                    $message .= '<p>'.get_string("postaddedtimeleft", "scriptingforum",
                             format_time($CFG->maxeditingtime)) . '</p>';
                 }
 
-                $subscribemessage = scripting_forum_post_subscription($fromform,
-                        $scripting_forum, $discussion);
+                $subscribemessage = scriptingforum_post_subscription($fromform,
+                        $scriptingforum, $discussion);
             } else {
-                print_error("couldnotadd", "scripting_forum", $errordestination);
+                print_error("couldnotadd", "scriptingforum", $errordestination);
             }
         }
 
         // Update completion status.
         $completion = new completion_info($course);
         if ($completion->is_enabled($cm) &&
-                ($scripting_forum->completiondiscussions || $scripting_forum->completionposts)) {
+                ($scriptingforum->completiondiscussions || $scriptingforum->completionposts)) {
             $completion->update_state($cm, COMPLETION_COMPLETE);
         }
 
         // Redirect back to the discussion.
         redirect(
-                scripting_forum_go_back_to($redirectto->out()),
+                scriptingforum_go_back_to($redirectto->out()),
                 $message . $subscribemessage,
                 null,
                 \core\output\notification::NOTIFY_SUCCESS
@@ -1023,18 +1023,18 @@ if ($mform_post->is_cancelled()) {
 // variable will be loaded with all the particulars,
 // so bring up the form.
 
-// $course, $scripting_forum are defined.  $discussion is for edit and reply only.
+// $course, $scriptingforum are defined.  $discussion is for edit and reply only.
 
 if ($post->discussion) {
-    if (! $toppost = $DB->get_record("scripting_forum_posts",
+    if (! $toppost = $DB->get_record("scriptingforum_posts",
                 array("discussion" => $post->discussion, "parent" => 0))) {
-        print_error('cannotfindparentpost', 'scripting_forum', '', $post->id);
+        print_error('cannotfindparentpost', 'scriptingforum', '', $post->id);
     }
 } else {
     $toppost = new stdClass();
-    $toppost->subject = ($scripting_forum->type == "news") ?
-            get_string("addanewtopic", "scripting_forum") :
-            get_string("addanewdiscussion", "scripting_forum");
+    $toppost->subject = ($scriptingforum->type == "news") ?
+            get_string("addanewtopic", "scriptingforum") :
+            get_string("addanewdiscussion", "scriptingforum");
 }
 
 if (empty($post->edit)) {
@@ -1045,11 +1045,11 @@ if (empty($discussion->name)) {
     if (empty($discussion)) {
         $discussion = new stdClass();
     }
-    $discussion->name = $scripting_forum->name;
+    $discussion->name = $scriptingforum->name;
 }
-if ($scripting_forum->type == 'single') {
-    // There is only one discussion thread for this scripting_forum type. We should
-    // not show the discussion name (same as scripting_forum name in this case) in
+if ($scriptingforum->type == 'single') {
+    // There is only one discussion thread for this scriptingforum type. We should
+    // not show the discussion name (same as scriptingforum name in this case) in
     // the breadcrumbs.
     $strdiscussionname = '';
 } else {
@@ -1064,67 +1064,67 @@ if (!empty($discussion->id)) {
 }
 
 if ($post->parent) {
-    $PAGE->navbar->add(get_string('reply', 'scripting_forum'));
+    $PAGE->navbar->add(get_string('reply', 'scriptingforum'));
 }
 
 if ($edit) {
-    $PAGE->navbar->add(get_string('edit', 'scripting_forum'));
+    $PAGE->navbar->add(get_string('edit', 'scriptingforum'));
 }
 
 $PAGE->set_title("$course->shortname: $strdiscussionname ".format_string($toppost->subject));
 $PAGE->set_heading($course->fullname);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(format_string($scripting_forum->name), 2);
+echo $OUTPUT->heading(format_string($scriptingforum->name), 2);
 
 // checkup
-if (!empty($parent) && !scripting_forum_user_can_see_post($scripting_forum,
+if (!empty($parent) && !scriptingforum_user_can_see_post($scriptingforum,
         $discussion, $post, null, $cm)) {
-    print_error('cannotreply', 'scripting_forum');
+    print_error('cannotreply', 'scriptingforum');
 }
 if (empty($parent)
        && empty($edit)
-       && !scripting_forum_user_can_post_discussion($scripting_forum,
+       && !scriptingforum_user_can_post_discussion($scriptingforum,
                 $groupid, -1, $cm, $modcontext)) {
-    print_error('cannotcreatediscussion', 'scripting_forum');
+    print_error('cannotcreatediscussion', 'scriptingforum');
 }
 
-if ($scripting_forum->type == 'qanda'
-            && !has_capability('mod/scripting_forum:viewqandawithoutposting', $modcontext)
+if ($scriptingforum->type == 'qanda'
+            && !has_capability('mod/scriptingforum:viewqandawithoutposting', $modcontext)
             && !empty($discussion->id)
-            && !scripting_forum_user_has_posted($scripting_forum->id, $discussion->id, $USER->id)) {
-    echo $OUTPUT->notification(get_string('qandanotify','scripting_forum'));
+            && !scriptingforum_user_has_posted($scriptingforum->id, $discussion->id, $USER->id)) {
+    echo $OUTPUT->notification(get_string('qandanotify','scriptingforum'));
 }
 
 // If there is a warning message and we are not editing a post we need to handle the warning.
 if (!empty($thresholdwarning) && !$edit) {
     // Here we want to throw an exception if they are no longer allowed to post.
-    scripting_forum_check_blocking_threshold($thresholdwarning);
+    scriptingforum_check_blocking_threshold($thresholdwarning);
 }
 
 if (!empty($parent)) {
-    if (!$discussion = $DB->get_record('scripting_forum_discussions',
+    if (!$discussion = $DB->get_record('scriptingforum_discussions',
                 array('id' => $parent->discussion))) {
-        print_error('notpartofdiscussion', 'scripting_forum');
+        print_error('notpartofdiscussion', 'scriptingforum');
     }
 
-    scripting_forum_print_post($parent,
-            $discussion, $scripting_forum, $cm, $course, false, false, false);
+    scriptingforum_print_post($parent,
+            $discussion, $scriptingforum, $cm, $course, false, false, false);
     if (empty($post->edit)) {
-        if ($scripting_forum->type != 'qanda' ||
-            scripting_forum_user_can_see_discussion($scripting_forum, $discussion, $modcontext)) {
-            $scripting_forumtracked = scripting_forum_tp_is_tracked($scripting_forum);
-            $posts = scripting_forum_get_all_discussion_posts($discussion->id,
-                    "created ASC", $scripting_forumtracked);
-            scripting_forum_print_posts_threaded($course, $cm,
-                    $scripting_forum, $discussion, $parent, 0, false,
-                    $scripting_forumtracked, $posts);
+        if ($scriptingforum->type != 'qanda' ||
+            scriptingforum_user_can_see_discussion($scriptingforum, $discussion, $modcontext)) {
+            $scriptingforumtracked = scriptingforum_tp_is_tracked($scriptingforum);
+            $posts = scriptingforum_get_all_discussion_posts($discussion->id,
+                    "created ASC", $scriptingforumtracked);
+            scriptingforum_print_posts_threaded($course, $cm,
+                    $scriptingforum, $discussion, $parent, 0, false,
+                    $scriptingforumtracked, $posts);
         }
     }
 } else {
-    if (!empty($scripting_forum->intro)) {
-        echo $OUTPUT->box(format_module_intro('scripting_forum',
-                    $scripting_forum, $cm->id), 'generalbox', 'intro');
+    if (!empty($scriptingforum->intro)) {
+        echo $OUTPUT->box(format_module_intro('scriptingforum',
+                    $scriptingforum, $cm->id), 'generalbox', 'intro');
 
         if (!empty($CFG->enableplagiarism)) {
             require_once($CFG->libdir.'/plagiarismlib.php');

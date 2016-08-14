@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * A type of scripting_forum.
+ * A type of scriptingforum.
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Andrew Robert Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -28,20 +28,20 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot.'/user/selector/lib.php');
 
 /**
- * Abstract class used by scripting_forum subscriber selection controls
- * @package   mod_scripting_forum
+ * Abstract class used by scriptingforum subscriber selection controls
+ * @package   mod_scriptingforum
  * @copyright 2009 Sam Hemelryk
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-abstract class mod_scripting_forum_subscriber_selector_base extends user_selector_base {
+abstract class mod_scriptingforum_subscriber_selector_base extends user_selector_base {
 
     /**
-     * The id of the scripting_forum this selector is being used for
+     * The id of the scriptingforum this selector is being used for
      * @var int
      */
-    protected $scripting_forumid = null;
+    protected $scriptingforumid = null;
     /**
-     * The context of the scripting_forum this selector is being used for
+     * The context of the scriptingforum this selector is being used for
      * @var object
      */
     protected $context = null;
@@ -65,8 +65,8 @@ abstract class mod_scripting_forum_subscriber_selector_base extends user_selecto
         if (isset($options['currentgroup'])) {
             $this->currentgroup = $options['currentgroup'];
         }
-        if (isset($options['scripting_forumid'])) {
-            $this->scripting_forumid = $options['scripting_forumid'];
+        if (isset($options['scriptingforumid'])) {
+            $this->scriptingforumid = $options['scriptingforumid'];
         }
     }
 
@@ -81,7 +81,7 @@ abstract class mod_scripting_forum_subscriber_selector_base extends user_selecto
         $options['file'] =  substr(__FILE__, strlen($CFG->dirroot.'/'));
         $options['context'] = $this->context;
         $options['currentgroup'] = $this->currentgroup;
-        $options['scripting_forumid'] = $this->scripting_forumid;
+        $options['scriptingforumid'] = $this->scriptingforumid;
         return $options;
     }
 

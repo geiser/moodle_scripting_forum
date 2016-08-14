@@ -17,13 +17,13 @@
 /**
  * Forum subscription manager.
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scripting_forum;
+namespace mod_scriptingforum;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -43,162 +43,162 @@ class subscriptions {
     const FORUM_DISCUSSION_UNSUBSCRIBED = -1;
 
     /**
-     * The subscription cache for scripting_forums.
+     * The subscription cache for scriptingforums.
      *
      * The first level key is the user ID
-     * The second level is the scripting_forum ID
+     * The second level is the scriptingforum ID
      * The Value then is bool for subscribed of not.
      *
      * @var array[] An array of arrays.
      */
-    protected static $scripting_forumcache = array();
+    protected static $scriptingforumcache = array();
 
     /**
-     * The list of scripting_forums which have been wholly retrieved for the scripting_forum subscription cache.
+     * The list of scriptingforums which have been wholly retrieved for the scriptingforum subscription cache.
      *
-     * This allows for prior caching of an entire scripting_forum to reduce the
+     * This allows for prior caching of an entire scriptingforum to reduce the
      * number of DB queries in a subscription check loop.
      *
      * @var bool[]
      */
-    protected static $fetchedscripting_forums = array();
+    protected static $fetchedscriptingforums = array();
 
     /**
-     * The subscription cache for scripting_forum discussions.
+     * The subscription cache for scriptingforum discussions.
      *
      * The first level key is the user ID
-     * The second level is the scripting_forum ID
+     * The second level is the scriptingforum ID
      * The third level key is the discussion ID
      * The value is then the users preference (int)
      *
      * @var array[]
      */
-    protected static $scripting_forumdiscussioncache = array();
+    protected static $scriptingforumdiscussioncache = array();
 
     /**
-     * The list of scripting_forums which have been wholly retrieved for the scripting_forum discussion subscription cache.
+     * The list of scriptingforums which have been wholly retrieved for the scriptingforum discussion subscription cache.
      *
-     * This allows for prior caching of an entire scripting_forum to reduce the
+     * This allows for prior caching of an entire scriptingforum to reduce the
      * number of DB queries in a subscription check loop.
      *
      * @var bool[]
      */
-    protected static $discussionfetchedscripting_forums = array();
+    protected static $discussionfetchedscriptingforums = array();
 
     /**
-     * Whether a user is subscribed to this scripting_forum, or a discussion within
-     * the scripting_forum.
+     * Whether a user is subscribed to this scriptingforum, or a discussion within
+     * the scriptingforum.
      *
      * If a discussion is specified, then report whether the user is
      * subscribed to posts to this particular discussion, taking into
-     * account the scripting_forum preference.
+     * account the scriptingforum preference.
      *
-     * If it is not specified then only the scripting_forum preference is considered.
+     * If it is not specified then only the scriptingforum preference is considered.
      *
      * @param int $userid The user ID
-     * @param \stdClass $scripting_forum The record of the scripting_forum to test
+     * @param \stdClass $scriptingforum The record of the scriptingforum to test
      * @param int $discussionid The ID of the discussion to check
      * @param $cm The coursemodule record. If not supplied, this will be calculated using get_fast_modinfo instead.
      * @return boolean
      */
-    public static function is_subscribed($userid, $scripting_forum, $discussionid = null, $cm = null) {
-        // If scripting_forum is force subscribed and has allowforcesubscribe, then user is subscribed.
-        if (self::is_forcesubscribed($scripting_forum)) {
+    public static function is_subscribed($userid, $scriptingforum, $discussionid = null, $cm = null) {
+        // If scriptingforum is force subscribed and has allowforcesubscribe, then user is subscribed.
+        if (self::is_forcesubscribed($scriptingforum)) {
             if (!$cm) {
-                $cm = get_fast_modinfo($scripting_forum->course)->instances['scripting_forum'][$scripting_forum->id];
+                $cm = get_fast_modinfo($scriptingforum->course)->instances['scriptingforum'][$scriptingforum->id];
             }
-            if (has_capability('mod/scripting_forum:allowforcesubscribe', \context_module::instance($cm->id), $userid)) {
+            if (has_capability('mod/scriptingforum:allowforcesubscribe', \context_module::instance($cm->id), $userid)) {
                 return true;
             }
         }
 
         if ($discussionid === null) {
-            return self::is_subscribed_to_scripting_forum($userid, $scripting_forum);
+            return self::is_subscribed_to_scriptingforum($userid, $scriptingforum);
         }
 
-        $subscriptions = self::fetch_discussion_subscription($scripting_forum->id, $userid);
+        $subscriptions = self::fetch_discussion_subscription($scriptingforum->id, $userid);
 
         // Check whether there is a record for this discussion subscription.
         if (isset($subscriptions[$discussionid])) {
             return ($subscriptions[$discussionid] != self::FORUM_DISCUSSION_UNSUBSCRIBED);
         }
 
-        return self::is_subscribed_to_scripting_forum($userid, $scripting_forum);
+        return self::is_subscribed_to_scriptingforum($userid, $scriptingforum);
     }
 
     /**
-     * Whether a user is subscribed to this scripting_forum.
+     * Whether a user is subscribed to this scriptingforum.
      *
      * @param int $userid The user ID
-     * @param \stdClass $scripting_forum The record of the scripting_forum to test
+     * @param \stdClass $scriptingforum The record of the scriptingforum to test
      * @return boolean
      */
-    protected static function is_subscribed_to_scripting_forum($userid, $scripting_forum) {
-        return self::fetch_subscription_cache($scripting_forum->id, $userid);
+    protected static function is_subscribed_to_scriptingforum($userid, $scriptingforum) {
+        return self::fetch_subscription_cache($scriptingforum->id, $userid);
     }
 
     /**
-     * Helper to determine whether a scripting_forum has it's subscription mode set
+     * Helper to determine whether a scriptingforum has it's subscription mode set
      * to forced subscription.
      *
-     * @param \stdClass $scripting_forum The record of the scripting_forum to test
+     * @param \stdClass $scriptingforum The record of the scriptingforum to test
      * @return bool
      */
-    public static function is_forcesubscribed($scripting_forum) {
-        return ($scripting_forum->forcesubscribe == FORUM_FORCESUBSCRIBE);
+    public static function is_forcesubscribed($scriptingforum) {
+        return ($scriptingforum->forcesubscribe == FORUM_FORCESUBSCRIBE);
     }
 
     /**
-     * Helper to determine whether a scripting_forum has it's subscription mode set to disabled.
+     * Helper to determine whether a scriptingforum has it's subscription mode set to disabled.
      *
-     * @param \stdClass $scripting_forum The record of the scripting_forum to test
+     * @param \stdClass $scriptingforum The record of the scriptingforum to test
      * @return bool
      */
-    public static function subscription_disabled($scripting_forum) {
-        return ($scripting_forum->forcesubscribe == FORUM_DISALLOWSUBSCRIBE);
+    public static function subscription_disabled($scriptingforum) {
+        return ($scriptingforum->forcesubscribe == FORUM_DISALLOWSUBSCRIBE);
     }
 
     /**
-     * Helper to determine whether the specified scripting_forum can be subscribed to.
+     * Helper to determine whether the specified scriptingforum can be subscribed to.
      *
-     * @param \stdClass $scripting_forum The record of the scripting_forum to test
+     * @param \stdClass $scriptingforum The record of the scriptingforum to test
      * @return bool
      */
-    public static function is_subscribable($scripting_forum) {
-        return (!\mod_scripting_forum\subscriptions::is_forcesubscribed($scripting_forum) &&
-                !\mod_scripting_forum\subscriptions::subscription_disabled($scripting_forum));
+    public static function is_subscribable($scriptingforum) {
+        return (!\mod_scriptingforum\subscriptions::is_forcesubscribed($scriptingforum) &&
+                !\mod_scriptingforum\subscriptions::subscription_disabled($scriptingforum));
     }
 
     /**
-     * Set the scripting_forum subscription mode.
+     * Set the scriptingforum subscription mode.
      *
      * By default when called without options, this is set to FORUM_FORCESUBSCRIBE.
      *
-     * @param \stdClass $scripting_forum The record of the scripting_forum to set
+     * @param \stdClass $scriptingforum The record of the scriptingforum to set
      * @param int $status The new subscription state
      * @return bool
      */
-    public static function set_subscription_mode($scripting_forumid, $status = 1) {
+    public static function set_subscription_mode($scriptingforumid, $status = 1) {
         global $DB;
-        return $DB->set_field("scripting_forum", "forcesubscribe", $status, array("id" => $scripting_forumid));
+        return $DB->set_field("scriptingforum", "forcesubscribe", $status, array("id" => $scriptingforumid));
     }
 
     /**
-     * Returns the current subscription mode for the scripting_forum.
+     * Returns the current subscription mode for the scriptingforum.
      *
-     * @param \stdClass $scripting_forum The record of the scripting_forum to set
-     * @return int The scripting_forum subscription mode
+     * @param \stdClass $scriptingforum The record of the scriptingforum to set
+     * @return int The scriptingforum subscription mode
      */
-    public static function get_subscription_mode($scripting_forum) {
-        return $scripting_forum->forcesubscribe;
+    public static function get_subscription_mode($scriptingforum) {
+        return $scriptingforum->forcesubscribe;
     }
 
     /**
-     * Returns an array of scripting_forums that the current user is subscribed to and is allowed to unsubscribe from
+     * Returns an array of scriptingforums that the current user is subscribed to and is allowed to unsubscribe from
      *
-     * @return array An array of unsubscribable scripting_forums
+     * @return array An array of unsubscribable scriptingforums
      */
-    public static function get_unsubscribable_scripting_forums() {
+    public static function get_unsubscribable_scriptingforums() {
         global $USER, $DB;
 
         // Get courses that $USER is enrolled in and can see.
@@ -213,47 +213,47 @@ class subscriptions {
         }
         list($coursesql, $courseparams) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'c');
 
-        // Get all scripting_forums from the user's courses that they are subscribed to and which are not set to forced.
-        // It is possible for users to be subscribed to a scripting_forum in subscription disallowed mode so they must be listed
+        // Get all scriptingforums from the user's courses that they are subscribed to and which are not set to forced.
+        // It is possible for users to be subscribed to a scriptingforum in subscription disallowed mode so they must be listed
         // here so that that can be unsubscribed from.
         $sql = "SELECT f.id, cm.id as cm, cm.visible, f.course
-                FROM {scripting_forum} f
+                FROM {scriptingforum} f
                 JOIN {course_modules} cm ON cm.instance = f.id
                 JOIN {modules} m ON m.name = :modulename AND m.id = cm.module
-                LEFT JOIN {scripting_forum_subscriptions} fs ON (fs.scripting_forum = f.id AND fs.userid = :userid)
+                LEFT JOIN {scriptingforum_subscriptions} fs ON (fs.scriptingforum = f.id AND fs.userid = :userid)
                 WHERE f.forcesubscribe <> :forcesubscribe
                 AND fs.id IS NOT NULL
                 AND cm.course
                 $coursesql";
         $params = array_merge($courseparams, array(
-            'modulename'=>'scripting_forum',
+            'modulename'=>'scriptingforum',
             'userid' => $USER->id,
             'forcesubscribe' => FORUM_FORCESUBSCRIBE,
         ));
-        $scripting_forums = $DB->get_recordset_sql($sql, $params);
+        $scriptingforums = $DB->get_recordset_sql($sql, $params);
 
-        $unsubscribablescripting_forums = array();
-        foreach($scripting_forums as $scripting_forum) {
-            if (empty($scripting_forum->visible)) {
-                // The scripting_forum is hidden - check if the user can view the scripting_forum.
-                $context = \context_module::instance($scripting_forum->cm);
+        $unsubscribablescriptingforums = array();
+        foreach($scriptingforums as $scriptingforum) {
+            if (empty($scriptingforum->visible)) {
+                // The scriptingforum is hidden - check if the user can view the scriptingforum.
+                $context = \context_module::instance($scriptingforum->cm);
                 if (!has_capability('moodle/course:viewhiddenactivities', $context)) {
-                    // The user can't see the hidden scripting_forum to cannot unsubscribe.
+                    // The user can't see the hidden scriptingforum to cannot unsubscribe.
                     continue;
                 }
             }
 
-            $unsubscribablescripting_forums[] = $scripting_forum;
+            $unsubscribablescriptingforums[] = $scriptingforum;
         }
-        $scripting_forums->close();
+        $scriptingforums->close();
 
-        return $unsubscribablescripting_forums;
+        return $unsubscribablescriptingforums;
     }
 
     /**
-     * Get the list of potential subscribers to a scripting_forum.
+     * Get the list of potential subscribers to a scriptingforum.
      *
-     * @param context_module $context the scripting_forum context.
+     * @param context_module $context the scriptingforum context.
      * @param integer $groupid the id of a group, or 0 for all groups.
      * @param string $fields the list of fields to return for each user. As for get_users_by_capability.
      * @param string $sort sort order. As for get_users_by_capability.
@@ -263,7 +263,7 @@ class subscriptions {
         global $DB;
 
         // Only active enrolled users or everybody on the frontpage.
-        list($esql, $params) = get_enrolled_sql($context, 'mod/scripting_forum:allowforcesubscribe', $groupid, true);
+        list($esql, $params) = get_enrolled_sql($context, 'mod/scriptingforum:allowforcesubscribe', $groupid, true);
         if (!$sort) {
             list($sort, $sortparams) = users_order_by_sql('u');
             $params = array_merge($params, $sortparams);
@@ -278,73 +278,73 @@ class subscriptions {
     }
 
     /**
-     * Fetch the scripting_forum subscription data for the specified userid and scripting_forum.
+     * Fetch the scriptingforum subscription data for the specified userid and scriptingforum.
      *
-     * @param int $scripting_forumid The scripting_forum to retrieve a cache for
+     * @param int $scriptingforumid The scriptingforum to retrieve a cache for
      * @param int $userid The user ID
      * @return boolean
      */
-    public static function fetch_subscription_cache($scripting_forumid, $userid) {
-        if (isset(self::$scripting_forumcache[$userid]) && isset(self::$scripting_forumcache[$userid][$scripting_forumid])) {
-            return self::$scripting_forumcache[$userid][$scripting_forumid];
+    public static function fetch_subscription_cache($scriptingforumid, $userid) {
+        if (isset(self::$scriptingforumcache[$userid]) && isset(self::$scriptingforumcache[$userid][$scriptingforumid])) {
+            return self::$scriptingforumcache[$userid][$scriptingforumid];
         }
-        self::fill_subscription_cache($scripting_forumid, $userid);
+        self::fill_subscription_cache($scriptingforumid, $userid);
 
-        if (!isset(self::$scripting_forumcache[$userid]) || !isset(self::$scripting_forumcache[$userid][$scripting_forumid])) {
+        if (!isset(self::$scriptingforumcache[$userid]) || !isset(self::$scriptingforumcache[$userid][$scriptingforumid])) {
             return false;
         }
 
-        return self::$scripting_forumcache[$userid][$scripting_forumid];
+        return self::$scriptingforumcache[$userid][$scriptingforumid];
     }
 
     /**
-     * Fill the scripting_forum subscription data for the specified userid and scripting_forum.
+     * Fill the scriptingforum subscription data for the specified userid and scriptingforum.
      *
-     * If the userid is not specified, then all subscription data for that scripting_forum is fetched in a single query and used
+     * If the userid is not specified, then all subscription data for that scriptingforum is fetched in a single query and used
      * for subsequent lookups without requiring further database queries.
      *
-     * @param int $scripting_forumid The scripting_forum to retrieve a cache for
+     * @param int $scriptingforumid The scriptingforum to retrieve a cache for
      * @param int $userid The user ID
      * @return void
      */
-    public static function fill_subscription_cache($scripting_forumid, $userid = null) {
+    public static function fill_subscription_cache($scriptingforumid, $userid = null) {
         global $DB;
 
-        if (!isset(self::$fetchedscripting_forums[$scripting_forumid])) {
-            // This scripting_forum has not been fetched as a whole.
+        if (!isset(self::$fetchedscriptingforums[$scriptingforumid])) {
+            // This scriptingforum has not been fetched as a whole.
             if (isset($userid)) {
-                if (!isset(self::$scripting_forumcache[$userid])) {
-                    self::$scripting_forumcache[$userid] = array();
+                if (!isset(self::$scriptingforumcache[$userid])) {
+                    self::$scriptingforumcache[$userid] = array();
                 }
 
-                if (!isset(self::$scripting_forumcache[$userid][$scripting_forumid])) {
-                    if ($DB->record_exists('scripting_forum_subscriptions', array(
+                if (!isset(self::$scriptingforumcache[$userid][$scriptingforumid])) {
+                    if ($DB->record_exists('scriptingforum_subscriptions', array(
                         'userid' => $userid,
-                        'scripting_forum' => $scripting_forumid,
+                        'scriptingforum' => $scriptingforumid,
                     ))) {
-                        self::$scripting_forumcache[$userid][$scripting_forumid] = true;
+                        self::$scriptingforumcache[$userid][$scriptingforumid] = true;
                     } else {
-                        self::$scripting_forumcache[$userid][$scripting_forumid] = false;
+                        self::$scriptingforumcache[$userid][$scriptingforumid] = false;
                     }
                 }
             } else {
-                $subscriptions = $DB->get_recordset('scripting_forum_subscriptions', array(
-                    'scripting_forum' => $scripting_forumid,
+                $subscriptions = $DB->get_recordset('scriptingforum_subscriptions', array(
+                    'scriptingforum' => $scriptingforumid,
                 ), '', 'id, userid');
                 foreach ($subscriptions as $id => $data) {
-                    if (!isset(self::$scripting_forumcache[$data->userid])) {
-                        self::$scripting_forumcache[$data->userid] = array();
+                    if (!isset(self::$scriptingforumcache[$data->userid])) {
+                        self::$scriptingforumcache[$data->userid] = array();
                     }
-                    self::$scripting_forumcache[$data->userid][$scripting_forumid] = true;
+                    self::$scriptingforumcache[$data->userid][$scriptingforumid] = true;
                 }
-                self::$fetchedscripting_forums[$scripting_forumid] = true;
+                self::$fetchedscriptingforums[$scriptingforumid] = true;
                 $subscriptions->close();
             }
         }
     }
 
     /**
-     * Fill the scripting_forum subscription data for all scripting_forums that the specified userid can subscribe to in the specified course.
+     * Fill the scriptingforum subscription data for all scriptingforums that the specified userid can subscribe to in the specified course.
      *
      * @param int $courseid The course to retrieve a cache for
      * @param int $userid The user ID
@@ -353,15 +353,15 @@ class subscriptions {
     public static function fill_subscription_cache_for_course($courseid, $userid) {
         global $DB;
 
-        if (!isset(self::$scripting_forumcache[$userid])) {
-            self::$scripting_forumcache[$userid] = array();
+        if (!isset(self::$scriptingforumcache[$userid])) {
+            self::$scriptingforumcache[$userid] = array();
         }
 
         $sql = "SELECT
-                    f.id AS scripting_forumid,
+                    f.id AS scriptingforumid,
                     s.id AS subscriptionid
-                FROM {scripting_forum} f
-                LEFT JOIN {scripting_forum_subscriptions} s ON (s.scripting_forum = f.id AND s.userid = :userid)
+                FROM {scriptingforum} f
+                LEFT JOIN {scriptingforum_subscriptions} s ON (s.scriptingforum = f.id AND s.userid = :userid)
                 WHERE f.course = :course
                 AND f.forcesubscribe <> :subscriptionforced";
 
@@ -372,22 +372,22 @@ class subscriptions {
         ));
 
         foreach ($subscriptions as $id => $data) {
-            self::$scripting_forumcache[$userid][$id] = !empty($data->subscriptionid);
+            self::$scriptingforumcache[$userid][$id] = !empty($data->subscriptionid);
         }
         $subscriptions->close();
     }
 
     /**
-     * Returns a list of user objects who are subscribed to this scripting_forum.
+     * Returns a list of user objects who are subscribed to this scriptingforum.
      *
-     * @param stdClass $scripting_forum The scripting_forum record.
+     * @param stdClass $scriptingforum The scriptingforum record.
      * @param int $groupid The group id if restricting subscriptions to a group of users, or 0 for all.
-     * @param context_module $context the scripting_forum context, to save re-fetching it where possible.
+     * @param context_module $context the scriptingforum context, to save re-fetching it where possible.
      * @param string $fields requested user fields (with "u." table prefix).
      * @param boolean $includediscussionsubscriptions Whether to take discussion subscriptions and unsubscriptions into consideration.
      * @return array list of users.
      */
-    public static function fetch_subscribed_users($scripting_forum, $groupid = 0, $context = null, $fields = null,
+    public static function fetch_subscribed_users($scriptingforum, $groupid = 0, $context = null, $fields = null,
             $includediscussionsubscriptions = false) {
         global $CFG, $DB;
 
@@ -410,35 +410,35 @@ class subscriptions {
                       u.timezone,
                       u.theme,
                       u.lang,
-                      u.trackscripting_forums,
+                      u.trackscriptingforums,
                       u.mnethostid";
         }
 
-        // Retrieve the scripting_forum context if it wasn't specified.
-        $context = scripting_forum_get_context($scripting_forum->id, $context);
+        // Retrieve the scriptingforum context if it wasn't specified.
+        $context = scriptingforum_get_context($scriptingforum->id, $context);
 
-        if (self::is_forcesubscribed($scripting_forum)) {
-            $results = \mod_scripting_forum\subscriptions::get_potential_subscribers($context, $groupid, $fields, "u.email ASC");
+        if (self::is_forcesubscribed($scriptingforum)) {
+            $results = \mod_scriptingforum\subscriptions::get_potential_subscribers($context, $groupid, $fields, "u.email ASC");
 
         } else {
             // Only active enrolled users or everybody on the frontpage.
             list($esql, $params) = get_enrolled_sql($context, '', $groupid, true);
-            $params['scripting_forumid'] = $scripting_forum->id;
+            $params['scriptingforumid'] = $scriptingforum->id;
 
             if ($includediscussionsubscriptions) {
-                $params['sscripting_forumid'] = $scripting_forum->id;
-                $params['dsscripting_forumid'] = $scripting_forum->id;
+                $params['sscriptingforumid'] = $scriptingforum->id;
+                $params['dsscriptingforumid'] = $scriptingforum->id;
                 $params['unsubscribed'] = self::FORUM_DISCUSSION_UNSUBSCRIBED;
 
                 $sql = "SELECT $fields
                         FROM (
-                            SELECT userid FROM {scripting_forum_subscriptions} s
+                            SELECT userid FROM {scriptingforum_subscriptions} s
                             WHERE
-                                s.scripting_forum = :sscripting_forumid
+                                s.scriptingforum = :sscriptingforumid
                                 UNION
-                            SELECT userid FROM {scripting_forum_discussion_subs} ds
+                            SELECT userid FROM {scriptingforum_discussion_subs} ds
                             WHERE
-                                ds.scripting_forum = :dsscripting_forumid AND ds.preference <> :unsubscribed
+                                ds.scriptingforum = :dsscriptingforumid AND ds.preference <> :unsubscribed
                         ) subscriptions
                         JOIN {user} u ON u.id = subscriptions.userid
                         JOIN ($esql) je ON je.id = u.id
@@ -448,20 +448,20 @@ class subscriptions {
                 $sql = "SELECT $fields
                         FROM {user} u
                         JOIN ($esql) je ON je.id = u.id
-                        JOIN {scripting_forum_subscriptions} s ON s.userid = u.id
+                        JOIN {scriptingforum_subscriptions} s ON s.userid = u.id
                         WHERE
-                          s.scripting_forum = :scripting_forumid
+                          s.scriptingforum = :scriptingforumid
                         ORDER BY u.email ASC";
             }
             $results = $DB->get_records_sql($sql, $params);
         }
 
-        // Guest user should never be subscribed to a scripting_forum.
+        // Guest user should never be subscribed to a scriptingforum.
         unset($results[$CFG->siteguest]);
 
         // Apply the activity module availability resetrictions.
-        $cm = get_coursemodule_from_instance('scripting_forum', $scripting_forum->id, $scripting_forum->course);
-        $modinfo = get_fast_modinfo($scripting_forum->course);
+        $cm = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id, $scriptingforum->course);
+        $modinfo = get_fast_modinfo($scriptingforum->course);
         $info = new \core_availability\info_module($modinfo->get_cm($cm->id));
         $results = $info->filter_user_list($results);
 
@@ -469,62 +469,62 @@ class subscriptions {
     }
 
     /**
-     * Retrieve the discussion subscription data for the specified userid and scripting_forum.
+     * Retrieve the discussion subscription data for the specified userid and scriptingforum.
      *
-     * This is returned as an array of discussions for that scripting_forum which contain the preference in a stdClass.
+     * This is returned as an array of discussions for that scriptingforum which contain the preference in a stdClass.
      *
-     * @param int $scripting_forumid The scripting_forum to retrieve a cache for
+     * @param int $scriptingforumid The scriptingforum to retrieve a cache for
      * @param int $userid The user ID
-     * @return array of stdClass objects with one per discussion in the scripting_forum.
+     * @return array of stdClass objects with one per discussion in the scriptingforum.
      */
-    public static function fetch_discussion_subscription($scripting_forumid, $userid = null) {
-        self::fill_discussion_subscription_cache($scripting_forumid, $userid);
+    public static function fetch_discussion_subscription($scriptingforumid, $userid = null) {
+        self::fill_discussion_subscription_cache($scriptingforumid, $userid);
 
-        if (!isset(self::$scripting_forumdiscussioncache[$userid]) || !isset(self::$scripting_forumdiscussioncache[$userid][$scripting_forumid])) {
+        if (!isset(self::$scriptingforumdiscussioncache[$userid]) || !isset(self::$scriptingforumdiscussioncache[$userid][$scriptingforumid])) {
             return array();
         }
 
-        return self::$scripting_forumdiscussioncache[$userid][$scripting_forumid];
+        return self::$scriptingforumdiscussioncache[$userid][$scriptingforumid];
     }
 
     /**
-     * Fill the discussion subscription data for the specified userid and scripting_forum.
+     * Fill the discussion subscription data for the specified userid and scriptingforum.
      *
-     * If the userid is not specified, then all discussion subscription data for that scripting_forum is fetched in a single query
+     * If the userid is not specified, then all discussion subscription data for that scriptingforum is fetched in a single query
      * and used for subsequent lookups without requiring further database queries.
      *
-     * @param int $scripting_forumid The scripting_forum to retrieve a cache for
+     * @param int $scriptingforumid The scriptingforum to retrieve a cache for
      * @param int $userid The user ID
      * @return void
      */
-    public static function fill_discussion_subscription_cache($scripting_forumid, $userid = null) {
+    public static function fill_discussion_subscription_cache($scriptingforumid, $userid = null) {
         global $DB;
 
-        if (!isset(self::$discussionfetchedscripting_forums[$scripting_forumid])) {
-            // This scripting_forum hasn't been fetched as a whole yet.
+        if (!isset(self::$discussionfetchedscriptingforums[$scriptingforumid])) {
+            // This scriptingforum hasn't been fetched as a whole yet.
             if (isset($userid)) {
-                if (!isset(self::$scripting_forumdiscussioncache[$userid])) {
-                    self::$scripting_forumdiscussioncache[$userid] = array();
+                if (!isset(self::$scriptingforumdiscussioncache[$userid])) {
+                    self::$scriptingforumdiscussioncache[$userid] = array();
                 }
 
-                if (!isset(self::$scripting_forumdiscussioncache[$userid][$scripting_forumid])) {
-                    $subscriptions = $DB->get_recordset('scripting_forum_discussion_subs', array(
+                if (!isset(self::$scriptingforumdiscussioncache[$userid][$scriptingforumid])) {
+                    $subscriptions = $DB->get_recordset('scriptingforum_discussion_subs', array(
                         'userid' => $userid,
-                        'scripting_forum' => $scripting_forumid,
+                        'scriptingforum' => $scriptingforumid,
                     ), null, 'id, discussion, preference');
                     foreach ($subscriptions as $id => $data) {
-                        self::add_to_discussion_cache($scripting_forumid, $userid, $data->discussion, $data->preference);
+                        self::add_to_discussion_cache($scriptingforumid, $userid, $data->discussion, $data->preference);
                     }
                     $subscriptions->close();
                 }
             } else {
-                $subscriptions = $DB->get_recordset('scripting_forum_discussion_subs', array(
-                    'scripting_forum' => $scripting_forumid,
+                $subscriptions = $DB->get_recordset('scriptingforum_discussion_subs', array(
+                    'scriptingforum' => $scriptingforumid,
                 ), null, 'id, userid, discussion, preference');
                 foreach ($subscriptions as $id => $data) {
-                    self::add_to_discussion_cache($scripting_forumid, $data->userid, $data->discussion, $data->preference);
+                    self::add_to_discussion_cache($scriptingforumid, $data->userid, $data->discussion, $data->preference);
                 }
-                self::$discussionfetchedscripting_forums[$scripting_forumid] = true;
+                self::$discussionfetchedscriptingforums[$scriptingforumid] = true;
                 $subscriptions->close();
             }
         }
@@ -534,105 +534,105 @@ class subscriptions {
      * Add the specified discussion and user preference to the discussion
      * subscription cache.
      *
-     * @param int $scripting_forumid The ID of the scripting_forum that this preference belongs to
+     * @param int $scriptingforumid The ID of the scriptingforum that this preference belongs to
      * @param int $userid The ID of the user that this preference belongs to
      * @param int $discussion The ID of the discussion that this preference relates to
      * @param int $preference The preference to store
      */
-    protected static function add_to_discussion_cache($scripting_forumid, $userid, $discussion, $preference) {
-        if (!isset(self::$scripting_forumdiscussioncache[$userid])) {
-            self::$scripting_forumdiscussioncache[$userid] = array();
+    protected static function add_to_discussion_cache($scriptingforumid, $userid, $discussion, $preference) {
+        if (!isset(self::$scriptingforumdiscussioncache[$userid])) {
+            self::$scriptingforumdiscussioncache[$userid] = array();
         }
 
-        if (!isset(self::$scripting_forumdiscussioncache[$userid][$scripting_forumid])) {
-            self::$scripting_forumdiscussioncache[$userid][$scripting_forumid] = array();
+        if (!isset(self::$scriptingforumdiscussioncache[$userid][$scriptingforumid])) {
+            self::$scriptingforumdiscussioncache[$userid][$scriptingforumid] = array();
         }
 
-        self::$scripting_forumdiscussioncache[$userid][$scripting_forumid][$discussion] = $preference;
+        self::$scriptingforumdiscussioncache[$userid][$scriptingforumid][$discussion] = $preference;
     }
 
     /**
      * Reset the discussion cache.
      *
      * This cache is used to reduce the number of database queries when
-     * checking scripting_forum discussion subscription states.
+     * checking scriptingforum discussion subscription states.
      */
     public static function reset_discussion_cache() {
-        self::$scripting_forumdiscussioncache = array();
-        self::$discussionfetchedscripting_forums = array();
+        self::$scriptingforumdiscussioncache = array();
+        self::$discussionfetchedscriptingforums = array();
     }
 
     /**
-     * Reset the scripting_forum cache.
+     * Reset the scriptingforum cache.
      *
      * This cache is used to reduce the number of database queries when
-     * checking scripting_forum subscription states.
+     * checking scriptingforum subscription states.
      */
-    public static function reset_scripting_forum_cache() {
-        self::$scripting_forumcache = array();
-        self::$fetchedscripting_forums = array();
+    public static function reset_scriptingforum_cache() {
+        self::$scriptingforumcache = array();
+        self::$fetchedscriptingforums = array();
     }
 
     /**
      * Adds user to the subscriber list.
      *
      * @param int $userid The ID of the user to subscribe
-     * @param \stdClass $scripting_forum The scripting_forum record for this scripting_forum.
+     * @param \stdClass $scriptingforum The scriptingforum record for this scriptingforum.
      * @param \context_module|null $context Module context, may be omitted if not known or if called for the current
      *      module set in page.
      * @param boolean $userrequest Whether the user requested this change themselves. This has an effect on whether
      *     discussion subscriptions are removed too.
-     * @return bool|int Returns true if the user is already subscribed, or the scripting_forum_subscriptions ID if the user was
+     * @return bool|int Returns true if the user is already subscribed, or the scriptingforum_subscriptions ID if the user was
      *     successfully subscribed.
      */
-    public static function subscribe_user($userid, $scripting_forum, $context = null, $userrequest = false) {
+    public static function subscribe_user($userid, $scriptingforum, $context = null, $userrequest = false) {
         global $DB;
 
-        if (self::is_subscribed($userid, $scripting_forum)) {
+        if (self::is_subscribed($userid, $scriptingforum)) {
             return true;
         }
 
         $sub = new \stdClass();
         $sub->userid  = $userid;
-        $sub->scripting_forum = $scripting_forum->id;
+        $sub->scriptingforum = $scriptingforum->id;
 
-        $result = $DB->insert_record("scripting_forum_subscriptions", $sub);
+        $result = $DB->insert_record("scriptingforum_subscriptions", $sub);
 
         if ($userrequest) {
-            $discussionsubscriptions = $DB->get_recordset('scripting_forum_discussion_subs', array('userid' => $userid, 'scripting_forum' => $scripting_forum->id));
-            $DB->delete_records_select('scripting_forum_discussion_subs',
-                    'userid = :userid AND scripting_forum = :scripting_forumid AND preference <> :preference', array(
+            $discussionsubscriptions = $DB->get_recordset('scriptingforum_discussion_subs', array('userid' => $userid, 'scriptingforum' => $scriptingforum->id));
+            $DB->delete_records_select('scriptingforum_discussion_subs',
+                    'userid = :userid AND scriptingforum = :scriptingforumid AND preference <> :preference', array(
                         'userid' => $userid,
-                        'scripting_forumid' => $scripting_forum->id,
+                        'scriptingforumid' => $scriptingforum->id,
                         'preference' => self::FORUM_DISCUSSION_UNSUBSCRIBED,
                     ));
 
-            // Reset the subscription caches for this scripting_forum.
+            // Reset the subscription caches for this scriptingforum.
             // We know that the there were previously entries and there aren't any more.
-            if (isset(self::$scripting_forumdiscussioncache[$userid]) && isset(self::$scripting_forumdiscussioncache[$userid][$scripting_forum->id])) {
-                foreach (self::$scripting_forumdiscussioncache[$userid][$scripting_forum->id] as $discussionid => $preference) {
+            if (isset(self::$scriptingforumdiscussioncache[$userid]) && isset(self::$scriptingforumdiscussioncache[$userid][$scriptingforum->id])) {
+                foreach (self::$scriptingforumdiscussioncache[$userid][$scriptingforum->id] as $discussionid => $preference) {
                     if ($preference != self::FORUM_DISCUSSION_UNSUBSCRIBED) {
-                        unset(self::$scripting_forumdiscussioncache[$userid][$scripting_forum->id][$discussionid]);
+                        unset(self::$scriptingforumdiscussioncache[$userid][$scriptingforum->id][$discussionid]);
                     }
                 }
             }
         }
 
-        // Reset the cache for this scripting_forum.
-        self::$scripting_forumcache[$userid][$scripting_forum->id] = true;
+        // Reset the cache for this scriptingforum.
+        self::$scriptingforumcache[$userid][$scriptingforum->id] = true;
 
-        $context = scripting_forum_get_context($scripting_forum->id, $context);
+        $context = scriptingforum_get_context($scriptingforum->id, $context);
         $params = array(
             'context' => $context,
             'objectid' => $result,
             'relateduserid' => $userid,
-            'other' => array('scripting_forumid' => $scripting_forum->id),
+            'other' => array('scriptingforumid' => $scriptingforum->id),
 
         );
         $event  = event\subscription_created::create($params);
         if ($userrequest && $discussionsubscriptions) {
             foreach ($discussionsubscriptions as $subscription) {
-                $event->add_record_snapshot('scripting_forum_discussion_subs', $subscription);
+                $event->add_record_snapshot('scriptingforum_discussion_subs', $subscription);
             }
             $discussionsubscriptions->close();
         }
@@ -645,52 +645,52 @@ class subscriptions {
      * Removes user from the subscriber list
      *
      * @param int $userid The ID of the user to unsubscribe
-     * @param \stdClass $scripting_forum The scripting_forum record for this scripting_forum.
+     * @param \stdClass $scriptingforum The scriptingforum record for this scriptingforum.
      * @param \context_module|null $context Module context, may be omitted if not known or if called for the current
      *     module set in page.
      * @param boolean $userrequest Whether the user requested this change themselves. This has an effect on whether
      *     discussion subscriptions are removed too.
      * @return boolean Always returns true.
      */
-    public static function unsubscribe_user($userid, $scripting_forum, $context = null, $userrequest = false) {
+    public static function unsubscribe_user($userid, $scriptingforum, $context = null, $userrequest = false) {
         global $DB;
 
         $sqlparams = array(
             'userid' => $userid,
-            'scripting_forum' => $scripting_forum->id,
+            'scriptingforum' => $scriptingforum->id,
         );
-        $DB->delete_records('scripting_forum_digests', $sqlparams);
+        $DB->delete_records('scriptingforum_digests', $sqlparams);
 
-        if ($scripting_forumsubscription = $DB->get_record('scripting_forum_subscriptions', $sqlparams)) {
-            $DB->delete_records('scripting_forum_subscriptions', array('id' => $scripting_forumsubscription->id));
+        if ($scriptingforumsubscription = $DB->get_record('scriptingforum_subscriptions', $sqlparams)) {
+            $DB->delete_records('scriptingforum_subscriptions', array('id' => $scriptingforumsubscription->id));
 
             if ($userrequest) {
-                $discussionsubscriptions = $DB->get_recordset('scripting_forum_discussion_subs', $sqlparams);
-                $DB->delete_records('scripting_forum_discussion_subs',
-                        array('userid' => $userid, 'scripting_forum' => $scripting_forum->id, 'preference' => self::FORUM_DISCUSSION_UNSUBSCRIBED));
+                $discussionsubscriptions = $DB->get_recordset('scriptingforum_discussion_subs', $sqlparams);
+                $DB->delete_records('scriptingforum_discussion_subs',
+                        array('userid' => $userid, 'scriptingforum' => $scriptingforum->id, 'preference' => self::FORUM_DISCUSSION_UNSUBSCRIBED));
 
                 // We know that the there were previously entries and there aren't any more.
-                if (isset(self::$scripting_forumdiscussioncache[$userid]) && isset(self::$scripting_forumdiscussioncache[$userid][$scripting_forum->id])) {
-                    self::$scripting_forumdiscussioncache[$userid][$scripting_forum->id] = array();
+                if (isset(self::$scriptingforumdiscussioncache[$userid]) && isset(self::$scriptingforumdiscussioncache[$userid][$scriptingforum->id])) {
+                    self::$scriptingforumdiscussioncache[$userid][$scriptingforum->id] = array();
                 }
             }
 
-            // Reset the cache for this scripting_forum.
-            self::$scripting_forumcache[$userid][$scripting_forum->id] = false;
+            // Reset the cache for this scriptingforum.
+            self::$scriptingforumcache[$userid][$scriptingforum->id] = false;
 
-            $context = scripting_forum_get_context($scripting_forum->id, $context);
+            $context = scriptingforum_get_context($scriptingforum->id, $context);
             $params = array(
                 'context' => $context,
-                'objectid' => $scripting_forumsubscription->id,
+                'objectid' => $scriptingforumsubscription->id,
                 'relateduserid' => $userid,
-                'other' => array('scripting_forumid' => $scripting_forum->id),
+                'other' => array('scriptingforumid' => $scriptingforum->id),
 
             );
             $event = event\subscription_deleted::create($params);
-            $event->add_record_snapshot('scripting_forum_subscriptions', $scripting_forumsubscription);
+            $event->add_record_snapshot('scriptingforum_subscriptions', $scriptingforumsubscription);
             if ($userrequest && $discussionsubscriptions) {
                 foreach ($discussionsubscriptions as $subscription) {
-                    $event->add_record_snapshot('scripting_forum_discussion_subs', $subscription);
+                    $event->add_record_snapshot('scriptingforum_discussion_subs', $subscription);
                 }
                 $discussionsubscriptions->close();
             }
@@ -713,46 +713,46 @@ class subscriptions {
         global $DB;
 
         // First check whether the user is subscribed to the discussion already.
-        $subscription = $DB->get_record('scripting_forum_discussion_subs', array('userid' => $userid, 'discussion' => $discussion->id));
+        $subscription = $DB->get_record('scriptingforum_discussion_subs', array('userid' => $userid, 'discussion' => $discussion->id));
         if ($subscription) {
             if ($subscription->preference != self::FORUM_DISCUSSION_UNSUBSCRIBED) {
                 // The user is already subscribed to the discussion. Ignore.
                 return false;
             }
         }
-        // No discussion-level subscription. Check for a scripting_forum level subscription.
-        if ($DB->record_exists('scripting_forum_subscriptions', array('userid' => $userid, 'scripting_forum' => $discussion->scripting_forum))) {
+        // No discussion-level subscription. Check for a scriptingforum level subscription.
+        if ($DB->record_exists('scriptingforum_subscriptions', array('userid' => $userid, 'scriptingforum' => $discussion->scriptingforum))) {
             if ($subscription && $subscription->preference == self::FORUM_DISCUSSION_UNSUBSCRIBED) {
-                // The user is subscribed to the scripting_forum, but unsubscribed from the discussion, delete the discussion preference.
-                $DB->delete_records('scripting_forum_discussion_subs', array('id' => $subscription->id));
-                unset(self::$scripting_forumdiscussioncache[$userid][$discussion->scripting_forum][$discussion->id]);
+                // The user is subscribed to the scriptingforum, but unsubscribed from the discussion, delete the discussion preference.
+                $DB->delete_records('scriptingforum_discussion_subs', array('id' => $subscription->id));
+                unset(self::$scriptingforumdiscussioncache[$userid][$discussion->scriptingforum][$discussion->id]);
             } else {
-                // The user is already subscribed to the scripting_forum. Ignore.
+                // The user is already subscribed to the scriptingforum. Ignore.
                 return false;
             }
         } else {
             if ($subscription) {
                 $subscription->preference = time();
-                $DB->update_record('scripting_forum_discussion_subs', $subscription);
+                $DB->update_record('scriptingforum_discussion_subs', $subscription);
             } else {
                 $subscription = new \stdClass();
                 $subscription->userid  = $userid;
-                $subscription->scripting_forum = $discussion->scripting_forum;
+                $subscription->scriptingforum = $discussion->scriptingforum;
                 $subscription->discussion = $discussion->id;
                 $subscription->preference = time();
 
-                $subscription->id = $DB->insert_record('scripting_forum_discussion_subs', $subscription);
-                self::$scripting_forumdiscussioncache[$userid][$discussion->scripting_forum][$discussion->id] = $subscription->preference;
+                $subscription->id = $DB->insert_record('scriptingforum_discussion_subs', $subscription);
+                self::$scriptingforumdiscussioncache[$userid][$discussion->scriptingforum][$discussion->id] = $subscription->preference;
             }
         }
 
-        $context = scripting_forum_get_context($discussion->scripting_forum, $context);
+        $context = scriptingforum_get_context($discussion->scriptingforum, $context);
         $params = array(
             'context' => $context,
             'objectid' => $subscription->id,
             'relateduserid' => $userid,
             'other' => array(
-                'scripting_forumid' => $discussion->scripting_forum,
+                'scriptingforumid' => $discussion->scriptingforum,
                 'discussion' => $discussion->id,
             ),
 
@@ -775,46 +775,46 @@ class subscriptions {
         global $DB;
 
         // First check whether the user's subscription preference for this discussion.
-        $subscription = $DB->get_record('scripting_forum_discussion_subs', array('userid' => $userid, 'discussion' => $discussion->id));
+        $subscription = $DB->get_record('scriptingforum_discussion_subs', array('userid' => $userid, 'discussion' => $discussion->id));
         if ($subscription) {
             if ($subscription->preference == self::FORUM_DISCUSSION_UNSUBSCRIBED) {
                 // The user is already unsubscribed from the discussion. Ignore.
                 return false;
             }
         }
-        // No discussion-level preference. Check for a scripting_forum level subscription.
-        if (!$DB->record_exists('scripting_forum_subscriptions', array('userid' => $userid, 'scripting_forum' => $discussion->scripting_forum))) {
+        // No discussion-level preference. Check for a scriptingforum level subscription.
+        if (!$DB->record_exists('scriptingforum_subscriptions', array('userid' => $userid, 'scriptingforum' => $discussion->scriptingforum))) {
             if ($subscription && $subscription->preference != self::FORUM_DISCUSSION_UNSUBSCRIBED) {
-                // The user is not subscribed to the scripting_forum, but subscribed from the discussion, delete the discussion subscription.
-                $DB->delete_records('scripting_forum_discussion_subs', array('id' => $subscription->id));
-                unset(self::$scripting_forumdiscussioncache[$userid][$discussion->scripting_forum][$discussion->id]);
+                // The user is not subscribed to the scriptingforum, but subscribed from the discussion, delete the discussion subscription.
+                $DB->delete_records('scriptingforum_discussion_subs', array('id' => $subscription->id));
+                unset(self::$scriptingforumdiscussioncache[$userid][$discussion->scriptingforum][$discussion->id]);
             } else {
-                // The user is not subscribed from the scripting_forum. Ignore.
+                // The user is not subscribed from the scriptingforum. Ignore.
                 return false;
             }
         } else {
             if ($subscription) {
                 $subscription->preference = self::FORUM_DISCUSSION_UNSUBSCRIBED;
-                $DB->update_record('scripting_forum_discussion_subs', $subscription);
+                $DB->update_record('scriptingforum_discussion_subs', $subscription);
             } else {
                 $subscription = new \stdClass();
                 $subscription->userid  = $userid;
-                $subscription->scripting_forum = $discussion->scripting_forum;
+                $subscription->scriptingforum = $discussion->scriptingforum;
                 $subscription->discussion = $discussion->id;
                 $subscription->preference = self::FORUM_DISCUSSION_UNSUBSCRIBED;
 
-                $subscription->id = $DB->insert_record('scripting_forum_discussion_subs', $subscription);
+                $subscription->id = $DB->insert_record('scriptingforum_discussion_subs', $subscription);
             }
-            self::$scripting_forumdiscussioncache[$userid][$discussion->scripting_forum][$discussion->id] = $subscription->preference;
+            self::$scriptingforumdiscussioncache[$userid][$discussion->scriptingforum][$discussion->id] = $subscription->preference;
         }
 
-        $context = scripting_forum_get_context($discussion->scripting_forum, $context);
+        $context = scriptingforum_get_context($discussion->scriptingforum, $context);
         $params = array(
             'context' => $context,
             'objectid' => $subscription->id,
             'relateduserid' => $userid,
             'other' => array(
-                'scripting_forumid' => $discussion->scripting_forum,
+                'scriptingforumid' => $discussion->scriptingforum,
                 'discussion' => $discussion->id,
             ),
 

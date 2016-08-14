@@ -16,14 +16,14 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scripting_forum
+ * @package   mod_scriptingforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(dirname(dirname(__DIR__)) . '/config.php');
-require_once($CFG->dirroot.'/mod/scripting_forum/lib.php');
+require_once($CFG->dirroot.'/mod/scriptingforum/lib.php');
 
 $id = required_param('id', PARAM_INT);
 $maildigest = required_param('maildigest', PARAM_INT);
@@ -32,27 +32,27 @@ $backtoindex = optional_param('backtoindex', 0, PARAM_INT);
 // We must have a valid session key.
 require_sesskey();
 
-$scripting_forum = $DB->get_record('scripting_forum', array('id' => $id));
-$course  = $DB->get_record('course', array('id' => $scripting_forum->course), '*', MUST_EXIST);
-$cm      = get_coursemodule_from_instance('scripting_forum',
-        $scripting_forum->id, $course->id, false, MUST_EXIST);
+$scriptingforum = $DB->get_record('scriptingforum', array('id' => $id));
+$course  = $DB->get_record('course', array('id' => $scriptingforum->course), '*', MUST_EXIST);
+$cm      = get_coursemodule_from_instance('scriptingforum',
+        $scriptingforum->id, $course->id, false, MUST_EXIST);
 $context = context_module::instance($cm->id);
 
 require_login($course, false, $cm);
 
-$url = new moodle_url('/mod/scripting_forum/maildigest.php', array(
+$url = new moodle_url('/mod/scriptingforum/maildigest.php', array(
     'id' => $id,
     'maildigest' => $maildigest,
 ));
 $PAGE->set_url($url);
 $PAGE->set_context($context);
 
-$digestoptions = scripting_forum_get_user_digest_options();
+$digestoptions = scriptingforum_get_user_digest_options();
 
 $info = new stdClass();
 $info->name  = fullname($USER);
-$info->scripting_forum = format_string($scripting_forum->name);
-scripting_forum_set_user_maildigest($scripting_forum, $maildigest);
+$info->scriptingforum = format_string($scriptingforum->name);
+scriptingforum_set_user_maildigest($scriptingforum, $maildigest);
 $info->maildigest = $maildigest;
 
 if ($maildigest === -1) {
@@ -60,13 +60,13 @@ if ($maildigest === -1) {
     $info->maildigest = $USER->maildigest;
     $info->maildigesttitle = $digestoptions[$info->maildigest];
     $info->maildigestdescription = get_string('emaildigest_' . $info->maildigest,
-        'mod_scripting_forum', $info);
-    $updatemessage = get_string('emaildigestupdated_default', 'scripting_forum', $info);
+        'mod_scriptingforum', $info);
+    $updatemessage = get_string('emaildigestupdated_default', 'scriptingforum', $info);
 } else {
     $info->maildigesttitle = $digestoptions[$info->maildigest];
     $info->maildigestdescription = get_string('emaildigest_' . $info->maildigest,
-        'mod_scripting_forum', $info);
-    $updatemessage = get_string('emaildigestupdated', 'scripting_forum', $info);
+        'mod_scriptingforum', $info);
+    $updatemessage = get_string('emaildigestupdated', 'scriptingforum', $info);
 }
 
 if ($backtoindex) {

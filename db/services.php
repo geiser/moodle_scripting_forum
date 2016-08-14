@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scripting_forum
+ * @package   mod_scriptingforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -24,83 +24,83 @@
 
 $functions = array(
 
-    'mod_scripting_forum_get_scripting_forums_by_courses' => array(
-        'classname' => 'mod_scripting_forum_external',
-        'methodname' => 'get_scripting_forums_by_courses',
-        'classpath' => 'mod/scripting_forum/externallib.php',
-        'description' => 'Returns a list of scripting_forum instances in a provided set of courses, if
-            no courses are provided then all the scripting_forum instances the user has access to will be
+    'mod_scriptingforum_get_scriptingforums_by_courses' => array(
+        'classname' => 'mod_scriptingforum_external',
+        'methodname' => 'get_scriptingforums_by_courses',
+        'classpath' => 'mod/scriptingforum/externallib.php',
+        'description' => 'Returns a list of scriptingforum instances in a provided set of courses, if
+            no courses are provided then all the scriptingforum instances the user has access to will be
             returned.',
         'type' => 'read',
-        'capabilities' => 'mod/scripting_forum:viewdiscussion',
+        'capabilities' => 'mod/scriptingforum:viewdiscussion',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE)
     ),
 
-    'mod_scripting_forum_get_scripting_forum_discussion_posts' => array(
-        'classname' => 'mod_scripting_forum_external',
-        'methodname' => 'get_scripting_forum_discussion_posts',
-        'classpath' => 'mod/scripting_forum/externallib.php',
-        'description' => 'Returns a list of scripting_forum posts for a discussion.',
+    'mod_scriptingforum_get_scriptingforum_discussion_posts' => array(
+        'classname' => 'mod_scriptingforum_external',
+        'methodname' => 'get_scriptingforum_discussion_posts',
+        'classpath' => 'mod/scriptingforum/externallib.php',
+        'description' => 'Returns a list of scriptingforum posts for a discussion.',
         'type' => 'read',
-        'capabilities' => 'mod/scripting_forum:viewdiscussion, mod/scripting_forum:viewqandawithoutposting',
+        'capabilities' => 'mod/scriptingforum:viewdiscussion, mod/scriptingforum:viewqandawithoutposting',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE)
     ),
 
-    'mod_scripting_forum_get_scripting_forum_discussions_paginated' => array(
-        'classname' => 'mod_scripting_forum_external',
-        'methodname' => 'get_scripting_forum_discussions_paginated',
-        'classpath' => 'mod/scripting_forum/externallib.php',
-        'description' => 'Returns a list of scripting_forum discussions optionally sorted and paginated.',
+    'mod_scriptingforum_get_scriptingforum_discussions_paginated' => array(
+        'classname' => 'mod_scriptingforum_external',
+        'methodname' => 'get_scriptingforum_discussions_paginated',
+        'classpath' => 'mod/scriptingforum/externallib.php',
+        'description' => 'Returns a list of scriptingforum discussions optionally sorted and paginated.',
         'type' => 'read',
-        'capabilities' => 'mod/scripting_forum:viewdiscussion, mod/scripting_forum:viewqandawithoutposting',
+        'capabilities' => 'mod/scriptingforum:viewdiscussion, mod/scriptingforum:viewqandawithoutposting',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE)
     ),
 
-    'mod_scripting_forum_view_scripting_forum' => array(
-        'classname' => 'mod_scripting_forum_external',
-        'methodname' => 'view_scripting_forum',
-        'classpath' => 'mod/scripting_forum/externallib.php',
+    'mod_scriptingforum_view_scriptingforum' => array(
+        'classname' => 'mod_scriptingforum_external',
+        'methodname' => 'view_scriptingforum',
+        'classpath' => 'mod/scriptingforum/externallib.php',
         'description' => 'Trigger the course module viewed event and update the module completion status.',
         'type' => 'write',
-        'capabilities' => 'mod/scripting_forum:viewdiscussion',
+        'capabilities' => 'mod/scriptingforum:viewdiscussion',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE)
     ),
 
-    'mod_scripting_forum_view_scripting_forum_discussion' => array(
-        'classname' => 'mod_scripting_forum_external',
-        'methodname' => 'view_scripting_forum_discussion',
-        'classpath' => 'mod/scripting_forum/externallib.php',
-        'description' => 'Trigger the scripting_forum discussion viewed event.',
+    'mod_scriptingforum_view_scriptingforum_discussion' => array(
+        'classname' => 'mod_scriptingforum_external',
+        'methodname' => 'view_scriptingforum_discussion',
+        'classpath' => 'mod/scriptingforum/externallib.php',
+        'description' => 'Trigger the scriptingforum discussion viewed event.',
         'type' => 'write',
-        'capabilities' => 'mod/scripting_forum:viewdiscussion',
+        'capabilities' => 'mod/scriptingforum:viewdiscussion',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE)
     ),
 
-    'mod_scripting_forum_add_discussion_post' => array(
-        'classname' => 'mod_scripting_forum_external',
+    'mod_scriptingforum_add_discussion_post' => array(
+        'classname' => 'mod_scriptingforum_external',
         'methodname' => 'add_discussion_post',
-        'classpath' => 'mod/scripting_forum/externallib.php',
+        'classpath' => 'mod/scriptingforum/externallib.php',
         'description' => 'Create new posts into an existing discussion.',
         'type' => 'write',
-        'capabilities' => 'mod/scripting_forum:replypost',
+        'capabilities' => 'mod/scriptingforum:replypost',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE)
     ),
 
-    'mod_scripting_forum_add_discussion' => array(
-        'classname' => 'mod_scripting_forum_external',
+    'mod_scriptingforum_add_discussion' => array(
+        'classname' => 'mod_scriptingforum_external',
         'methodname' => 'add_discussion',
-        'classpath' => 'mod/scripting_forum/externallib.php',
-        'description' => 'Add a new discussion into an existing scripting_forum.',
+        'classpath' => 'mod/scriptingforum/externallib.php',
+        'description' => 'Add a new discussion into an existing scriptingforum.',
         'type' => 'write',
-        'capabilities' => 'mod/scripting_forum:startdiscussion',
+        'capabilities' => 'mod/scriptingforum:startdiscussion',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE)
     ),
 
-    'mod_scripting_forum_can_add_discussion' => array(
-        'classname' => 'mod_scripting_forum_external',
+    'mod_scriptingforum_can_add_discussion' => array(
+        'classname' => 'mod_scriptingforum_external',
         'methodname' => 'can_add_discussion',
-        'classpath' => 'mod/scripting_forum/externallib.php',
-        'description' => 'Check if the current user can add discussions in the given scripting_forum (and optionally for the given group).',
+        'classpath' => 'mod/scriptingforum/externallib.php',
+        'description' => 'Check if the current user can add discussions in the given scriptingforum (and optionally for the given group).',
         'type' => 'read',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE)
     ),

@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scripting_forum
+ * @package   mod_scriptingforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -28,21 +28,21 @@ global $DB; // TODO: this is a hack, we should really do something with the SQL 
 
 $logs = array(
         
-array('module' => 'scripting_forum', 'action' => 'add', 'mtable' => 'scripting_forum', 'field' => 'name'),
-array('module' => 'scripting_forum', 'action' => 'update', 'mtable' => 'scripting_forum', 'field' => 'name'),
-array('module' => 'scripting_forum', 'action' => 'add discussion', 'mtable' => 'scripting_forum_discussions', 'field' => 'name'),
-array('module' => 'scripting_forum', 'action' => 'add post', 'mtable' => 'scripting_forum_posts', 'field' => 'subject'),
-array('module' => 'scripting_forum', 'action' => 'update post', 'mtable' => 'scripting_forum_posts', 'field' => 'subject'),
-array('module' => 'scripting_forum', 'action' => 'user report', 'mtable' => 'user',
+array('module' => 'scriptingforum', 'action' => 'add', 'mtable' => 'scriptingforum', 'field' => 'name'),
+array('module' => 'scriptingforum', 'action' => 'update', 'mtable' => 'scriptingforum', 'field' => 'name'),
+array('module' => 'scriptingforum', 'action' => 'add discussion', 'mtable' => 'scriptingforum_discussions', 'field' => 'name'),
+array('module' => 'scriptingforum', 'action' => 'add post', 'mtable' => 'scriptingforum_posts', 'field' => 'subject'),
+array('module' => 'scriptingforum', 'action' => 'update post', 'mtable' => 'scriptingforum_posts', 'field' => 'subject'),
+array('module' => 'scriptingforum', 'action' => 'user report', 'mtable' => 'user',
       'field'  => $DB->sql_concat('firstname', "' '", 'lastname')),
-array('module' => 'scripting_forum', 'action' => 'move discussion', 'mtable' => 'scripting_forum_discussions', 'field' => 'name'),
-array('module' => 'scripting_forum', 'action' => 'view subscribers', 'mtable' => 'scripting_forum', 'field' => 'name'),
-array('module' => 'scripting_forum', 'action' => 'view discussion', 'mtable' => 'scripting_forum_discussions', 'field' => 'name'),
-array('module' => 'scripting_forum', 'action' => 'view scripting_forum', 'mtable' => 'scripting_forum', 'field' => 'name'),
-array('module' => 'scripting_forum', 'action' => 'subscribe', 'mtable' => 'scripting_forum', 'field' => 'name'),
-array('module' => 'scripting_forum', 'action' => 'unsubscribe', 'mtable' => 'scripting_forum', 'field' => 'name'),
-array('module' => 'scripting_forum', 'action' => 'pin discussion', 'mtable' => 'scripting_forum_discussions', 'field' => 'name'),
-array('module' => 'scripting_forum', 'action' => 'unpin discussion', 'mtable' => 'scripting_forum_discussions', 'field' => 'name'),
+array('module' => 'scriptingforum', 'action' => 'move discussion', 'mtable' => 'scriptingforum_discussions', 'field' => 'name'),
+array('module' => 'scriptingforum', 'action' => 'view subscribers', 'mtable' => 'scriptingforum', 'field' => 'name'),
+array('module' => 'scriptingforum', 'action' => 'view discussion', 'mtable' => 'scriptingforum_discussions', 'field' => 'name'),
+array('module' => 'scriptingforum', 'action' => 'view scriptingforum', 'mtable' => 'scriptingforum', 'field' => 'name'),
+array('module' => 'scriptingforum', 'action' => 'subscribe', 'mtable' => 'scriptingforum', 'field' => 'name'),
+array('module' => 'scriptingforum', 'action' => 'unsubscribe', 'mtable' => 'scriptingforum', 'field' => 'name'),
+array('module' => 'scriptingforum', 'action' => 'pin discussion', 'mtable' => 'scriptingforum_discussions', 'field' => 'name'),
+array('module' => 'scriptingforum', 'action' => 'unpin discussion', 'mtable' => 'scriptingforum_discussions', 'field' => 'name'),
 
 );
 

@@ -17,20 +17,20 @@
 /**
  * Forum activities search area
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @copyright  2016 Geiser Chalco {@link http://githut.com/geiser}
  * @copyright  2015 David Monllao {@link http://www.davidmonllao.com}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scripting_forum\search;
+namespace mod_scriptingforum\search;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
  * Forum activities search area.
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @copyright  2016 Geiser Chalco {@link http://github.com/geiser}
  * @copyright  2015 David Monllao {@link http://www.davidmonllao.com}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later

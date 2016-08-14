@@ -17,13 +17,13 @@
 /**
  * Forum post renderable.
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2015 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scripting_forum\output\email;
+namespace mod_scriptingforum\output\email;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -31,20 +31,20 @@ defined('MOODLE_INTERNAL') || die();
  * Forum post renderable.
  *
  * @since      Moodle 3.0
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2015 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class renderer extends \mod_scripting_forum_renderer {
+class renderer extends \mod_scriptingforum_renderer {
 
     /**
      * The template name for this renderer.
      *
      * @return string
      */
-    public function scripting_forum_post_template() {
-        return 'scripting_forum_post_email_htmlemail';
+    public function scriptingforum_post_template() {
+        return 'scriptingforum_post_email_htmlemail';
     }
 
     /**
@@ -57,7 +57,7 @@ class renderer extends \mod_scripting_forum_renderer {
     public function format_message_text($cm, $post) {
         $message = file_rewrite_pluginfile_urls($post->message, 'pluginfile.php',
             \context_module::instance($cm->id)->id,
-            'mod_scripting_forum', 'post', $post->id);
+            'mod_scriptingforum', 'post', $post->id);
         $options = new \stdClass();
         $options->para = true;
         return format_text($message, $post->messageformat, $options);
@@ -71,7 +71,7 @@ class renderer extends \mod_scripting_forum_renderer {
      * @return string
      */
     public function format_message_attachments($cm, $post) {
-        return scripting_forum_print_attachments($post, $cm, "html");
+        return scriptingforum_print_attachments($post, $cm, "html");
     }
 }
 

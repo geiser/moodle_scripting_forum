@@ -1,4 +1,5 @@
 <?php
+
 // This file is based on part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -15,36 +16,13 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * A scheduled task for scriptingforum cron.
- *
- * @todo MDL-44734 This job will be split up properly.
- *
  * @package    mod_scriptingforum
- * @copyright  2016 Geiser Chalco <geiser@usp.br>
- * @copyright  2014 Dan Poltawski <dan@moodle.com>
+ * @subpackage backup-moodle2
+ * @copyright  2016 Geiser Chalco {@link http://github.com/geiser}
+ * @copyright  2010 Eloy Lafuente {@link http://stronk7.com}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-namespace mod_scriptingforum\task;
 
-class cron_task extends \core\task\scheduled_task {
-
-    /**
-     * Get a descriptive name for this task (shown to admins).
-     *
-     * @return string
-     */
-    public function get_name() {
-        return get_string('crontask', 'mod_scriptingforum');
-    }
-
-    /**
-     * Run scriptingforum cron.
-     */
-    public function execute() {
-        global $CFG;
-        require_once($CFG->dirroot . '/mod/scriptingforum/lib.php');
-        scriptingforum_cron();
-    }
-
-}
-
+ // This activity has not particular settings but the inherited from the generic
+ // backup_activity_task so here there isn't any class definition, like the ones
+ // existing in /backup/moodle2/backup_settingslib.php (activities section)

@@ -15,22 +15,22 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The mod_scripting_forum course module viewed event.
+ * The mod_scriptingforum course module viewed event.
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scripting_forum\event;
+namespace mod_scriptingforum\event;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The mod_scripting_forum course module viewed event class.
+ * The mod_scriptingforum course module viewed event class.
  *
- * @package    mod_scripting_forum
+ * @package    mod_scriptingforum
  * @since      Moodle 2.7
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -45,7 +45,7 @@ class course_module_viewed extends \core\event\course_module_viewed {
     protected function init() {
         $this->data['crud'] = 'r';
         $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
-        $this->data['objecttable'] = 'scripting_forum';
+        $this->data['objecttable'] = 'scriptingforum';
     }
 
     /**
@@ -54,7 +54,7 @@ class course_module_viewed extends \core\event\course_module_viewed {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/mod/scripting_forum/view.php', array('f' => $this->objectid));
+        return new \moodle_url('/mod/scriptingforum/view.php', array('f' => $this->objectid));
     }
 
     /**
@@ -63,12 +63,12 @@ class course_module_viewed extends \core\event\course_module_viewed {
      * @return array|null
      */
     protected function get_legacy_logdata() {
-        return array($this->courseid, 'scripting_forum', 'view scripting_forum', 'view.php?f=' . $this->objectid,
+        return array($this->courseid, 'scriptingforum', 'view scriptingforum', 'view.php?f=' . $this->objectid,
             $this->objectid, $this->contextinstanceid);
     }
 
     public static function get_objectid_mapping() {
-        return array('db' => 'scripting_forum', 'restore' => 'scripting_forum');
+        return array('db' => 'scriptingforum', 'restore' => 'scriptingforum');
     }
 }
 
