@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/scriptingforum/db" VERSION="20160113" COMMENT="XMLDB file for Moodle mod/scriptingforum"
+<XMLDB PATH="mod/sforum/db" VERSION="20160113" COMMENT="XMLDB file for Moodle mod/sforum"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
   <TABLES>
       
-    <TABLE NAME="scriptingforum" COMMENT="Scripting forums contain and structure discussion">
+    <TABLE NAME="sforum" COMMENT="Scripting forums contain and structure discussion">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -39,7 +39,7 @@
       </INDEXES>
     </TABLE>
 
-    <TABLE NAME="scriptingforum_discussions" COMMENT="Forums are composed of discussions">
+    <TABLE NAME="sforum_discussions" COMMENT="Forums are composed of discussions">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -57,7 +57,7 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="scriptingforum" REFFIELDS="id"/>
+        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="sforum" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
@@ -65,7 +65,7 @@
       </INDEXES>
     </TABLE>
 
-    <TABLE NAME="scriptingforum_posts" COMMENT="All posts are stored in this table">
+    <TABLE NAME="sforum_posts" COMMENT="All posts are stored in this table">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="discussion" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -84,8 +84,8 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="discussion" TYPE="foreign" FIELDS="discussion" REFTABLE="scriptingforum_discussions" REFFIELDS="id"/>
-        <KEY NAME="parent" TYPE="foreign" FIELDS="parent" REFTABLE="scriptingforum_posts" REFFIELDS="id" COMMENT="note that to make this recursive FK working someday, the parent field must be decalred NULL"/>
+        <KEY NAME="discussion" TYPE="foreign" FIELDS="discussion" REFTABLE="sforum_discussions" REFFIELDS="id"/>
+        <KEY NAME="parent" TYPE="foreign" FIELDS="parent" REFTABLE="sforum_posts" REFFIELDS="id" COMMENT="note that to make this recursive FK working someday, the parent field must be decalred NULL"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
@@ -94,7 +94,7 @@
       </INDEXES>
     </TABLE>
 
-    <TABLE NAME="scriptingforum_queue" COMMENT="For keeping track of posts that will be mailed in digest form">
+    <TABLE NAME="sforum_queue" COMMENT="For keeping track of posts that will be mailed in digest form">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -104,15 +104,15 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="discussionid" TYPE="foreign" FIELDS="discussionid" REFTABLE="scriptingforum_discussions" REFFIELDS="id"/>
-        <KEY NAME="postid" TYPE="foreign" FIELDS="postid" REFTABLE="scriptingforum_posts" REFFIELDS="id"/>
+        <KEY NAME="discussionid" TYPE="foreign" FIELDS="discussionid" REFTABLE="sforum_discussions" REFFIELDS="id"/>
+        <KEY NAME="postid" TYPE="foreign" FIELDS="postid" REFTABLE="sforum_posts" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="user" UNIQUE="false" FIELDS="userid"/>
       </INDEXES>
     </TABLE>
 
-    <TABLE NAME="scriptingforum_subscriptions" COMMENT="Keeps track of who is subscribed to what forum">
+    <TABLE NAME="sforum_subscriptions" COMMENT="Keeps track of who is subscribed to what forum">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -120,14 +120,14 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="scriptingforum" REFFIELDS="id"/>
+        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="sforum" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
       </INDEXES>
     </TABLE>
 
-    <TABLE NAME="scriptingforum_digests" COMMENT="Keeps track of users mail delivery preferences for each forum">
+    <TABLE NAME="sforum_digests" COMMENT="Keeps track of users mail delivery preferences for each forum">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
@@ -137,12 +137,12 @@
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
-        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="scriptingforum" REFFIELDS="id"/>
+        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="sforum" REFFIELDS="id"/>
         <KEY NAME="forumdigest" TYPE="unique" FIELDS="forum, userid, maildigest"/>
       </KEYS>
     </TABLE>
     
-    <TABLE NAME="scriptingforum_read" COMMENT="Tracks each users read posts">
+    <TABLE NAME="sforum_read" COMMENT="Tracks each users read posts">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -162,7 +162,7 @@
       </INDEXES>
     </TABLE>
 
-    <TABLE NAME="scriptingforum_track_prefs" COMMENT="Tracks each users untracked forums">
+    <TABLE NAME="sforum_track_prefs" COMMENT="Tracks each users untracked forums">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -176,7 +176,7 @@
       </INDEXES>
     </TABLE>
     
-    <TABLE NAME="scriptingforum_discussion_subs" COMMENT="Users may choose to (un)subscribe from specific discussions.">
+    <TABLE NAME="sforum_discussion_subs" COMMENT="Users may choose to (un)subscribe from specific discussions.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="forum" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
@@ -186,14 +186,14 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="scriptingforum" REFFIELDS="id"/>
+        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="sforum" REFFIELDS="id"/>
         <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
-        <KEY NAME="discussion" TYPE="foreign" FIELDS="discussion" REFTABLE="scriptingforum_discussions" REFFIELDS="id"/>
+        <KEY NAME="discussion" TYPE="foreign" FIELDS="discussion" REFTABLE="sforum_discussions" REFFIELDS="id"/>
         <KEY NAME="user_discussions" TYPE="unique" FIELDS="userid, discussion" COMMENT="Users may only have one discussion preferences per discussion"/>
       </KEYS>
     </TABLE>
 
-    <TABLE NAME="scriptingforum_clroles" COMMENT="CL roles defined in this forum">
+    <TABLE NAME="sforum_clroles" COMMENT="CL roles defined in this forum">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="forum" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
@@ -201,12 +201,12 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="scriptingforum" REFFIELDS="id"/>
+        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="sforum" REFFIELDS="id"/>
         <KEY NAME="groupingid" TYPE="foreign" FIELDS="groupingid" REFTABLE="groupings" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
 
-    <TABLE NAME="scriptingforum_steps" COMMENT="Steps in the sequencing activities by CL roles">
+    <TABLE NAME="sforum_steps" COMMENT="Steps in the sequencing activities by CL roles">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="forum" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
@@ -217,13 +217,13 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="scriptingforum" REFFIELDS="id"/>
-        <KEY NAME="dependon" TYPE="foreign" FIELDS="dependon" REFTABLE="scriptingforum_steps" REFFIELDS="id" COMMENT="The steps that not have prerequisites must be declared with NULL"/>
+        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="sforum" REFFIELDS="id"/>
+        <KEY NAME="dependon" TYPE="foreign" FIELDS="dependon" REFTABLE="sforum_steps" REFFIELDS="id" COMMENT="The steps that not have prerequisites must be declared with NULL"/>
         <KEY NAME="groupiid" TYPE="foreign" FIELDS="groupid" REFTABLE="groups" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
 
-    <TABLE NAME="scriptingforum_performed_steps" COMMENT="Performed steps in the sequencing. Each step is basically defined by a post in the forum">
+    <TABLE NAME="sforum_performed_steps" COMMENT="Performed steps in the sequencing. Each step is basically defined by a post in the forum">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="stepid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
@@ -231,8 +231,8 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="stepid" TYPE="foreign" FIELDS="stepid" REFTABLE="scriptingforum_steps" REFFIELDS="id"/>
-        <KEY NAME="postid" TYPE="foreign" FIELDS="postid" REFTABLE="scriptingforum_posts" REFFIELDS="id"/>
+        <KEY NAME="stepid" TYPE="foreign" FIELDS="stepid" REFTABLE="sforum_steps" REFFIELDS="id"/>
+        <KEY NAME="postid" TYPE="foreign" FIELDS="postid" REFTABLE="sforum_posts" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
 

@@ -16,9 +16,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Defines backup_scriptingforum_activity_task class
+ * Defines backup_sforum_activity_task class
  *
- * @package   mod_scriptingforum
+ * @package   mod_sforum
  * @category  backup
  * @copyright 2016 Geiser Chalco {@link http://github.com/geiser}
  * @copyright 2010 Eloy Lafuente {@link http://stronk7.com}
@@ -27,13 +27,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot . '/mod/scriptingforum/backup/moodle2/backup_scriptingforum_stepslib.php');
-require_once($CFG->dirroot . '/mod/scriptingforum/backup/moodle2/backup_scriptingforum_settingslib.php');
+require_once($CFG->dirroot . '/mod/sforum/backup/moodle2/backup_sforum_stepslib.php');
+require_once($CFG->dirroot . '/mod/sforum/backup/moodle2/backup_sforum_settingslib.php');
 
 /**
  * Provides the steps to perform one complete backup of the Forum instance
  */
-class backup_scriptingforum_activity_task extends backup_activity_task {
+class backup_sforum_activity_task extends backup_activity_task {
 
     /**
      * No specific settings for this activity
@@ -42,10 +42,10 @@ class backup_scriptingforum_activity_task extends backup_activity_task {
     }
 
     /**
-     * Defines a backup step to store the instance data in the scriptingforum.xml file
+     * Defines a backup step to store the instance data in the sforum.xml file
      */
     protected function define_my_steps() {
-        $this->add_step(new backup_scriptingforum_activity_structure_step('scriptingforum structure', 'scriptingforum.xml'));
+        $this->add_step(new backup_sforum_activity_structure_step('sforum structure', 'sforum.xml'));
     }
 
     /**
@@ -59,28 +59,28 @@ class backup_scriptingforum_activity_task extends backup_activity_task {
 
         $base = preg_quote($CFG->wwwroot,"/");
 
-        // Link to the list of scriptingforums
-        $search="/(".$base."\/mod\/scriptingforum\/index.php\?id\=)([0-9]+)/";
+        // Link to the list of sforums
+        $search="/(".$base."\/mod\/sforum\/index.php\?id\=)([0-9]+)/";
         $content= preg_replace($search, '$@FORUMINDEX*$2@$', $content);
 
-        // Link to scriptingforum view by moduleid
-        $search="/(".$base."\/mod\/scriptingforum\/view.php\?id\=)([0-9]+)/";
+        // Link to sforum view by moduleid
+        $search="/(".$base."\/mod\/sforum\/view.php\?id\=)([0-9]+)/";
         $content= preg_replace($search, '$@FORUMVIEWBYID*$2@$', $content);
 
-        // Link to scriptingforum view by scriptingforumid
-        $search="/(".$base."\/mod\/scriptingforum\/view.php\?f\=)([0-9]+)/";
+        // Link to sforum view by sforumid
+        $search="/(".$base."\/mod\/sforum\/view.php\?f\=)([0-9]+)/";
         $content= preg_replace($search, '$@FORUMVIEWBYF*$2@$', $content);
 
-        // Link to scriptingforum discussion with parent syntax
-        $search = "/(".$base."\/mod\/scriptingforum\/discuss.php\?d\=)([0-9]+)(?:\&amp;|\&)parent\=([0-9]+)/";
+        // Link to sforum discussion with parent syntax
+        $search = "/(".$base."\/mod\/sforum\/discuss.php\?d\=)([0-9]+)(?:\&amp;|\&)parent\=([0-9]+)/";
         $content= preg_replace($search, '$@FORUMDISCUSSIONVIEWPARENT*$2*$3@$', $content);
 
-        // Link to scriptingforum discussion with relative syntax
-        $search="/(".$base."\/mod\/scriptingforum\/discuss.php\?d\=)([0-9]+)\#([0-9]+)/";
+        // Link to sforum discussion with relative syntax
+        $search="/(".$base."\/mod\/sforum\/discuss.php\?d\=)([0-9]+)\#([0-9]+)/";
         $content= preg_replace($search, '$@FORUMDISCUSSIONVIEWINSIDE*$2*$3@$', $content);
 
-        // Link to scriptingforum discussion by discussionid
-        $search="/(".$base."\/mod\/scriptingforum\/discuss.php\?d\=)([0-9]+)/";
+        // Link to sforum discussion by discussionid
+        $search="/(".$base."\/mod\/sforum\/discuss.php\?d\=)([0-9]+)/";
         $content= preg_replace($search, '$@FORUMDISCUSSIONVIEW*$2@$', $content);
 
         return $content;

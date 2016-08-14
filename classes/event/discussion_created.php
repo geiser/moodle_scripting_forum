@@ -15,27 +15,27 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The mod_scriptingforum discussion created event.
+ * The mod_sforum discussion created event.
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scriptingforum\event;
+namespace mod_sforum\event;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The mod_scriptingforum discussion created event class.
+ * The mod_sforum discussion created event class.
  *
  * @property-read array $other {
  *      Extra information about the event.
  *
- *      - int scriptingforumid: The id of the scriptingforum the discussion is in.
+ *      - int sforumid: The id of the sforum the discussion is in.
  * }
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @since      Moodle 2.7
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -49,7 +49,7 @@ class discussion_created extends \core\event\base {
     protected function init() {
         $this->data['crud'] = 'c';
         $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
-        $this->data['objecttable'] = 'scriptingforum_discussions';
+        $this->data['objecttable'] = 'sforum_discussions';
     }
 
     /**
@@ -58,7 +58,7 @@ class discussion_created extends \core\event\base {
      * @return string
      */
     public function get_description() {
-        return "The user with id '$this->userid' has created the discussion with id '$this->objectid' in the scriptingforum " .
+        return "The user with id '$this->userid' has created the discussion with id '$this->objectid' in the sforum " .
             "with course module id '$this->contextinstanceid'.";
     }
 
@@ -68,7 +68,7 @@ class discussion_created extends \core\event\base {
      * @return string
      */
     public static function get_name() {
-        return get_string('eventdiscussioncreated', 'mod_scriptingforum');
+        return get_string('eventdiscussioncreated', 'mod_sforum');
     }
 
     /**
@@ -77,7 +77,7 @@ class discussion_created extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/mod/scriptingforum/discuss.php', array('d' => $this->objectid));
+        return new \moodle_url('/mod/sforum/discuss.php', array('d' => $this->objectid));
     }
 
     /**
@@ -87,10 +87,10 @@ class discussion_created extends \core\event\base {
      */
     protected function get_legacy_logdata() {
 
-        // The legacy log table expects a relative path to /mod/scriptingforum/.
-        $logurl = substr($this->get_url()->out_as_local_url(), strlen('/mod/scriptingforum/'));
+        // The legacy log table expects a relative path to /mod/sforum/.
+        $logurl = substr($this->get_url()->out_as_local_url(), strlen('/mod/sforum/'));
 
-        return array($this->courseid, 'scriptingforum', 'add discussion', $logurl, $this->objectid, $this->contextinstanceid);
+        return array($this->courseid, 'sforum', 'add discussion', $logurl, $this->objectid, $this->contextinstanceid);
     }
 
     /**
@@ -101,8 +101,8 @@ class discussion_created extends \core\event\base {
      */
     protected function validate_data() {
         parent::validate_data();
-        if (!isset($this->other['scriptingforumid'])) {
-            throw new \coding_exception('The \'scriptingforumid\' value must be set in other.');
+        if (!isset($this->other['sforumid'])) {
+            throw new \coding_exception('The \'sforumid\' value must be set in other.');
         }
 
         if ($this->contextlevel != CONTEXT_MODULE) {
@@ -111,12 +111,12 @@ class discussion_created extends \core\event\base {
     }
 
     public static function get_objectid_mapping() {
-        return array('db' => 'scriptingforum_discussions', 'restore' => 'scriptingforum_discussion');
+        return array('db' => 'sforum_discussions', 'restore' => 'sforum_discussion');
     }
 
     public static function get_other_mapping() {
         $othermapped = array();
-        $othermapped['scriptingforumid'] = array('db' => 'scriptingforum', 'restore' => 'scriptingforum');
+        $othermapped['sforumid'] = array('db' => 'sforum', 'restore' => 'sforum');
 
         return $othermapped;
     }

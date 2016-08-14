@@ -15,9 +15,9 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template mod_scriptingforum/scriptingforum_post_emaildigestfull_textemail
+    @template mod_sforum/sforum_post_emaildigestfull_textemail
 
-    Template which defines a scriptingforum post for sending in a single-post text email.
+    Template which defines a sforum post for sending in a single-post text email.
 
     Classes required for JS:
     * none
@@ -33,12 +33,12 @@
     * postdate
     * message
     * attachments
-    * scriptingforumindexlink
+    * sforumindexlink
 }}
 
 {{ discussionlink }}
 {{{ subject }}} ({{{ permalink }}})
-{{# str }} bynameondate, scriptingforum, {
+{{# str }} bynameondate, sforum, {
         "name": {{# quote }}{{{ authorfullname }}}{{/ quote }},
         "date": {{# quote }}{{ postdate }}{{/ quote }}
     } {{/ str }}
@@ -47,4 +47,4 @@
 
 {{{ attachments }}}
 ---------------------------------------------------------------------
-{{# str }} digestmailpostlink, scriptingforum, {{{ scriptingforumindexlink }}} {{/ str }}
+{{# str }} digestmailpostlink, sforum, {{{ sforumindexlink }}} {{/ str }}

@@ -1,4 +1,4 @@
-YUI.add('moodle-mod_scriptingforum-subscriptiontoggle', function (Y, NAME) {
+YUI.add('moodle-mod_sforum-subscriptiontoggle', function (Y, NAME) {
 
 // This file is based on part of Moodle - http://moodle.org/
 //
@@ -20,15 +20,15 @@ YUI.add('moodle-mod_scriptingforum-subscriptiontoggle', function (Y, NAME) {
  * active.
  *
  * @module     moodle-core-subscriptiontoggle
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @main       moodle-mod_scriptingforum-subscriptiontoggle
+ * @main       moodle-mod_sforum-subscriptiontoggle
  */
 
 /**
- * @namespace M.mod_scriptingforum
+ * @namespace M.mod_sforum
  * @class subscriptiontoggle
  */
 
@@ -36,7 +36,7 @@ function SubscriptionToggle() {
     SubscriptionToggle.superclass.constructor.apply(this, arguments);
 }
 
-var LOGNAME = 'moodle-mod_scriptingforum-subscriptiontoggle';
+var LOGNAME = 'moodle-mod_sforum-subscriptiontoggle';
 
 Y.extend(SubscriptionToggle, Y.Base, {
     initializer: function() {
@@ -102,15 +102,15 @@ Y.extend(SubscriptionToggle, Y.Base, {
          *
          * @attribute uri
          * @type String
-         * @default M.cfg.wwwroot + '/mod/scriptingforum/subscribe_ajax.php'
+         * @default M.cfg.wwwroot + '/mod/sforum/subscribe_ajax.php'
          */
         uri: {
-            value: M.cfg.wwwroot + '/mod/scriptingforum/subscribe_ajax.php'
+            value: M.cfg.wwwroot + '/mod/sforum/subscribe_ajax.php'
         }
     }
 });
 
-var NS = Y.namespace('M.mod_scriptingforum.subscriptiontoggle');
+var NS = Y.namespace('M.mod_sforum.subscriptiontoggle');
 NS.init = function(config) {
     return new SubscriptionToggle(config);
 };

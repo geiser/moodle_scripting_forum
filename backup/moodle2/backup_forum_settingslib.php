@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @subpackage backup-moodle2
  * @copyright  2016 Geiser Chalco {@link http://github.com/geiser}
  * @copyright  2010 Eloy Lafuente {@link http://stronk7.com}

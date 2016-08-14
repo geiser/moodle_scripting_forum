@@ -15,25 +15,25 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * A Handler to process replies to scriptingforum posts.
+ * A Handler to process replies to sforum posts.
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @subpackage core_message
  * @copyright  2016 Geiser Chalco
  * @copyright  2014 Andrew Nicols
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scriptingforum\message\inbound;
+namespace mod_sforum\message\inbound;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot . '/mod/scriptingforum/lib.php');
+require_once($CFG->dirroot . '/mod/sforum/lib.php');
 require_once($CFG->dirroot . '/repository/lib.php');
 require_once($CFG->libdir . '/completionlib.php');
 
 /**
- * A Handler to process replies to scriptingforum posts.
+ * A Handler to process replies to sforum posts.
  *
  * @copyright  2014 Andrew Nicols
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -46,7 +46,7 @@ class reply_handler extends \core\message\inbound\handler {
      * @return string
      */
     public function get_description() {
-        return get_string('reply_handler', 'mod_scriptingforum');
+        return get_string('reply_handler', 'mod_sforum');
     }
 
     /**
@@ -56,7 +56,7 @@ class reply_handler extends \core\message\inbound\handler {
      * @return string
      */
     public function get_name() {
-        return get_string('reply_handler_name', 'mod_scriptingforum');
+        return get_string('reply_handler_name', 'mod_sforum');
     }
 
     /**
@@ -71,14 +71,14 @@ class reply_handler extends \core\message\inbound\handler {
         global $DB, $USER;
 
         // Load the post being replied to.
-        $post = $DB->get_record('scriptingforum_posts', array('id' => $record->datavalue));
+        $post = $DB->get_record('sforum_posts', array('id' => $record->datavalue));
         if (!$post) {
             mtrace("--> Unable to find a post matching with id {$record->datavalue}");
             return false;
         }
 
         // Load the discussion that this post is in.
-        $discussion = $DB->get_record('scriptingforum_discussions',
+        $discussion = $DB->get_record('sforum_discussions',
                 array('id' => $post->discussion));
         if (!$post) {
             mtrace("--> Unable to find the discussion for post {$record->datavalue}");
@@ -86,16 +86,16 @@ class reply_handler extends \core\message\inbound\handler {
         }
 
         // Load the other required data.
-        $scriptingforum = $DB->get_record('scriptingforum',
-                array('id' => $discussion->scriptingforum));
-        $course = $DB->get_record('course', array('id' => $scriptingforum->course));
-        $cm = get_fast_modinfo($course->id)->instances['scriptingforum'][$scriptingforum->id];
+        $sforum = $DB->get_record('sforum',
+                array('id' => $discussion->sforum));
+        $course = $DB->get_record('course', array('id' => $sforum->course));
+        $cm = get_fast_modinfo($course->id)->instances['sforum'][$sforum->id];
         $modcontext = \context_module::instance($cm->id);
         $usercontext = \context_user::instance($USER->id);
 
         // Make sure user can post in this discussion.
         $canpost = true;
-        if (!scriptingforum_user_can_post($scriptingforum,
+        if (!sforum_user_can_post($sforum,
                 $discussion, $USER, $cm, $course, $modcontext)) {
             $canpost = false;
         }
@@ -117,29 +117,29 @@ class reply_handler extends \core\message\inbound\handler {
 
         if (!$canpost) {
             $data = new \stdClass();
-            $data->scriptingforum = $scriptingforum;
-            throw new \core\message\inbound\processing_failed_exception('messageinboundnopostscriptingforum', 'mod_scriptingforum', $data);
+            $data->sforum = $sforum;
+            throw new \core\message\inbound\processing_failed_exception('messageinboundnopostsforum', 'mod_sforum', $data);
         }
 
         // And check the availability.
         if (!\core_availability\info_module::is_user_visible($cm)) {
             $data = new \stdClass();
-            $data->scriptingforum = $scriptingforum;
-            throw new \core\message\inbound\processing_failed_exception('messageinboundscriptingforumhidden', 'mod_scriptingforum', $data);
+            $data->sforum = $sforum;
+            throw new \core\message\inbound\processing_failed_exception('messageinboundsforumhidden', 'mod_sforum', $data);
         }
 
         // Before we add this we must check that the user will not exceed the blocking threshold.
         // This should result in an appropriate reply.
-        $thresholdwarning = scriptingforum_check_throttling($scriptingforum, $cm);
+        $thresholdwarning = sforum_check_throttling($sforum, $cm);
         if (!empty($thresholdwarning) && !$thresholdwarning->canpost) {
             $data = new \stdClass();
-            $data->scriptingforum = $scriptingforum;
+            $data->sforum = $sforum;
             $data->message = get_string($thresholdwarning->errorcode, $thresholdwarning->module, $thresholdwarning->additional);
-            throw new \core\message\inbound\processing_failed_exception('messageinboundthresholdhit', 'mod_scriptingforum', $data);
+            throw new \core\message\inbound\processing_failed_exception('messageinboundthresholdhit', 'mod_sforum', $data);
         }
 
         $subject = clean_param($messagedata->envelope->subject, PARAM_TEXT);
-        $restring = get_string('re', 'scriptingforum');
+        $restring = get_string('re', 'sforum');
         if (strpos($subject, $discussion->name)) {
             // The discussion name is mentioned in the e-mail subject. This is probably just the standard reply. Use the
             // standard reply subject instead.
@@ -160,7 +160,7 @@ class reply_handler extends \core\message\inbound\handler {
 
         $addpost = new \stdClass();
         $addpost->course          = $course->id;
-        $addpost->scriptingforum = $scriptingforum->id;
+        $addpost->sforum = $sforum->id;
         $addpost->discussion      = $discussion->id;
         $addpost->modified        = $messagedata->timestamp;
         $addpost->subject         = $subject;
@@ -177,26 +177,26 @@ class reply_handler extends \core\message\inbound\handler {
         // Add attachments to the post.
         if (!empty($messagedata->attachments['attachment']) && count($messagedata->attachments['attachment'])) {
             $attachmentcount = count($messagedata->attachments['attachment']);
-            if (empty($scriptingforum->maxattachments) || $scriptingforum->maxbytes == 1 ||
-                    !has_capability('mod/scriptingforum:createattachment', $modcontext)) {
+            if (empty($sforum->maxattachments) || $sforum->maxbytes == 1 ||
+                    !has_capability('mod/sforum:createattachment', $modcontext)) {
                 // Attachments are not allowed.
-                mtrace("--> User does not have permission to attach files in this scriptingforum. Rejecting e-mail.");
+                mtrace("--> User does not have permission to attach files in this sforum. Rejecting e-mail.");
 
                 $data = new \stdClass();
-                $data->scriptingforum = $scriptingforum;
+                $data->sforum = $sforum;
                 $data->attachmentcount = $attachmentcount;
-                throw new \core\message\inbound\processing_failed_exception('messageinboundattachmentdisallowed', 'mod_scriptingforum', $data);
+                throw new \core\message\inbound\processing_failed_exception('messageinboundattachmentdisallowed', 'mod_sforum', $data);
             }
 
-            if ($scriptingforum->maxattachments < $attachmentcount) {
+            if ($sforum->maxattachments < $attachmentcount) {
                 // Too many attachments.
-                mtrace("--> User attached {$attachmentcount} files when only {$scriptingforum->maxattachments} where allowed. "
+                mtrace("--> User attached {$attachmentcount} files when only {$sforum->maxattachments} where allowed. "
                      . " Rejecting e-mail.");
 
                 $data = new \stdClass();
-                $data->scriptingforum = $scriptingforum;
+                $data->sforum = $sforum;
                 $data->attachmentcount = $attachmentcount;
-                throw new \core\message\inbound\processing_failed_exception('messageinboundfilecountexceeded', 'mod_scriptingforum', $data);
+                throw new \core\message\inbound\processing_failed_exception('messageinboundfilecountexceeded', 'mod_sforum', $data);
             }
 
             $filesize = 0;
@@ -207,15 +207,15 @@ class reply_handler extends \core\message\inbound\handler {
                 $filesize += $attachment->filesize;
             }
 
-            if ($scriptingforum->maxbytes < $filesize) {
+            if ($sforum->maxbytes < $filesize) {
                 // Too many attachments.
-                mtrace("--> User attached {$filesize} bytes of files when only {$scriptingforum->maxbytes} where allowed. "
+                mtrace("--> User attached {$filesize} bytes of files when only {$sforum->maxbytes} where allowed. "
                      . "Rejecting e-mail.");
                 $data = new \stdClass();
-                $data->scriptingforum = $scriptingforum;
-                $data->maxbytes = display_size($scriptingforum->maxbytes);
+                $data->sforum = $sforum;
+                $data->maxbytes = display_size($sforum->maxbytes);
                 $data->filesize = display_size($filesize);
-                throw new \core\message\inbound\processing_failed_exception('messageinboundfilesizeexceeded', 'mod_scriptingforum', $data);
+                throw new \core\message\inbound\processing_failed_exception('messageinboundfilesizeexceeded', 'mod_sforum', $data);
             }
         }
 
@@ -232,7 +232,7 @@ class reply_handler extends \core\message\inbound\handler {
         }
 
         // Insert the message content now.
-        $addpost->id = scriptingforum_add_new_post($addpost, true);
+        $addpost->id = sforum_add_new_post($addpost, true);
 
         // Log the new post creation.
         $params = array(
@@ -240,21 +240,21 @@ class reply_handler extends \core\message\inbound\handler {
             'objectid' => $addpost->id,
             'other' => array(
                 'discussionid'  => $discussion->id,
-                'scriptingforumid'       => $scriptingforum->id,
-                'scriptingforumtype'     => $scriptingforum->type,
+                'sforumid'       => $sforum->id,
+                'sforumtype'     => $sforum->type,
             )
         );
-        $event = \mod_scriptingforum\event\post_created::create($params);
-        $event->add_record_snapshot('scriptingforum_posts', $addpost);
-        $event->add_record_snapshot('scriptingforum_discussions', $discussion);
+        $event = \mod_sforum\event\post_created::create($params);
+        $event->add_record_snapshot('sforum_posts', $addpost);
+        $event->add_record_snapshot('sforum_discussions', $discussion);
         $event->trigger();
 
         // Update completion state.
         $completion = new \completion_info($course);
-        if ($completion->is_enabled($cm) && ($scriptingforum->completionreplies || $scriptingforum->completionposts)) {
+        if ($completion->is_enabled($cm) && ($sforum->completionreplies || $sforum->completionposts)) {
             $completion->update_state($cm, COMPLETION_COMPLETE);
 
-            mtrace("--> Updating completion status for user {$USER->id} in scriptingforum {$scriptingforum->id} for post {$addpost->id}.");
+            mtrace("--> Updating completion status for user {$USER->id} in sforum {$sforum->id} for post {$addpost->id}.");
         }
 
         mtrace("--> Created a post {$addpost->id} in {$discussion->id}.");
@@ -308,13 +308,13 @@ class reply_handler extends \core\message\inbound\handler {
     public function get_success_message(\stdClass $messagedata, $handlerresult) {
         $a = new \stdClass();
         $a->subject = $handlerresult->subject;
-        $discussionurl = new \moodle_url('/mod/scriptingforum/discuss.php', array('d' => $handlerresult->discussion));
+        $discussionurl = new \moodle_url('/mod/sforum/discuss.php', array('d' => $handlerresult->discussion));
         $discussionurl->set_anchor('p' . $handlerresult->id);
         $a->discussionurl = $discussionurl->out();
 
         $message = new \stdClass();
-        $message->plain = get_string('postbymailsuccess', 'mod_scriptingforum', $a);
-        $message->html = get_string('postbymailsuccess_html', 'mod_scriptingforum', $a);
+        $message->plain = get_string('postbymailsuccess', 'mod_sforum', $a);
+        $message->html = get_string('postbymailsuccess_html', 'mod_sforum', $a);
         return $message;
     }
 }

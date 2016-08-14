@@ -15,7 +15,7 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template mod_scriptingforum/scriptingforum_post_emaildigestbasic_htmlemail
+    @template mod_sforum/sforum_post_emaildigestbasic_htmlemail
 
     Template which defines a scripting forum post for sending in a single-post HTML email.
 
@@ -43,7 +43,7 @@
 }}
 <div>
   <a target="_blank" href="{{{ permalink }}}">{{{ subject }}}</a>
-  {{# str }} bynameondate, scriptingforum, {
+  {{# str }} bynameondate, sforum, {
           "name": {{# quote }}<a target="_blank" href="{{{ authorlink }}}">{{ authorfullname }}</a>{{/ quote }},
           "date": {{# quote }}{{ postdate }}{{/ quote }}
       } {{/ str }}

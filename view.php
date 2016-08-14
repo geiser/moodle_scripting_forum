@@ -16,8 +16,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scripting_forum
- * @copyright 1999 Geiser Chalco  {@link http://github.com/geiser}
+ * @package   mod_sforum
+ * @copyright 2016 Geiser Chalco  {@link http://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -28,7 +28,7 @@
 
     $id          = optional_param('id', 0, PARAM_INT);       // Course Module ID
     $f           = optional_param('f', 0, PARAM_INT);        // Forum ID
-    $mode        = optional_param('mode', 0, PARAM_INT);     // Display mode (for single scripting_forum)
+    $mode        = optional_param('mode', 0, PARAM_INT);     // Display mode (for single sforum)
     $showall     = optional_param('showall', '', PARAM_INT); // show all discussions on one page
     $changegroup = optional_param('group', -1, PARAM_INT);   // choose the current group
     $page        = optional_param('page', 0, PARAM_INT);     // which page to show
@@ -46,65 +46,65 @@
     if ($search) {
         $params['search'] = $search;
     }
-    $PAGE->set_url('/mod/scripting_forum/view.php', $params);
+    $PAGE->set_url('/mod/sforum/view.php', $params);
 
     if ($id) {
-        if (! $cm = get_coursemodule_from_id('scripting_forum', $id)) {
+        if (! $cm = get_coursemodule_from_id('sforum', $id)) {
             print_error('invalidcoursemodule');
         }
         if (! $course = $DB->get_record("course", array("id" => $cm->course))) {
             print_error('coursemisconf');
         }
-        if (! $scripting_forum = $DB->get_record("scripting_forum", array("id" => $cm->instance))) {
-            print_error('invalidscripting_forumid', 'scripting_forum');
+        if (! $sforum = $DB->get_record("sforum", array("id" => $cm->instance))) {
+            print_error('invalidsforumid', 'sforum');
         }
-        if ($scripting_forum->type == 'single') {
-            $PAGE->set_pagetype('mod-scripting_forum-discuss');
+        if ($sforum->type == 'single') {
+            $PAGE->set_pagetype('mod-sforum-discuss');
         }
         // move require_course_login here to use forced language for course
         // fix for MDL-6926
         require_course_login($course, true, $cm);
-        $strscripting_forums = get_string("modulenameplural", "scripting_forum");
-        $strscripting_forum = get_string("modulename", "scripting_forum");
+        $strsforums = get_string("modulenameplural", "sforum");
+        $strsforum = get_string("modulename", "sforum");
     } else if ($f) {
 
-        if (! $scripting_forum = $DB->get_record("scripting_forum", array("id" => $f))) {
-            print_error('invalidscripting_forumid', 'scripting_forum');
+        if (! $sforum = $DB->get_record("sforum", array("id" => $f))) {
+            print_error('invalidsforumid', 'sforum');
         }
-        if (! $course = $DB->get_record("course", array("id" => $scripting_forum->course))) {
+        if (! $course = $DB->get_record("course", array("id" => $sforum->course))) {
             print_error('coursemisconf');
         }
 
-        if (!$cm = get_coursemodule_from_instance("scripting_forum", $scripting_forum->id, $course->id)) {
+        if (!$cm = get_coursemodule_from_instance("sforum", $sforum->id, $course->id)) {
             print_error('missingparameter');
         }
         // move require_course_login here to use forced language for course
         // fix for MDL-6926
         require_course_login($course, true, $cm);
-        $strscripting_forums = get_string("modulenameplural", "scripting_forum");
-        $strscripting_forum = get_string("modulename", "scripting_forum");
+        $strsforums = get_string("modulenameplural", "sforum");
+        $strsforum = get_string("modulename", "sforum");
     } else {
         print_error('missingparameter');
     }
 
     if (!$PAGE->button) {
-        $PAGE->set_button(scripting_forum_search_form($course, $search));
+        $PAGE->set_button(sforum_search_form($course, $search));
     }
 
     $context = context_module::instance($cm->id);
     $PAGE->set_context($context);
 
-    if (!empty($CFG->enablerssfeeds) && !empty($CFG->scripting_forum_enablerssfeeds) && $scripting_forum->rsstype && $scripting_forum->rssarticles) {
+    if (!empty($CFG->enablerssfeeds) && !empty($CFG->sforum_enablerssfeeds) && $sforum->rsstype && $sforum->rssarticles) {
         require_once("$CFG->libdir/rsslib.php");
 
-        $rsstitle = format_string($course->shortname, true, array('context' => context_course::instance($course->id))) . ': ' . format_string($scripting_forum->name);
-        rss_add_http_header($context, 'mod_scripting_forum', $scripting_forum, $rsstitle);
+        $rsstitle = format_string($course->shortname, true, array('context' => context_course::instance($course->id))) . ': ' . format_string($sforum->name);
+        rss_add_http_header($context, 'mod_sforum', $sforum, $rsstitle);
     }
 
 /// Print header.
 
-    $PAGE->set_title($scripting_forum->name);
-    $PAGE->add_body_class('scripting_forumtype-'.$scripting_forum->type);
+    $PAGE->set_title($sforum->name);
+    $PAGE->add_body_class('sforumtype-'.$sforum->type);
     $PAGE->set_heading($course->fullname);
 
 /// Some capability checks.
@@ -112,115 +112,115 @@
         notice(get_string("activityiscurrentlyhidden"));
     }
 
-    if (!has_capability('mod/scripting_forum:viewdiscussion', $context)) {
-        notice(get_string('noviewdiscussionspermission', 'scripting_forum'));
+    if (!has_capability('mod/sforum:viewdiscussion', $context)) {
+        notice(get_string('noviewdiscussionspermission', 'sforum'));
     }
 
     // Mark viewed and trigger the course_module_viewed event.
-    scripting_forum_view($scripting_forum, $course, $cm, $context);
+    sforum_view($sforum, $course, $cm, $context);
 
     echo $OUTPUT->header();
 
-    echo $OUTPUT->heading(format_string($scripting_forum->name), 2);
-    if (!empty($scripting_forum->intro) && $scripting_forum->type != 'single' && $scripting_forum->type != 'teacher') {
-        echo $OUTPUT->box(format_module_intro('scripting_forum', $scripting_forum, $cm->id), 'generalbox', 'intro');
+    echo $OUTPUT->heading(format_string($sforum->name), 2);
+    if (!empty($sforum->intro) && $sforum->type != 'single' && $sforum->type != 'teacher') {
+        echo $OUTPUT->box(format_module_intro('sforum', $sforum, $cm->id), 'generalbox', 'intro');
     }
 
 /// find out current groups mode
-    groups_print_activity_menu($cm, $CFG->wwwroot . '/mod/scripting_forum/view.php?id=' . $cm->id);
+    groups_print_activity_menu($cm, $CFG->wwwroot . '/mod/sforum/view.php?id=' . $cm->id);
 
     $SESSION->fromdiscussion = qualified_me();   // Return here if we post or set subscription etc
 
 
 /// Print settings and things across the top
 
-    // If it's a simple single discussion scripting_forum, we need to print the display
+    // If it's a simple single discussion sforum, we need to print the display
     // mode control.
-    if ($scripting_forum->type == 'single') {
+    if ($sforum->type == 'single') {
         $discussion = NULL;
-        $discussions = $DB->get_records('scripting_forum_discussions', array('scripting_forum'=>$scripting_forum->id), 'timemodified ASC');
+        $discussions = $DB->get_records('sforum_discussions', array('sforum'=>$sforum->id), 'timemodified ASC');
         if (!empty($discussions)) {
             $discussion = array_pop($discussions);
         }
         if ($discussion) {
             if ($mode) {
-                set_user_preference("scripting_forum_displaymode", $mode);
+                set_user_preference("sforum_displaymode", $mode);
             }
-            $displaymode = get_user_preferences("scripting_forum_displaymode", $CFG->scripting_forum_displaymode);
-            scripting_forum_print_mode_form($scripting_forum->id, $displaymode, $scripting_forum->type);
+            $displaymode = get_user_preferences("sforum_displaymode", $CFG->sforum_displaymode);
+            sforum_print_mode_form($sforum->id, $displaymode, $sforum->type);
         }
     }
 
-    if (!empty($scripting_forum->blockafter) && !empty($scripting_forum->blockperiod)) {
+    if (!empty($sforum->blockafter) && !empty($sforum->blockperiod)) {
         $a = new stdClass();
-        $a->blockafter = $scripting_forum->blockafter;
-        $a->blockperiod = get_string('secondstotime'.$scripting_forum->blockperiod);
-        echo $OUTPUT->notification(get_string('thisscripting_forumisthrottled', 'scripting_forum', $a));
+        $a->blockafter = $sforum->blockafter;
+        $a->blockperiod = get_string('secondstotime'.$sforum->blockperiod);
+        echo $OUTPUT->notification(get_string('thissforumisthrottled', 'sforum', $a));
     }
 
-    if ($scripting_forum->type == 'qanda' && !has_capability('moodle/course:manageactivities', $context)) {
-        echo $OUTPUT->notification(get_string('qandanotify','scripting_forum'));
+    if ($sforum->type == 'qanda' && !has_capability('moodle/course:manageactivities', $context)) {
+        echo $OUTPUT->notification(get_string('qandanotify','sforum'));
     }
 
-    switch ($scripting_forum->type) {
+    switch ($sforum->type) {
         case 'single':
             if (!empty($discussions) && count($discussions) > 1) {
-                echo $OUTPUT->notification(get_string('warnformorepost', 'scripting_forum'));
+                echo $OUTPUT->notification(get_string('warnformorepost', 'sforum'));
             }
-            if (! $post = scripting_forum_get_post_full($discussion->firstpost)) {
-                print_error('cannotfindfirstpost', 'scripting_forum');
+            if (! $post = sforum_get_post_full($discussion->firstpost)) {
+                print_error('cannotfindfirstpost', 'sforum');
             }
             if ($mode) {
-                set_user_preference("scripting_forum_displaymode", $mode);
+                set_user_preference("sforum_displaymode", $mode);
             }
 
-            $canreply    = scripting_forum_user_can_post($scripting_forum, $discussion, $USER, $cm, $course, $context);
-            $canrate     = has_capability('mod/scripting_forum:rate', $context);
-            $displaymode = get_user_preferences("scripting_forum_displaymode", $CFG->scripting_forum_displaymode);
+            $canreply    = sforum_user_can_post($sforum, $discussion, $USER, $cm, $course, $context);
+            $canrate     = has_capability('mod/sforum:rate', $context);
+            $displaymode = get_user_preferences("sforum_displaymode", $CFG->sforum_displaymode);
 
             echo '&nbsp;'; // this should fix the floating in FF
-            scripting_forum_print_discussion($course, $cm, $scripting_forum, $discussion, $post, $displaymode, $canreply, $canrate);
+            sforum_print_discussion($course, $cm, $sforum, $discussion, $post, $displaymode, $canreply, $canrate);
             break;
 
         case 'eachuser':
             echo '<p class="mdl-align">';
-            if (scripting_forum_user_can_post_discussion($scripting_forum, null, -1, $cm)) {
-                print_string("allowsdiscussions", "scripting_forum");
+            if (sforum_user_can_post_discussion($sforum, null, -1, $cm)) {
+                print_string("allowsdiscussions", "sforum");
             } else {
                 echo '&nbsp;';
             }
             echo '</p>';
             if (!empty($showall)) {
-                scripting_forum_print_latest_discussions($course, $scripting_forum, 0, 'header', '', -1, -1, -1, 0, $cm);
+                sforum_print_latest_discussions($course, $sforum, 0, 'header', '', -1, -1, -1, 0, $cm);
             } else {
-                scripting_forum_print_latest_discussions($course, $scripting_forum, -1, 'header', '', -1, -1, $page, $CFG->scripting_forum_manydiscussions, $cm);
+                sforum_print_latest_discussions($course, $sforum, -1, 'header', '', -1, -1, $page, $CFG->sforum_manydiscussions, $cm);
             }
             break;
 
         case 'teacher':
             if (!empty($showall)) {
-                scripting_forum_print_latest_discussions($course, $scripting_forum, 0, 'header', '', -1, -1, -1, 0, $cm);
+                sforum_print_latest_discussions($course, $sforum, 0, 'header', '', -1, -1, -1, 0, $cm);
             } else {
-                scripting_forum_print_latest_discussions($course, $scripting_forum, -1, 'header', '', -1, -1, $page, $CFG->scripting_forum_manydiscussions, $cm);
+                sforum_print_latest_discussions($course, $sforum, -1, 'header', '', -1, -1, $page, $CFG->sforum_manydiscussions, $cm);
             }
             break;
 
         case 'blog':
             echo '<br />';
             if (!empty($showall)) {
-                scripting_forum_print_latest_discussions($course, $scripting_forum, 0, 'plain', 'd.pinned DESC, p.created DESC', -1, -1, -1, 0, $cm);
+                sforum_print_latest_discussions($course, $sforum, 0, 'plain', 'd.pinned DESC, p.created DESC', -1, -1, -1, 0, $cm);
             } else {
-                scripting_forum_print_latest_discussions($course, $scripting_forum, -1, 'plain', 'd.pinned DESC, p.created DESC', -1, -1, $page,
-                    $CFG->scripting_forum_manydiscussions, $cm);
+                sforum_print_latest_discussions($course, $sforum, -1, 'plain', 'd.pinned DESC, p.created DESC', -1, -1, $page,
+                    $CFG->sforum_manydiscussions, $cm);
             }
             break;
 
         default:
             echo '<br />';
             if (!empty($showall)) {
-                scripting_forum_print_latest_discussions($course, $scripting_forum, 0, 'header', '', -1, -1, -1, 0, $cm);
+                sforum_print_latest_discussions($course, $sforum, 0, 'header', '', -1, -1, -1, 0, $cm);
             } else {
-                scripting_forum_print_latest_discussions($course, $scripting_forum, -1, 'header', '', -1, -1, $page, $CFG->scripting_forum_manydiscussions, $cm);
+                sforum_print_latest_discussions($course, $sforum, -1, 'header', '', -1, -1, $page, $CFG->sforum_manydiscussions, $cm);
             }
 
 
@@ -228,6 +228,6 @@
     }
 
     // Add the subscription toggle JS.
-    $PAGE->requires->yui_module('moodle-mod_scripting_forum-subscriptiontoggle', 'Y.M.mod_scripting_forum.subscriptiontoggle.init');
+    $PAGE->requires->yui_module('moodle-mod_sforum-subscriptiontoggle', 'Y.M.mod_sforum.subscriptiontoggle.init');
 
     echo $OUTPUT->footer($course);

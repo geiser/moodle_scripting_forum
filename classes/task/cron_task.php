@@ -15,16 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * A scheduled task for scriptingforum cron.
+ * A scheduled task for sforum cron.
  *
  * @todo MDL-44734 This job will be split up properly.
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-namespace mod_scriptingforum\task;
+namespace mod_sforum\task;
 
 class cron_task extends \core\task\scheduled_task {
 
@@ -34,16 +34,16 @@ class cron_task extends \core\task\scheduled_task {
      * @return string
      */
     public function get_name() {
-        return get_string('crontask', 'mod_scriptingforum');
+        return get_string('crontask', 'mod_sforum');
     }
 
     /**
-     * Run scriptingforum cron.
+     * Run sforum cron.
      */
     public function execute() {
         global $CFG;
-        require_once($CFG->dirroot . '/mod/scriptingforum/lib.php');
-        scriptingforum_cron();
+        require_once($CFG->dirroot . '/mod/sforum/lib.php');
+        sforum_cron();
     }
 
 }

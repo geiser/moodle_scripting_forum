@@ -19,7 +19,7 @@
  * Displays a post, and all the posts below it.
  * If no post is given, displays all posts in a discussion
  *
- * @package   mod_scriptingforum
+ * @package   mod_sforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -30,86 +30,86 @@ require_once('../../config.php');
 $d      = required_param('d', PARAM_INT);                // Discussion ID
 $parent = optional_param('parent', 0, PARAM_INT);        // If set, then display this post and all children.
 $mode   = optional_param('mode', 0, PARAM_INT);          // If set, changes the layout of the thread
-$move   = optional_param('move', 0, PARAM_INT);          // If set, moves this discussion to another scriptingforum
+$move   = optional_param('move', 0, PARAM_INT);          // If set, moves this discussion to another sforum
 $mark   = optional_param('mark', '', PARAM_ALPHA);       // Used for tracking read posts if user initiated.
 $postid = optional_param('postid', 0, PARAM_INT);        // Used for tracking read posts if user initiated.
 $pin    = optional_param('pin', -1, PARAM_INT);          // If set, pin or unpin this discussion.
 
-$url = new moodle_url('/mod/scriptingforum/discuss.php', array('d'=>$d));
+$url = new moodle_url('/mod/sforum/discuss.php', array('d'=>$d));
 if ($parent !== 0) {
     $url->param('parent', $parent);
 }
 $PAGE->set_url($url);
 
-$discussion = $DB->get_record('scriptingforum_discussions', array('id' => $d), '*', MUST_EXIST);
+$discussion = $DB->get_record('sforum_discussions', array('id' => $d), '*', MUST_EXIST);
 $course = $DB->get_record('course', array('id' => $discussion->course), '*', MUST_EXIST);
-$scriptingforum = $DB->get_record('scriptingforum',
-        array('id' => $discussion->scriptingforum), '*', MUST_EXIST);
-$cm = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id,
+$sforum = $DB->get_record('sforum',
+        array('id' => $discussion->sforum), '*', MUST_EXIST);
+$cm = get_coursemodule_from_instance('sforum', $sforum->id,
         $course->id, false, MUST_EXIST);
 
 require_course_login($course, true, $cm);
 
 // move this down fix for MDL-6926
-require_once($CFG->dirroot.'/mod/scriptingforum/lib.php');
+require_once($CFG->dirroot.'/mod/sforum/lib.php');
 
 $modcontext = context_module::instance($cm->id);
-require_capability('mod/scriptingforum:viewdiscussion', $modcontext, NULL,
-        true, 'noviewdiscussionspermission', 'scriptingforum');
+require_capability('mod/sforum:viewdiscussion', $modcontext, NULL,
+        true, 'noviewdiscussionspermission', 'sforum');
 
-if (!empty($CFG->enablerssfeeds) && !empty($CFG->scriptingforum_enablerssfeeds) &&
-        $scriptingforum->rsstype && $scriptingforum->rssarticles) {
+if (!empty($CFG->enablerssfeeds) && !empty($CFG->sforum_enablerssfeeds) &&
+        $sforum->rsstype && $sforum->rssarticles) {
     require_once("$CFG->libdir/rsslib.php");
 
     $rsstitle = format_string($course->shortname, true,
             array('context' => context_course::instance($course->id))) . ': ' .
-            format_string($scriptingforum->name);
-    rss_add_http_header($modcontext, 'mod_scriptingforum', $scriptingforum, $rsstitle);
+            format_string($sforum->name);
+    rss_add_http_header($modcontext, 'mod_sforum', $sforum, $rsstitle);
 }
 
 // Move discussion if requested.
 if ($move > 0 and confirm_sesskey()) {
-    $return = $CFG->wwwroot.'/mod/scriptingforum/discuss.php?d='.$discussion->id;
+    $return = $CFG->wwwroot.'/mod/sforum/discuss.php?d='.$discussion->id;
 
-    if (!$scriptingforumto = $DB->get_record('scriptingforum', array('id' => $move))) {
-        print_error('cannotmovetonotexist', 'scriptingforum', $return);
+    if (!$sforumto = $DB->get_record('sforum', array('id' => $move))) {
+        print_error('cannotmovetonotexist', 'sforum', $return);
     }
-    require_capability('mod/scriptingforum:movediscussions', $modcontext);
+    require_capability('mod/sforum:movediscussions', $modcontext);
 
-    if ($scriptingforum->type == 'single') {
-        print_error('cannotmovefromsinglescriptingforum', 'scriptingforum', $return);
-    }
-
-    if (!$scriptingforumto = $DB->get_record('scriptingforum', array('id' => $move))) {
-        print_error('cannotmovetonotexist', 'scriptingforum', $return);
+    if ($sforum->type == 'single') {
+        print_error('cannotmovefromsinglesforum', 'sforum', $return);
     }
 
-    if ($scriptingforumto->type == 'single') {
-        print_error('cannotmovetosinglescriptingforum', 'scriptingforum', $return);
+    if (!$sforumto = $DB->get_record('sforum', array('id' => $move))) {
+        print_error('cannotmovetonotexist', 'sforum', $return);
     }
 
-    // Get target scriptingforum cm and check it is visible to current user.
+    if ($sforumto->type == 'single') {
+        print_error('cannotmovetosinglesforum', 'sforum', $return);
+    }
+
+    // Get target sforum cm and check it is visible to current user.
     $modinfo = get_fast_modinfo($course);
-    $scriptingforums = $modinfo->get_instances_of('scriptingforum');
-    if (!array_key_exists($scriptingforumto->id, $scriptingforums)) {
-        print_error('cannotmovetonotfound', 'scriptingforum', $return);
+    $sforums = $modinfo->get_instances_of('sforum');
+    if (!array_key_exists($sforumto->id, $sforums)) {
+        print_error('cannotmovetonotfound', 'sforum', $return);
     }
-    $cmto = $scriptingforums[$scriptingforumto->id];
+    $cmto = $sforums[$sforumto->id];
     if (!$cmto->uservisible) {
-        print_error('cannotmovenotvisible', 'scriptingforum', $return);
+        print_error('cannotmovenotvisible', 'sforum', $return);
     }
 
     $destinationctx = context_module::instance($cmto->id);
-    require_capability('mod/scriptingforum:startdiscussion', $destinationctx);
+    require_capability('mod/sforum:startdiscussion', $destinationctx);
 
-    if (!scriptingforum_move_attachments($discussion,
-            $scriptingforum->id, $scriptingforumto->id)) {
+    if (!sforum_move_attachments($discussion,
+            $sforum->id, $sforumto->id)) {
         echo $OUTPUT->notification("Errors occurred while moving attachment directories - check your file permissions");
     }
-    // For each subscribed user in this scriptingforum and discussion, copy over per-discussion subscriptions if required.
+    // For each subscribed user in this sforum and discussion, copy over per-discussion subscriptions if required.
     $discussiongroup = $discussion->groupid == -1 ? 0 : $discussion->groupid;
-    $potentialsubscribers = \mod_scriptingforum\subscriptions::fetch_subscribed_users(
-        $scriptingforum,
+    $potentialsubscribers = \mod_sforum\subscriptions::fetch_subscribed_users(
+        $sforum,
         $discussiongroup,
         $modcontext,
         'u.id',
@@ -117,27 +117,27 @@ if ($move > 0 and confirm_sesskey()) {
     );
 
     // Pre-seed the subscribed_discussion caches.
-    // Firstly for the scriptingforum being moved to.
-    \mod_scriptingforum\subscriptions::fill_subscription_cache($scriptingforumto->id);
+    // Firstly for the sforum being moved to.
+    \mod_sforum\subscriptions::fill_subscription_cache($sforumto->id);
     // And also for the discussion being moved.
-    \mod_scriptingforum\subscriptions::fill_subscription_cache($scriptingforum->id);
+    \mod_sforum\subscriptions::fill_subscription_cache($sforum->id);
     $subscriptionchanges = array();
     $subscriptiontime = time();
     foreach ($potentialsubscribers as $subuser) {
         $userid = $subuser->id;
-        $targetsubscription = \mod_scriptingforum\subscriptions::is_subscribed($userid,
-                $scriptingforumto, null, $cmto);
-        $discussionsubscribed = \mod_scriptingforum\subscriptions::is_subscribed($userid,
-                $scriptingforum, $discussion->id);
-        $scriptingforumsubscribed = \mod_scriptingforum\subscriptions::is_subscribed($userid,
-                $scriptingforum);
+        $targetsubscription = \mod_sforum\subscriptions::is_subscribed($userid,
+                $sforumto, null, $cmto);
+        $discussionsubscribed = \mod_sforum\subscriptions::is_subscribed($userid,
+                $sforum, $discussion->id);
+        $sforumsubscribed = \mod_sforum\subscriptions::is_subscribed($userid,
+                $sforum);
 
-        if ($scriptingforumsubscribed && !$discussionsubscribed && $targetsubscription) {
+        if ($sforumsubscribed && !$discussionsubscribed && $targetsubscription) {
             // The user has opted out of this discussion and the move would cause
             // them to receive notifications again.
             // Ensure they are unsubscribed from the discussion still.
-            $subscriptionchanges[$userid] = \mod_scriptingforum\subscriptions::FORUM_DISCUSSION_UNSUBSCRIBED;
-        } else if (!$scriptingforumsubscribed && $discussionsubscribed && !$targetsubscription) {
+            $subscriptionchanges[$userid] = \mod_sforum\subscriptions::FORUM_DISCUSSION_UNSUBSCRIBED;
+        } else if (!$sforumsubscribed && $discussionsubscribed && !$targetsubscription) {
             // The user has opted into this discussion and would otherwise not receive
             // the subscription after the move.
             // Ensure they are subscribed to the discussion still.
@@ -145,26 +145,26 @@ if ($move > 0 and confirm_sesskey()) {
         }
     }
 
-    $DB->set_field('scriptingforum_discussions', 'scriptingforum',
-            $scriptingforumto->id, array('id' => $discussion->id));
-    $DB->set_field('scriptingforum_read', 'scriptingforumid',
-            $scriptingforumto->id, array('discussionid' => $discussion->id));
+    $DB->set_field('sforum_discussions', 'sforum',
+            $sforumto->id, array('id' => $discussion->id));
+    $DB->set_field('sforum_read', 'sforumid',
+            $sforumto->id, array('discussionid' => $discussion->id));
 
     // Delete the existing per-discussion subscriptions and
     // replace them with the newly calculated ones.
-    $DB->delete_records('scriptingforum_discussion_subs',
+    $DB->delete_records('sforum_discussion_subs',
             array('discussion' => $discussion->id));
     $newdiscussion = clone $discussion;
-    $newdiscussion->scriptingforum = $scriptingforumto->id;
+    $newdiscussion->sforum = $sforumto->id;
     foreach ($subscriptionchanges as $userid => $preference) {
-        if ($preference != \mod_scriptingforum\subscriptions::FORUM_DISCUSSION_UNSUBSCRIBED) {
+        if ($preference != \mod_sforum\subscriptions::FORUM_DISCUSSION_UNSUBSCRIBED) {
             // Users must have viewdiscussion to a discussion.
-            if (has_capability('mod/scriptingforum:viewdiscussion', $destinationctx, $userid)) {
-                \mod_scriptingforum\subscriptions::subscribe_user_to_discussion($userid,
+            if (has_capability('mod/sforum:viewdiscussion', $destinationctx, $userid)) {
+                \mod_sforum\subscriptions::subscribe_user_to_discussion($userid,
                             $newdiscussion, $destinationctx);
             }
         } else {
-                \mod_scriptingforum\subscriptions::unsubscribe_user_from_discussion($userid,
+                \mod_sforum\subscriptions::unsubscribe_user_from_discussion($userid,
                         $newdiscussion, $destinationctx);
         }
     }
@@ -173,57 +173,57 @@ if ($move > 0 and confirm_sesskey()) {
         'context' => $destinationctx,
         'objectid' => $discussion->id,
         'other' => array(
-            'fromscriptingforumid' => $scriptingforum->id,
-            'toscriptingforumid' => $scriptingforumto->id,
+            'fromsforumid' => $sforum->id,
+            'tosforumid' => $sforumto->id,
         )
     );
-    $event = \mod_scriptingforum\event\discussion_moved::create($params);
-    $event->add_record_snapshot('scriptingforum_discussions', $discussion);
-    $event->add_record_snapshot('scriptingforum', $scriptingforum);
-    $event->add_record_snapshot('scriptingforum', $scriptingforumto);
+    $event = \mod_sforum\event\discussion_moved::create($params);
+    $event->add_record_snapshot('sforum_discussions', $discussion);
+    $event->add_record_snapshot('sforum', $sforum);
+    $event->add_record_snapshot('sforum', $sforumto);
     $event->trigger();
 
-    // Delete the RSS files for the 2 scriptingforums to force regeneration of the feeds
-    require_once($CFG->dirroot.'/mod/scriptingforum/rsslib.php');
-    scriptingforum_rss_delete_file($scriptingforum);
-    scriptingforum_rss_delete_file($scriptingforumto);
+    // Delete the RSS files for the 2 sforums to force regeneration of the feeds
+    require_once($CFG->dirroot.'/mod/sforum/rsslib.php');
+    sforum_rss_delete_file($sforum);
+    sforum_rss_delete_file($sforumto);
 
     redirect($return.'&move=-1&sesskey='.sesskey());
 }
 // Pin or unpin discussion if requested.
 if ($pin !== -1 && confirm_sesskey()) {
-    require_capability('mod/scriptingforum:pindiscussions', $modcontext);
+    require_capability('mod/sforum:pindiscussions', $modcontext);
 
     $params = array('context' => $modcontext, 'objectid' => $discussion->id,
-            'other' => array('scriptingforumid' => $scriptingforum->id));
+            'other' => array('sforumid' => $sforum->id));
 
     switch ($pin) {
         case FORUM_DISCUSSION_PINNED:
             // Pin the discussion and trigger discussion pinned event.
-            scriptingforum_discussion_pin($modcontext, $scriptingforum, $discussion);
+            sforum_discussion_pin($modcontext, $sforum, $discussion);
             break;
         case FORUM_DISCUSSION_UNPINNED:
             // Unpin the discussion and trigger discussion unpinned event.
-            scriptingforum_discussion_unpin($modcontext, $scriptingforum, $discussion);
+            sforum_discussion_unpin($modcontext, $sforum, $discussion);
             break;
         default:
             echo $OUTPUT->notification("Invalid value when attempting to pin/unpin discussion");
             break;
     }
 
-    redirect(new moodle_url('/mod/scriptingforum/discuss.php', array('d' => $discussion->id)));
+    redirect(new moodle_url('/mod/sforum/discuss.php', array('d' => $discussion->id)));
 }
 
 // Trigger discussion viewed event.
-scriptingforum_discussion_view($modcontext, $scriptingforum, $discussion);
+sforum_discussion_view($modcontext, $sforum, $discussion);
 
 unset($SESSION->fromdiscussion);
 
 if ($mode) {
-    set_user_preference('scriptingforum_displaymode', $mode);
+    set_user_preference('sforum_displaymode', $mode);
 }
 
-$displaymode = get_user_preferences('scriptingforum_displaymode', $CFG->scriptingforum_displaymode);
+$displaymode = get_user_preferences('sforum_displaymode', $CFG->sforum_displaymode);
 
 if ($parent) {
     // If flat AND parent, then force nested display this time
@@ -234,39 +234,39 @@ if ($parent) {
     $parent = $discussion->firstpost;
 }
 
-if (! $post = scriptingforum_get_post_full($parent)) {
-     print_error("notexists", 'scriptingforum',
-                "$CFG->wwwroot/mod/scriptingforum/view.php?f=$scriptingforum->id");
+if (! $post = sforum_get_post_full($parent)) {
+     print_error("notexists", 'sforum',
+                "$CFG->wwwroot/mod/sforum/view.php?f=$sforum->id");
 }
 
-if (!scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, null, $cm)) {
-     print_error('noviewdiscussionspermission', 'scriptingforum',
-                "$CFG->wwwroot/mod/scriptingforum/view.php?id=$scriptingforum->id");
+if (!sforum_user_can_see_post($sforum, $discussion, $post, null, $cm)) {
+     print_error('noviewdiscussionspermission', 'sforum',
+                "$CFG->wwwroot/mod/sforum/view.php?id=$sforum->id");
 }
 
 if ($mark == 'read' or $mark == 'unread') {
-    if ($CFG->scriptingforum_usermarksread &&
-            scriptingforum_tp_can_track_scriptingforums($scriptingforum) &&
-            scriptingforum_tp_is_tracked($scriptingforum)) {
+    if ($CFG->sforum_usermarksread &&
+            sforum_tp_can_track_sforums($sforum) &&
+            sforum_tp_is_tracked($sforum)) {
         if ($mark == 'read') {
-            scriptingforum_tp_add_read_record($USER->id, $postid);
+            sforum_tp_add_read_record($USER->id, $postid);
         } else {
             // unread
-            scriptingforum_tp_delete_read_records($USER->id, $postid);
+            sforum_tp_delete_read_records($USER->id, $postid);
         }
     }
 }
 
-$searchform = scriptingforum_search_form($course);
+$searchform = sforum_search_form($course);
 
-$scriptingforumnode = $PAGE->navigation->find($cm->id, navigation_node::TYPE_ACTIVITY);
-if (empty($scriptingforumnode)) {
-    $scriptingforumnode = $PAGE->navbar;
+$sforumnode = $PAGE->navigation->find($cm->id, navigation_node::TYPE_ACTIVITY);
+if (empty($sforumnode)) {
+    $sforumnode = $PAGE->navbar;
 } else {
-    $scriptingforumnode->make_active();
+    $sforumnode->make_active();
 }
-$node = $scriptingforumnode->add(format_string($discussion->name),
-        new moodle_url('/mod/scriptingforum/discuss.php', array('d'=>$discussion->id)));
+$node = $sforumnode->add(format_string($discussion->name),
+        new moodle_url('/mod/sforum/discuss.php', array('d'=>$discussion->id)));
 $node->display = false;
 if ($node && $post->id != $discussion->firstpost) {
     $node->add(format_string($post->subject), $PAGE->url);
@@ -275,37 +275,37 @@ if ($node && $post->id != $discussion->firstpost) {
 $PAGE->set_title("$course->shortname: ".format_string($discussion->name));
 $PAGE->set_heading($course->fullname);
 $PAGE->set_button($searchform);
-$renderer = $PAGE->get_renderer('mod_scriptingforum');
+$renderer = $PAGE->get_renderer('mod_sforum');
 
 echo $OUTPUT->header();
 
-echo $OUTPUT->heading(format_string($scriptingforum->name), 2);
+echo $OUTPUT->heading(format_string($sforum->name), 2);
 echo $OUTPUT->heading(format_string($discussion->name), 3, 'discussionname');
 
 // is_guest should be used here as this also checks whether the user is a guest in the current course.
 // Guests and visitors cannot subscribe - only enrolled users.
 if ((!is_guest($modcontext, $USER) && isloggedin()) &&
-        has_capability('mod/scriptingforum:viewdiscussion', $modcontext)) {
+        has_capability('mod/sforum:viewdiscussion', $modcontext)) {
     // Discussion subscription.
-    if (\mod_scriptingforum\subscriptions::is_subscribable($scriptingforum)) {
+    if (\mod_sforum\subscriptions::is_subscribable($sforum)) {
         echo html_writer::div(
-                scriptingforum_get_discussion_subscription_icon($scriptingforum,
+                sforum_get_discussion_subscription_icon($sforum,
                 $post->discussion, null, true),
             'discussionsubscription'
         );
-        echo scriptingforum_get_discussion_subscription_icon_preloaders();
+        echo sforum_get_discussion_subscription_icon_preloaders();
     }
 }
 
 
-/// Check to see if groups are being used in this scriptingforum
+/// Check to see if groups are being used in this sforum
 /// If so, make sure the current person is allowed to see this discussion
 /// Also, if we know they should be able to reply, then explicitly
 /// set $canreply for performance reasons
 
-$canreply = scriptingforum_user_can_post($scriptingforum,
+$canreply = sforum_user_can_post($sforum,
         $discussion, $USER, $cm, $course, $modcontext);
-if (!$canreply and $scriptingforum->type !== 'news') {
+if (!$canreply and $sforum->type !== 'news') {
     if (isguestuser() or !isloggedin()) {
         $canreply = true;
     }
@@ -319,7 +319,7 @@ if (!$canreply and $scriptingforum->type !== 'news') {
 }
 
 // Output the links to neighbour discussions.
-$neighbours = scriptingforum_get_discussion_neighbours($cm, $discussion, $scriptingforum);
+$neighbours = sforum_get_discussion_neighbours($cm, $discussion, $sforum);
 $neighbourlinks = $renderer->neighbouring_discussion_navigation($neighbours['prev'],
         $neighbours['next']);
 echo $neighbourlinks;
@@ -328,13 +328,13 @@ echo $neighbourlinks;
 echo '<div class="discussioncontrols clearfix"><div class="controlscontainer">';
 
 if (!empty($CFG->enableportfolios) &&
-    has_capability('mod/scriptingforum:exportdiscussion', $modcontext)) {
+    has_capability('mod/sforum:exportdiscussion', $modcontext)) {
     require_once($CFG->libdir.'/portfoliolib.php');
     $button = new portfolio_add_button();
-    $button->set_callback_options('scriptingforum_portfolio_caller',
-            array('discussionid' => $discussion->id), 'mod_scriptingforum');
+    $button->set_callback_options('sforum_portfolio_caller',
+            array('discussionid' => $discussion->id), 'mod_sforum');
     $button = $button->to_html(PORTFOLIO_ADD_FULL_FORM,
-            get_string('exportdiscussion', 'mod_scriptingforum'));
+            get_string('exportdiscussion', 'mod_sforum'));
     $buttonextraclass = '';
     if (empty($button)) {
         // no portfolio plugin available.
@@ -350,44 +350,44 @@ if (!empty($CFG->enableportfolios) &&
 
 // groups selector not needed here
 echo '<div class="discussioncontrol displaymode">';
-scriptingforum_print_mode_form($discussion->id, $displaymode);
+sforum_print_mode_form($discussion->id, $displaymode);
 echo "</div>";
 
-if ($scriptingforum->type != 'single' &&
-        has_capability('mod/scriptingforum:movediscussions', $modcontext)) {
+if ($sforum->type != 'single' &&
+        has_capability('mod/sforum:movediscussions', $modcontext)) {
     echo '<div class="discussioncontrol movediscussion">';
-    // Popup menu to move discussions to other scriptingforums. The discussion in a
-    // single discussion scriptingforum can't be moved.
+    // Popup menu to move discussions to other sforums. The discussion in a
+    // single discussion sforum can't be moved.
     $modinfo = get_fast_modinfo($course);
-    if (isset($modinfo->instances['scriptingforum'])) {
-        $scriptingforummenu = array();
-        // Check scriptingforum types and eliminate simple discussions.
-        $scriptingforumcheck = $DB->get_records('scriptingforum',
+    if (isset($modinfo->instances['sforum'])) {
+        $sforummenu = array();
+        // Check sforum types and eliminate simple discussions.
+        $sforumcheck = $DB->get_records('sforum',
                 array('course' => $course->id),'', 'id, type');
-        foreach ($modinfo->instances['scriptingforum'] as $scriptingforumcm) {
-           if (!$scriptingforumcm->uservisible ||
-               !has_capability('mod/scriptingforum:startdiscussion',
-                context_module::instance($scriptingforumcm->id))) {
+        foreach ($modinfo->instances['sforum'] as $sforumcm) {
+           if (!$sforumcm->uservisible ||
+               !has_capability('mod/sforum:startdiscussion',
+                context_module::instance($sforumcm->id))) {
                 continue;
             }
-            $section = $scriptingforumcm->sectionnum;
+            $section = $sforumcm->sectionnum;
             $sectionname = get_section_name($course, $section);
-            if (empty($scriptingforummenu[$section])) {
-                $scriptingforummenu[$section] = array($sectionname => array());
+            if (empty($sforummenu[$section])) {
+                $sforummenu[$section] = array($sectionname => array());
             }
-            $scriptingforumidcompare = $scriptingforumcm->instance != $scriptingforum->id;
-            $scriptingforumtypecheck = $scriptingforumcheck[$scriptingforumcm->instance]->type !== 'single';
-            if ($scriptingforumidcompare and $scriptingforumtypecheck) {
-                $url = "/mod/scriptingforum/discuss.php?d=$discussion->id&move=$scriptingforumcm->instance&sesskey=".sesskey();
-                $scriptingforummenu[$section][$sectionname][$url] = format_string($scriptingforumcm->name);
+            $sforumidcompare = $sforumcm->instance != $sforum->id;
+            $sforumtypecheck = $sforumcheck[$sforumcm->instance]->type !== 'single';
+            if ($sforumidcompare and $sforumtypecheck) {
+                $url = "/mod/sforum/discuss.php?d=$discussion->id&move=$sforumcm->instance&sesskey=".sesskey();
+                $sforummenu[$section][$sectionname][$url] = format_string($sforumcm->name);
             }
         }
-        if (!empty($scriptingforummenu)) {
+        if (!empty($sforummenu)) {
             echo '<div class="movediscussionoption">';
-            $select = new url_select($scriptingforummenu, '',
-                    array('/mod/scriptingforum/discuss.php?d=' .
-                    $discussion->id => get_string("movethisdiscussionto", "scriptingforum")),
-                    'scriptingforummenu', get_string('move'));
+            $select = new url_select($sforummenu, '',
+                    array('/mod/sforum/discuss.php?d=' .
+                    $discussion->id => get_string("movethisdiscussionto", "sforum")),
+                    'sforummenu', get_string('move'));
             echo $OUTPUT->render($select);
             echo "</div>";
         }
@@ -395,13 +395,13 @@ if ($scriptingforum->type != 'single' &&
     echo "</div>";
 }
 
-if (has_capability('mod/scriptingforum:pindiscussions', $modcontext)) {
+if (has_capability('mod/sforum:pindiscussions', $modcontext)) {
     if ($discussion->pinned == FORUM_DISCUSSION_PINNED) {
         $pinlink = FORUM_DISCUSSION_UNPINNED;
-        $pintext = get_string('discussionunpin', 'scriptingforum');
+        $pintext = get_string('discussionunpin', 'sforum');
     } else {
         $pinlink = FORUM_DISCUSSION_PINNED;
-        $pintext = get_string('discussionpin', 'scriptingforum');
+        $pintext = get_string('discussionpin', 'sforum');
     }
     $button = new single_button(new moodle_url('discuss.php',
             array('pin' => $pinlink, 'd' => $discussion->id)), $pintext, 'post');
@@ -412,32 +412,32 @@ if (has_capability('mod/scriptingforum:pindiscussions', $modcontext)) {
 
 echo "</div></div>";
 
-if (!empty($scriptingforum->blockafter) && !empty($scriptingforum->blockperiod)) {
+if (!empty($sforum->blockafter) && !empty($sforum->blockperiod)) {
     $a = new stdClass();
-    $a->blockafter  = $scriptingforum->blockafter;
-    $a->blockperiod = get_string('secondstotime'.$scriptingforum->blockperiod);
-    echo $OUTPUT->notification(get_string('thisscriptingforumisthrottled','scriptingforum',$a));
+    $a->blockafter  = $sforum->blockafter;
+    $a->blockperiod = get_string('secondstotime'.$sforum->blockperiod);
+    echo $OUTPUT->notification(get_string('thissforumisthrottled','sforum',$a));
 }
 
-if ($scriptingforum->type == 'qanda' &&
-    !has_capability('mod/scriptingforum:viewqandawithoutposting', $modcontext) &&
-    !scriptingforum_user_has_posted($scriptingforum->id,$discussion->id,$USER->id)) {
-    echo $OUTPUT->notification(get_string('qandanotify', 'scriptingforum'));
+if ($sforum->type == 'qanda' &&
+    !has_capability('mod/sforum:viewqandawithoutposting', $modcontext) &&
+    !sforum_user_has_posted($sforum->id,$discussion->id,$USER->id)) {
+    echo $OUTPUT->notification(get_string('qandanotify', 'sforum'));
 }
 
 if ($move == -1 and confirm_sesskey()) {
     echo $OUTPUT->notification(get_string('discussionmoved',
-         'scriptingforum', format_string($scriptingforum->name,true)), 'notifysuccess');
+         'sforum', format_string($sforum->name,true)), 'notifysuccess');
 }
 
-$canrate = has_capability('mod/scriptingforum:rate', $modcontext);
-scriptingforum_print_discussion($course, $cm, $scriptingforum,
+$canrate = has_capability('mod/sforum:rate', $modcontext);
+sforum_print_discussion($course, $cm, $sforum,
         $discussion, $post, $displaymode, $canreply, $canrate);
 
 echo $neighbourlinks;
 
 // Add the subscription toggle JS.
-$PAGE->requires->yui_module('moodle-mod_scriptingforum-subscriptiontoggle',
-        'Y.M.mod_scriptingforum.subscriptiontoggle.init');
+$PAGE->requires->yui_module('moodle-mod_sforum-subscriptiontoggle',
+        'Y.M.mod_sforum.subscriptiontoggle.init');
 
 echo $OUTPUT->footer();

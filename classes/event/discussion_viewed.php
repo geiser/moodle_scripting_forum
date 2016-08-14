@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is based on part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,21 +15,22 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The mod_forum discussion viewed event.
+ * The mod_sforum discussion viewed event.
  *
- * @package    mod_forum
+ * @package    mod_sforum
+ * @copyright  2014 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_forum\event;
+namespace mod_sforum\event;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The mod_forum discussion viewed event class.
+ * The mod_sforum discussion viewed event class.
  *
- * @package    mod_forum
+ * @package    mod_sforum
  * @since      Moodle 2.7
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -44,7 +45,7 @@ class discussion_viewed extends \core\event\base {
     protected function init() {
         $this->data['crud'] = 'r';
         $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
-        $this->data['objecttable'] = 'forum_discussions';
+        $this->data['objecttable'] = 'sforum_discussions';
     }
 
     /**
@@ -53,7 +54,7 @@ class discussion_viewed extends \core\event\base {
      * @return string
      */
     public function get_description() {
-        return "The user with id '$this->userid' has viewed the discussion with id '$this->objectid' in the forum " .
+        return "The user with id '$this->userid' has viewed the discussion with id '$this->objectid' in the sforum " .
             "with course module id '$this->contextinstanceid'.";
     }
 
@@ -63,7 +64,7 @@ class discussion_viewed extends \core\event\base {
      * @return string
      */
     public static function get_name() {
-        return get_string('eventdiscussionviewed', 'mod_forum');
+        return get_string('eventdiscussionviewed', 'mod_sforum');
     }
 
     /**
@@ -72,7 +73,7 @@ class discussion_viewed extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/mod/forum/discuss.php', array('d' => $this->objectid));
+        return new \moodle_url('/mod/sforum/discuss.php', array('d' => $this->objectid));
     }
 
     /**
@@ -81,7 +82,7 @@ class discussion_viewed extends \core\event\base {
      * @return array|null
      */
     protected function get_legacy_logdata() {
-        return array($this->courseid, 'forum', 'view discussion', 'discuss.php?d=' . $this->objectid,
+        return array($this->courseid, 'sforum', 'view discussion', 'discuss.php?d=' . $this->objectid,
             $this->objectid, $this->contextinstanceid);
     }
 
@@ -100,7 +101,7 @@ class discussion_viewed extends \core\event\base {
     }
 
     public static function get_objectid_mapping() {
-        return array('db' => 'forum_discussions', 'restore' => 'forum_discussion');
+        return array('db' => 'sforum_discussions', 'restore' => 'sforum_discussion');
     }
 }
 

@@ -15,9 +15,9 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template mod_scriptingforum/scriptingforum_post_email_textemail
+    @template mod_sforum/sforum_post_email_textemail
 
-    Template which defines a scriptingforum post for sending in a single-post text email.
+    Template which defines a sforum post for sending in a single-post text email.
 
     Classes required for JS:
     * none
@@ -27,7 +27,7 @@
 
     Context variables required for this template:
     * coursename
-    * scriptingforumname
+    * sforumname
     * showdiscussionname
     * discussionname
     * permalink
@@ -38,14 +38,14 @@
     * attachments
     * canreply
     * replylink
-    * unsubscribescriptingforumlink
+    * unsubscribesforumlink
     * unsubscribediscussionlink
-    * scriptingforumindexlink
+    * sforumindexlink
 }}
-{{{ coursename }}} -> {{# str }} scriptingforums, scriptingforum {{/ str }} -> {{{ scriptingforumname }}}{{# showdiscussionname }} -> {{{ discussionname }}} {{/ showdiscussionname }}
+{{{ coursename }}} -> {{# str }} sforums, sforum {{/ str }} -> {{{ sforumname }}}{{# showdiscussionname }} -> {{{ discussionname }}} {{/ showdiscussionname }}
 {{ permalink }}
 {{{ subject }}}
-{{# str }} bynameondate, scriptingforum, {
+{{# str }} bynameondate, sforum, {
         "name": {{# quote }}{{{ authorfullname }}}{{/ quote }},
         "date": {{# quote}}{{ postdate }}{{/ quote }}
     } {{/ str }}
@@ -55,15 +55,15 @@
 {{{ attachments }}}
 ---------------------------------------------------------------------
 {{# canreply }}
-{{# str }} postmailinfolink, scriptingforum, {
+{{# str }} postmailinfolink, sforum, {
         "coursename": {{# quote }}{{{ coursename }}}{{/ quote }},
         "replylink": {{# quote }}{{ replylink }}{{/ quote }}
     } {{/ str }}
 {{/ canreply }}
-{{# unsubscribescriptingforumlink }}
-{{# str }} unsubscribelink, scriptingforum, {{{ unsubscribescriptingforumlink }}} {{/ str }}
-{{/ unsubscribescriptingforumlink }}
+{{# unsubscribesforumlink }}
+{{# str }} unsubscribelink, sforum, {{{ unsubscribesforumlink }}} {{/ str }}
+{{/ unsubscribesforumlink }}
 {{# unsubscribediscussionlink }}
-{{# str }} unsubscribediscussionlink, scriptingforum, {{{ unsubscribediscussionlink }}} {{/ str }}
+{{# str }} unsubscribediscussionlink, sforum, {{{ unsubscribediscussionlink }}} {{/ str }}
 {{/ unsubscribediscussionlink }}
-{{# str }} digestmailpostlink, scriptingforum, {{{ scriptingforumindexlink }}} {{/ str }}
+{{# str }} digestmailpostlink, sforum, {{{ sforumindexlink }}} {{/ str }}

@@ -14,21 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 /**
- * The mod_scriptingforum discussion pinned event.
+ * The mod_sforum discussion pinned event.
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Charles Fulton <fultonc@lafayette.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scriptingforum\event;
+namespace mod_sforum\event;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The mod_scriptingforum discussion pinned event.
+ * The mod_sforum discussion pinned event.
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2014 Charles Fulton <fultonc@lafayette.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -41,7 +41,7 @@ class discussion_pinned extends \core\event\base {
     protected function init() {
         $this->data['crud'] = 'u';
         $this->data['edulevel'] = self::LEVEL_OTHER;
-        $this->data['objecttable'] = 'scriptingforum_discussions';
+        $this->data['objecttable'] = 'sforum_discussions';
     }
 
     /**
@@ -50,7 +50,7 @@ class discussion_pinned extends \core\event\base {
      * @return string
      */
     public function get_description() {
-        return "The user {$this->userid} has pinned the discussion {$this->objectid} in the scriptingforum {$this->other['scriptingforumid']}";
+        return "The user {$this->userid} has pinned the discussion {$this->objectid} in the sforum {$this->other['sforumid']}";
     }
 
     /**
@@ -59,7 +59,7 @@ class discussion_pinned extends \core\event\base {
      * @return string
      */
     public static function get_name() {
-        return get_string('eventdiscussionpinned', 'mod_scriptingforum');
+        return get_string('eventdiscussionpinned', 'mod_sforum');
     }
 
     /**
@@ -68,7 +68,7 @@ class discussion_pinned extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/mod/scriptingforum/discuss.php', array('d' => $this->objectid));
+        return new \moodle_url('/mod/sforum/discuss.php', array('d' => $this->objectid));
     }
 
     /**
@@ -77,9 +77,9 @@ class discussion_pinned extends \core\event\base {
      * @return array|null
      */
     protected function get_legacy_logdata() {
-        // The legacy log table expects a relative path to /mod/scriptingforum/.
-        $logurl = substr($this->get_url()->out_as_local_url(), strlen('/mod/scriptingforum/'));
-        return array($this->courseid, 'scriptingforum',
+        // The legacy log table expects a relative path to /mod/sforum/.
+        $logurl = substr($this->get_url()->out_as_local_url(), strlen('/mod/sforum/'));
+        return array($this->courseid, 'sforum',
                 'pin discussion', $logurl, $this->objectid, $this->contextinstanceid);
     }
 
@@ -91,8 +91,8 @@ class discussion_pinned extends \core\event\base {
      */
     protected function validate_data() {
         parent::validate_data();
-        if (!isset($this->other['scriptingforumid'])) {
-            throw new \coding_exception('scriptingforumid must be set in $other.');
+        if (!isset($this->other['sforumid'])) {
+            throw new \coding_exception('sforumid must be set in $other.');
         }
         if ($this->contextlevel != CONTEXT_MODULE) {
             throw new \coding_exception('Context passed must be module context.');
@@ -108,8 +108,8 @@ class discussion_pinned extends \core\event\base {
      * @return array
      */
     public static function get_objectid_mapping() {
-        return array('db' => 'scriptingforum_discussions',
-                    'restore' => 'scriptingforum_discussion');
+        return array('db' => 'sforum_discussions',
+                    'restore' => 'sforum_discussion');
     }
 
     /**
@@ -119,8 +119,9 @@ class discussion_pinned extends \core\event\base {
      */
     public static function get_other_mapping() {
         $othermapped = array();
-        $othermapped['scriptingforumid'] = array('db' => 'scriptingforum',
-                'restore' => 'scriptingforum');
+        $othermapped['sforumid'] = array('db' => 'sforum',
+                'restore' => 'sforum');
         return $othermapped;
     }
 }
+

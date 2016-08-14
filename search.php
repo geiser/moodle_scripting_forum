@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scripting_forum
+ * @package   mod_sforum
  * @copyright 2016 Geiser Chalco {@link http://github.com/geiser}
  * @copyright 1999 Martin Dougiamas {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -33,7 +33,7 @@ $showform = optional_param('showform', 0, PARAM_INT);   // Just show the form
 
 $user    = trim(optional_param('user', '', PARAM_NOTAGS));    // Names to search for
 $userid  = trim(optional_param('userid', 0, PARAM_INT));      // UserID to search for
-$scripting_forumid = trim(optional_param('scripting_forumid', 0, PARAM_INT));      // ForumID to search for
+$sforumid = trim(optional_param('sforumid', 0, PARAM_INT));      // ForumID to search for
 $subject = trim(optional_param('subject', '', PARAM_NOTAGS)); // Subject
 $phrase  = trim(optional_param('phrase', '', PARAM_NOTAGS));  // Phrase
 $words   = trim(optional_param('words', '', PARAM_NOTAGS));   // Words
@@ -78,20 +78,20 @@ if (empty($search)) {   // Check the other parameters instead
     if (!empty($userid)) {
         $search .= ' userid:'.$userid;
     }
-    if (!empty($scripting_forumid)) {
-        $search .= ' scripting_forumid:'.$scripting_forumid;
+    if (!empty($sforumid)) {
+        $search .= ' sforumid:'.$sforumid;
     }
     if (!empty($user)) {
-        $search .= ' '.scripting_forum_clean_search_terms($user, 'user:');
+        $search .= ' '.sforum_clean_search_terms($user, 'user:');
     }
     if (!empty($subject)) {
-        $search .= ' '.scripting_forum_clean_search_terms($subject, 'subject:');
+        $search .= ' '.sforum_clean_search_terms($subject, 'subject:');
     }
     if (!empty($fullwords)) {
-        $search .= ' '.scripting_forum_clean_search_terms($fullwords, '+');
+        $search .= ' '.sforum_clean_search_terms($fullwords, '+');
     }
     if (!empty($notwords)) {
-        $search .= ' '.scripting_forum_clean_search_terms($notwords, '-');
+        $search .= ' '.sforum_clean_search_terms($notwords, '-');
     }
     if (!empty($phrase)) {
         $search .= ' "'.$phrase.'"';
@@ -108,7 +108,7 @@ if (empty($search)) {   // Check the other parameters instead
 }
 
 if ($search) {
-    $search = scripting_forum_clean_search_terms($search);
+    $search = sforum_clean_search_terms($search);
 }
 
 if (!$course = $DB->get_record('course', array('id'=>$id))) {
@@ -122,54 +122,54 @@ $params = array(
     'other' => array('searchterm' => $search)
 );
 
-$event = \mod_scripting_forum\event\course_searched::create($params);
+$event = \mod_sforum\event\course_searched::create($params);
 $event->trigger();
 
-$strscripting_forums = get_string("modulenameplural", "scripting_forum");
-$strsearch = get_string("search", "scripting_forum");
-$strsearchresults = get_string("searchresults", "scripting_forum");
+$strsforums = get_string("modulenameplural", "sforum");
+$strsearch = get_string("search", "sforum");
+$strsearchresults = get_string("searchresults", "sforum");
 $strpage = get_string("page");
 
 if (!$search || $showform) {
 
-    $PAGE->navbar->add($strscripting_forums,
-                new moodle_url('/mod/scripting_forum/index.php', array('id'=>$course->id)));
-    $PAGE->navbar->add(get_string('advancedsearch', 'scripting_forum'));
+    $PAGE->navbar->add($strsforums,
+                new moodle_url('/mod/sforum/index.php', array('id'=>$course->id)));
+    $PAGE->navbar->add(get_string('advancedsearch', 'sforum'));
 
     $PAGE->set_title($strsearch);
     $PAGE->set_heading($course->fullname);
     echo $OUTPUT->header();
 
-    scripting_forum_print_big_search_form($course);
+    sforum_print_big_search_form($course);
     echo $OUTPUT->footer();
     exit;
 }
 
 /// We need to do a search now and print results
 
-$searchterms = str_replace('scripting_forumid:', 'instance:', $search);
+$searchterms = str_replace('sforumid:', 'instance:', $search);
 $searchterms = explode(' ', $searchterms);
 
-$searchform = scripting_forum_search_form($course, $search);
+$searchform = sforum_search_form($course, $search);
 
 $PAGE->navbar->add($strsearch,
-        new moodle_url('/mod/scripting_forum/search.php',
+        new moodle_url('/mod/sforum/search.php',
         array('id'=>$course->id)));
 $PAGE->navbar->add($strsearchresults);
-if (!$posts = scripting_forum_search_posts($searchterms,
+if (!$posts = sforum_search_posts($searchterms,
         $course->id, $page*$perpage, $perpage, $totalcount)) {
     $PAGE->set_title($strsearchresults);
     $PAGE->set_heading($course->fullname);
     echo $OUTPUT->header();
-    echo $OUTPUT->heading($strscripting_forums, 2);
+    echo $OUTPUT->heading($strsforums, 2);
     echo $OUTPUT->heading($strsearchresults, 3);
-    echo $OUTPUT->heading(get_string("noposts", "scripting_forum"), 4);
+    echo $OUTPUT->heading(get_string("noposts", "sforum"), 4);
 
     if (!$individualparams) {
         $words = $search;
     }
 
-    scripting_forum_print_big_search_form($course);
+    sforum_print_big_search_form($course);
 
     echo $OUTPUT->footer();
     exit;
@@ -180,7 +180,7 @@ require_once($CFG->dirroot.'/rating/lib.php');
 
 //set up the ratings information that will be the same for all posts
 $ratingoptions = new stdClass();
-$ratingoptions->component = 'mod_scripting_forum';
+$ratingoptions->component = 'mod_sforum';
 $ratingoptions->ratingarea = 'post';
 $ratingoptions->userid = $USER->id;
 $ratingoptions->returnurl = $PAGE->url->out(false);
@@ -194,7 +194,7 @@ echo '<div class="reportlink">';
 echo '<a href="search.php?id='.$course->id.
                          '&amp;user='.urlencode($user).
                          '&amp;userid='.$userid.
-                         '&amp;scripting_forumid='.$scripting_forumid.
+                         '&amp;sforumid='.$sforumid.
                          '&amp;subject='.urlencode($subject).
                          '&amp;phrase='.urlencode($phrase).
                          '&amp;words='.urlencode($words).
@@ -203,10 +203,10 @@ echo '<a href="search.php?id='.$course->id.
                          '&amp;dateto='.$dateto.
                          '&amp;datefrom='.$datefrom.
                          '&amp;showform=1'.
-                         '">'.get_string('advancedsearch','scripting_forum').'...</a>';
+                         '">'.get_string('advancedsearch','sforum').'...</a>';
 echo '</div>';
 
-echo $OUTPUT->heading($strscripting_forums, 2);
+echo $OUTPUT->heading($strsforums, 2);
 echo $OUTPUT->heading("$strsearchresults: $totalcount", 3);
 
 $url = new moodle_url('search.php',
@@ -230,27 +230,27 @@ $strippedsearch = implode(' ', $searchterms);    // Rebuild the string
 
 foreach ($posts as $post) {
 
-    // Replace the simple subject with the three items scripting_forum name -> thread name -> subject
+    // Replace the simple subject with the three items sforum name -> thread name -> subject
     // (if all three are appropriate) each as a link.
-    if (! $discussion = $DB->get_record('scripting_forum_discussions',
+    if (! $discussion = $DB->get_record('sforum_discussions',
                 array('id' => $post->discussion))) {
-        print_error('invaliddiscussionid', 'scripting_forum');
+        print_error('invaliddiscussionid', 'sforum');
     }
-    if (! $scripting_forum = $DB->get_record('scripting_forum',
-            array('id' => "$discussion->scripting_forum"))) {
-        print_error('invalidscripting_forumid', 'scripting_forum');
+    if (! $sforum = $DB->get_record('sforum',
+            array('id' => "$discussion->sforum"))) {
+        print_error('invalidsforumid', 'sforum');
     }
 
-    if (!$cm = get_coursemodule_from_instance('scripting_forum', $scripting_forum->id)) {
+    if (!$cm = get_coursemodule_from_instance('sforum', $sforum->id)) {
         print_error('invalidcoursemodule');
     }
 
     $post->subject = highlight($strippedsearch, $post->subject);
     $discussion->name = highlight($strippedsearch, $discussion->name);
 
-    $fullsubject = "<a href=\"view.php?f=$scripting_forum->id\">".
-            format_string($scripting_forum->name,true)."</a>";
-    if ($scripting_forum->type != 'single') {
+    $fullsubject = "<a href=\"view.php?f=$sforum->id\">".
+            format_string($sforum->name,true)."</a>";
+    if ($sforum->type != 'single') {
         $fullsubject .= " -> <a href=\"discuss.php?d=$discussion->id\">".
                     format_string($discussion->name,true)."</a>";
         if ($post->parent != 0) {
@@ -262,15 +262,15 @@ foreach ($posts as $post) {
     $post->subjectnoformat = true;
 
     //add the ratings information to the post
-    //Unfortunately seem to have do this individually as posts may be from different scripting_forums
-    if ($scripting_forum->assessed != RATING_AGGREGATE_NONE) {
+    //Unfortunately seem to have do this individually as posts may be from different sforums
+    if ($sforum->assessed != RATING_AGGREGATE_NONE) {
         $modcontext = context_module::instance($cm->id);
         $ratingoptions->context = $modcontext;
         $ratingoptions->items = array($post);
-        $ratingoptions->aggregate = $scripting_forum->assessed;//the aggregation method
-        $ratingoptions->scaleid = $scripting_forum->scale;
-        $ratingoptions->assesstimestart = $scripting_forum->assesstimestart;
-        $ratingoptions->assesstimefinish = $scripting_forum->assesstimefinish;
+        $ratingoptions->aggregate = $sforum->assessed;//the aggregation method
+        $ratingoptions->scaleid = $sforum->scale;
+        $ratingoptions->assesstimestart = $sforum->assesstimestart;
+        $ratingoptions->assesstimefinish = $sforum->assesstimefinish;
         $postswithratings = $rm->get_ratings($ratingoptions);
 
         if ($postswithratings && count($postswithratings)==1) {
@@ -280,7 +280,7 @@ foreach ($posts as $post) {
 
     // Identify search terms only found in HTML markup, and add a warning about them to
     // the start of the message text. However, do not do the highlighting here.
-    // scripting_forum_print_post
+    // sforum_print_post
     // will do it for us later.
     $missing_terms = "";
 
@@ -301,13 +301,13 @@ foreach ($posts as $post) {
     $post->message = str_replace('</fgw9sdpq4>', '</span>', $post->message);
 
     if ($missing_terms) {
-        $strmissingsearchterms = get_string('missingsearchterms','scripting_forum');
+        $strmissingsearchterms = get_string('missingsearchterms','sforum');
         $post->message = '<p class="highlight2">'.$strmissingsearchterms.' '.$missing_terms.'</p>'.$post->message;
     }
 
-    // Prepare a link to the post in context, to be displayed after the scripting_forum post.
+    // Prepare a link to the post in context, to be displayed after the sforum post.
     $fulllink = "<a href=\"discuss.php?d=$post->discussion#p$post->id\">".
-            get_string("postincontext", "scripting_forum")."</a>";
+            get_string("postincontext", "sforum")."</a>";
 
     // Message is now html format.
     if ($post->messageformat != FORMAT_HTML) {
@@ -315,7 +315,7 @@ foreach ($posts as $post) {
     }
 
     // Now pring the post.
-    scripting_forum_print_post($post, $discussion, $scripting_forum,
+    sforum_print_post($post, $discussion, $sforum,
             $cm, $course, false, false, false,
             $fulllink, '', -99, false);
 }
@@ -330,22 +330,22 @@ echo $OUTPUT->footer();
   * @param stdClass $course The Course that will be searched.
   * @return void The function prints the form.
   */
-function scripting_forum_print_big_search_form($course) {
+function sforum_print_big_search_form($course) {
     global $CFG, $DB, $words, $subject, $phrase, $user, $userid, $fullwords, $notwords, $datefrom, $dateto, $PAGE, $OUTPUT;
 
-    echo $OUTPUT->box(get_string('searchscripting_forumintro',
-            'scripting_forum'), 'searchbox boxaligncenter', 'intro');
+    echo $OUTPUT->box(get_string('searchsforumintro',
+            'sforum'), 'searchbox boxaligncenter', 'intro');
 
     echo $OUTPUT->box_start('generalbox boxaligncenter');
 
-    echo html_writer::script('', $CFG->wwwroot.'/mod/scripting_forum/scripting_forum.js');
+    echo html_writer::script('', $CFG->wwwroot.'/mod/sforum/sforum.js');
 
     echo '<form id="searchform" action="search.php" method="get">';
     echo '<table cellpadding="10" class="searchbox" id="form">';
 
     echo '<tr>';
     echo '<td class="c0"><label for="words">'.
-            get_string('searchwords', 'scripting_forum').'</label>';
+            get_string('searchwords', 'sforum').'</label>';
     echo '<input type="hidden" value="'.$course->id.'" name="id" alt="" /></td>';
     echo '<td class="c1"><input type="text" size="35" name="words" id="words"value="'.
             s($words, true).'" alt="" /></td>';
@@ -353,14 +353,14 @@ function scripting_forum_print_big_search_form($course) {
 
     echo '<tr>';
     echo '<td class="c0"><label for="phrase">'.
-            get_string('searchphrase', 'scripting_forum').'</label></td>';
+            get_string('searchphrase', 'sforum').'</label></td>';
     echo '<td class="c1"><input type="text" size="35" name="phrase" id="phrase" value="'.
             s($phrase, true).'" alt="" /></td>';
     echo '</tr>';
 
     echo '<tr>';
     echo '<td class="c0"><label for="notwords">'.
-            get_string('searchnotwords', 'scripting_forum').'</label></td>';
+            get_string('searchnotwords', 'sforum').'</label></td>';
     echo '<td class="c1"><input type="text" size="35" name="notwords" id="notwords" value="'.
             s($notwords, true).'" alt="" /></td>';
     echo '</tr>';
@@ -368,14 +368,14 @@ function scripting_forum_print_big_search_form($course) {
     if ($DB->get_dbfamily() == 'mysql' || $DB->get_dbfamily() == 'postgres') {
         echo '<tr>';
         echo '<td class="c0"><label for="fullwords">'.
-                get_string('searchfullwords', 'scripting_forum').'</label></td>';
+                get_string('searchfullwords', 'sforum').'</label></td>';
         echo '<td class="c1"><input type="text" size="35" name="fullwords" id="fullwords" value="'.
                 s($fullwords, true).'" alt="" /></td>';
         echo '</tr>';
     }
 
     echo '<tr>';
-    echo '<td class="c0">'.get_string('searchdatefrom', 'scripting_forum').'</td>';
+    echo '<td class="c0">'.get_string('searchdatefrom', 'sforum').'</td>';
     echo '<td class="c1">';
     if (empty($datefrom)) {
         $datefromchecked = '';
@@ -385,7 +385,7 @@ function scripting_forum_print_big_search_form($course) {
     }
 
     echo '<input name="timefromrestrict" type="checkbox" value="1" alt="'.
-            get_string('searchdatefrom', 'scripting_forum').
+            get_string('searchdatefrom', 'sforum').
             '" onclick="return lockoptions(\'searchform\', \'timefromrestrict\', timefromitems)" '.  $datefromchecked . ' /> ';
     $selectors = html_writer::select_time('days', 'fromday', $datefrom)
                . html_writer::select_time('months', 'frommonth', $datefrom)
@@ -403,7 +403,7 @@ function scripting_forum_print_big_search_form($course) {
     echo '</tr>';
 
     echo '<tr>';
-    echo '<td class="c0">'.get_string('searchdateto', 'scripting_forum').'</td>';
+    echo '<td class="c0">'.get_string('searchdateto', 'sforum').'</td>';
     echo '<td class="c1">';
     if (empty($dateto)) {
         $datetochecked = '';
@@ -413,7 +413,7 @@ function scripting_forum_print_big_search_form($course) {
     }
 
     echo '<input name="timetorestrict" type="checkbox" value="1" alt="'.
-            get_string('searchdateto', 'scripting_forum').
+            get_string('searchdateto', 'sforum').
          '" onclick="return lockoptions(\'searchform\', \'timetorestrict\', timetoitems)" '.
          $datetochecked.' /> ';
     $selectors = html_writer::select_time('days', 'today', $dateto)
@@ -433,25 +433,25 @@ function scripting_forum_print_big_search_form($course) {
     echo '</tr>';
 
     echo '<tr>';
-    echo '<td class="c0"><label for="menuscripting_forumid">'.
-            get_string('searchwhichscripting_forums', 'scripting_forum').'</label></td>';
+    echo '<td class="c0"><label for="menusforumid">'.
+            get_string('searchwhichsforums', 'sforum').'</label></td>';
     echo '<td class="c1">';
-    echo html_writer::select(scripting_forum_menu_list($course),
-            'scripting_forumid', '',
-            array(''=>get_string('allscripting_forums', 'scripting_forum')));
+    echo html_writer::select(sforum_menu_list($course),
+            'sforumid', '',
+            array(''=>get_string('allsforums', 'sforum')));
     echo '</td>';
     echo '</tr>';
 
     echo '<tr>';
     echo '<td class="c0"><label for="subject">'.
-            get_string('searchsubject', 'scripting_forum').'</label></td>';
+            get_string('searchsubject', 'sforum').'</label></td>';
     echo '<td class="c1"><input type="text" size="35" name="subject" id="subject" value="'.
             s($subject, true).'" alt="" /></td>';
     echo '</tr>';
 
     echo '<tr>';
     echo '<td class="c0"><label for="user">'.
-            get_string('searchuser', 'scripting_forum').'</label></td>';
+            get_string('searchuser', 'sforum').'</label></td>';
     echo '<td class="c1"><input type="text" size="35" name="user" id="user" value="'.
             s($user, true).'" alt="" /></td>';
     echo '</tr>';
@@ -459,7 +459,7 @@ function scripting_forum_print_big_search_form($course) {
     echo '<tr>';
     echo '<td class="submit" colspan="2" align="center">';
     echo '<input type="submit" value="'.
-            get_string('searchscripting_forums', 'scripting_forum').'" alt="" /></td>';
+            get_string('searchsforums', 'sforum').'" alt="" /></td>';
     echo '</tr>';
 
     echo '</table>';
@@ -481,7 +481,7 @@ function scripting_forum_print_big_search_form($course) {
  * @return string The filtered search terms, separated by spaces.
  * @todo Take the hardcoded limit out of this function and put it into a user-specified parameter.
  */
-function scripting_forum_clean_search_terms($words, $prefix='') {
+function sforum_clean_search_terms($words, $prefix='') {
     $searchterms = explode(' ', $words);
     foreach ($searchterms as $key => $searchterm) {
         if (strlen($searchterm) < 2) {
@@ -494,25 +494,25 @@ function scripting_forum_clean_search_terms($words, $prefix='') {
 }
 
  /**
-  * Retrieve a list of the scripting_forums that this user can view.
+  * Retrieve a list of the sforums that this user can view.
   *
   * @param stdClass $course The Course to use.
-  * @return array A set of formatted scripting_forum names stored against the scripting_forum id.
+  * @return array A set of formatted sforum names stored against the sforum id.
   */
-function scripting_forum_menu_list($course)  {
+function sforum_menu_list($course)  {
     $menu = array();
 
     $modinfo = get_fast_modinfo($course);
-    if (empty($modinfo->instances['scripting_forum'])) {
+    if (empty($modinfo->instances['sforum'])) {
         return $menu;
     }
 
-    foreach ($modinfo->instances['scripting_forum'] as $cm) {
+    foreach ($modinfo->instances['sforum'] as $cm) {
         if (!$cm->uservisible) {
             continue;
         }
         $context = context_module::instance($cm->id);
-        if (!has_capability('mod/scripting_forum:viewdiscussion', $context)) {
+        if (!has_capability('mod/sforum:viewdiscussion', $context)) {
             continue;
         }
         $menu[$cm->instance] = format_string($cm->name);

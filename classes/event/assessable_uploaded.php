@@ -15,20 +15,20 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The mod_scriptingforum assessable uploaded event.
+ * The mod_sforum assessable uploaded event.
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2016 Geiser Chalco
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scriptingforum\event;
+namespace mod_sforum\event;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The mod_scriptingforum assessable uploaded event class.
+ * The mod_sforum assessable uploaded event class.
  *
  * @property-read array $other {
  *      Extra information about event.
@@ -37,7 +37,7 @@ defined('MOODLE_INTERNAL') || die();
  *      - string triggeredfrom: name of the function from where event was triggered.
  * }
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @since      Moodle 2.6
  * @copyright  2016 Geiser Chalco
  * @copyright  2013 Frédéric Massart
@@ -52,9 +52,9 @@ class assessable_uploaded extends \core\event\assessable_uploaded {
      */
     public function get_description() {
         return "The user with id '$this->userid' has posted content in the ".
-                "scriptingforum post with id '$this->objectid' ".
+                "sforum post with id '$this->objectid' ".
                 "in the discussion '{$this->other['discussionid']}' ".
-                "located in the scriptingforum with course module id " .
+                "located in the sforum with course module id " .
             "'$this->contextinstanceid'.";
     }
 
@@ -65,7 +65,7 @@ class assessable_uploaded extends \core\event\assessable_uploaded {
      */
     protected function get_legacy_eventdata() {
         $eventdata = new \stdClass();
-        $eventdata->modulename   = 'scriptingforum';
+        $eventdata->modulename   = 'sforum';
         $eventdata->name         = $this->other['triggeredfrom'];
         $eventdata->cmid         = $this->contextinstanceid;
         $eventdata->itemid       = $this->objectid;
@@ -93,7 +93,7 @@ class assessable_uploaded extends \core\event\assessable_uploaded {
      * @return string
      */
     public static function get_name() {
-        return get_string('eventassessableuploaded', 'mod_scriptingforum');
+        return get_string('eventassessableuploaded', 'mod_sforum');
     }
 
     /**
@@ -102,7 +102,7 @@ class assessable_uploaded extends \core\event\assessable_uploaded {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/mod/scriptingforum/discuss.php',
+        return new \moodle_url('/mod/sforum/discuss.php',
                 array('d' => $this->other['discussionid'], 'parent' => $this->objectid));
     }
 
@@ -113,7 +113,7 @@ class assessable_uploaded extends \core\event\assessable_uploaded {
      */
     protected function init() {
         parent::init();
-        $this->data['objecttable'] = 'scriptingforum_posts';
+        $this->data['objecttable'] = 'sforum_posts';
     }
 
     /**
@@ -133,14 +133,14 @@ class assessable_uploaded extends \core\event\assessable_uploaded {
     }
 
     public static function get_objectid_mapping() {
-        return array('db' => 'scriptingforum_posts',
-                    'restore' => 'scriptingforum_post');
+        return array('db' => 'sforum_posts',
+                    'restore' => 'sforum_post');
     }
 
     public static function get_other_mapping() {
         $othermapped = array();
-        $othermapped['discussionid'] = array('db' => 'scriptingforum_discussions',
-                'restore' => 'scriptingforum_discussion');
+        $othermapped['discussionid'] = array('db' => 'sforum_discussions',
+                'restore' => 'sforum_discussion');
         return $othermapped;
     }
 

@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scriptingforum
+ * @package   mod_sforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -25,12 +25,12 @@
 require_once("../../config.php");
 require_once("lib.php");
 
-$f          = required_param('f',PARAM_INT); // The scriptingforum to mark
+$f          = required_param('f',PARAM_INT); // The sforum to mark
 $mark       = required_param('mark',PARAM_ALPHA); // Read or unread?
 $d          = optional_param('d',0,PARAM_INT); // Discussion to mark.
 $returnpage = optional_param('returnpage', 'index.php', PARAM_FILE);    // Page to return to.
 
-$url = new moodle_url('/mod/scriptingforum/markposts.php', array('f'=>$f, 'mark'=>$mark));
+$url = new moodle_url('/mod/sforum/markposts.php', array('f'=>$f, 'mark'=>$mark));
 if ($d !== 0) {
     $url->param('d', $d);
 }
@@ -39,15 +39,15 @@ if ($returnpage !== 'index.php') {
 }
 $PAGE->set_url($url);
 
-if (! $scriptingforum = $DB->get_record("scriptingforum", array("id" => $f))) {
-    print_error('invalidscriptingforumid', 'scriptingforum');
+if (! $sforum = $DB->get_record("sforum", array("id" => $f))) {
+    print_error('invalidsforumid', 'sforum');
 }
 
-if (! $course = $DB->get_record("course", array("id" => $scriptingforum->course))) {
+if (! $course = $DB->get_record("course", array("id" => $sforum->course))) {
     print_error('invalidcourseid');
 }
 
-if (!$cm = get_coursemodule_from_instance("scriptingforum", $scriptingforum->id, $course->id)) {
+if (!$cm = get_coursemodule_from_instance("sforum", $sforum->id, $course->id)) {
     print_error('invalidcoursemodule');
 }
 
@@ -57,16 +57,16 @@ require_login($course, false, $cm);
 require_sesskey();
 
 if ($returnpage == 'index.php') {
-    $returnto = new moodle_url("/mod/scriptingforum/$returnpage", array('id' => $course->id));
+    $returnto = new moodle_url("/mod/sforum/$returnpage", array('id' => $course->id));
 } else {
-    $returnto = new moodle_url("/mod/scriptingforum/$returnpage", array('f' => $scriptingforum->id));
+    $returnto = new moodle_url("/mod/sforum/$returnpage", array('f' => $sforum->id));
 }
 
-if (isguestuser()) {   // Guests can't change scriptingforum
+if (isguestuser()) {   // Guests can't change sforum
     $PAGE->set_title($course->shortname);
     $PAGE->set_heading($course->fullname);
     echo $OUTPUT->header();
-    echo $OUTPUT->confirm(get_string('noguesttracking', 'scriptingforum').
+    echo $OUTPUT->confirm(get_string('noguesttracking', 'sforum').
             '<br /><br />'.get_string('liketologin'), get_login_url(), $returnto);
     echo $OUTPUT->footer();
     exit;
@@ -74,33 +74,33 @@ if (isguestuser()) {   // Guests can't change scriptingforum
 
 $info = new stdClass();
 $info->name  = fullname($user);
-$info->scriptingforum = format_string($scriptingforum->name);
+$info->sforum = format_string($sforum->name);
 
 if ($mark == 'read') {
     if (!empty($d)) {
-        if (! $discussion = $DB->get_record('scriptingforum_discussions',
-            array('id'=> $d, 'scriptingforum'=> $scriptingforum->id))) {
-            print_error('invaliddiscussionid', 'scriptingforum');
+        if (! $discussion = $DB->get_record('sforum_discussions',
+            array('id'=> $d, 'sforum'=> $sforum->id))) {
+            print_error('invaliddiscussionid', 'sforum');
         }
 
-        scriptingforum_tp_mark_discussion_read($user, $d);
+        sforum_tp_mark_discussion_read($user, $d);
     } else {
         // Mark all messages read in current group
         $currentgroup = groups_get_activity_group($cm);
         if(!$currentgroup) {
-            // mark_scriptingforum_read requires ===false, while get_activity_group
+            // mark_sforum_read requires ===false, while get_activity_group
             // may return 0
             $currentgroup=false;
         }
-        scriptingforum_tp_mark_scriptingforum_read($user, $scriptingforum->id, $currentgroup);
+        sforum_tp_mark_sforum_read($user, $sforum->id, $currentgroup);
     }
 
 /// FUTURE - Add ability to mark them as unread.
 //    } else { // subscribe
-//        if (scriptingforum_tp_start_tracking($scriptingforum->id, $user->id)) {
-//            redirect($returnto, get_string("nowtracking", "scriptingforum", $info), 1);
+//        if (sforum_tp_start_tracking($sforum->id, $user->id)) {
+//            redirect($returnto, get_string("nowtracking", "sforum", $info), 1);
 //        } else {
-//            print_error("Could not start tracking that scriptingforum", get_local_referer());
+//            print_error("Could not start tracking that sforum", get_local_referer());
 //        }
 }
 

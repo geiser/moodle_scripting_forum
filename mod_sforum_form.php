@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scriptingforum
+ * @package   mod_sforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -28,7 +28,7 @@ if (!defined('MOODLE_INTERNAL')) {
 
 require_once ($CFG->dirroot.'/course/moodleform_mod.php');
 
-class mod_scriptingforum_mod_form extends moodleform_mod {
+class mod_sforum_mod_form extends moodleform_mod {
 
     function definition() {
         global $CFG, $COURSE, $DB;
@@ -39,7 +39,7 @@ class mod_scriptingforum_mod_form extends moodleform_mod {
         $mform->addElement('header', 'general', get_string('general', 'form'));
 
         $mform->addElement('text', 'name',
-                get_string('scriptingforumname', 'scriptingforum'), array('size'=>'64'));
+                get_string('sforumname', 'sforum'), array('size'=>'64'));
         if (!empty($CFG->formatstringstriptags)) {
             $mform->setType('name', PARAM_TEXT);
         } else {
@@ -48,22 +48,22 @@ class mod_scriptingforum_mod_form extends moodleform_mod {
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
-        $this->standard_intro_elements(get_string('scriptingforumintro', 'scriptingforum'));
+        $this->standard_intro_elements(get_string('sforumintro', 'sforum'));
 
-        $scriptingforumtypes = scriptingforum_get_scriptingforum_types();
-        core_collator::asort($scriptingforumtypes, core_collator::SORT_STRING);
-        $mform->addElement('select', 'type', get_string('scriptingforumtype', 'scriptingforum'), $scriptingforumtypes);
-        $mform->addHelpButton('type', 'scriptingforumtype', 'scriptingforum');
+        $sforumtypes = sforum_get_sforum_types();
+        core_collator::asort($sforumtypes, core_collator::SORT_STRING);
+        $mform->addElement('select', 'type', get_string('sforumtype', 'sforum'), $sforumtypes);
+        $mform->addHelpButton('type', 'sforumtype', 'sforum');
         $mform->setDefault('type', 'general');
 
         // Attachments and word count.
-        $mform->addElement('header', 'attachmentswordcounthdr', get_string('attachmentswordcount', 'scriptingforum'));
+        $mform->addElement('header', 'attachmentswordcounthdr', get_string('attachmentswordcount', 'sforum'));
 
-        $choices = get_max_upload_sizes($CFG->maxbytes, $COURSE->maxbytes, 0, $CFG->scriptingforum_maxbytes);
+        $choices = get_max_upload_sizes($CFG->maxbytes, $COURSE->maxbytes, 0, $CFG->sforum_maxbytes);
         $choices[1] = get_string('uploadnotallowed');
-        $mform->addElement('select', 'maxbytes', get_string('maxattachmentsize', 'scriptingforum'), $choices);
-        $mform->addHelpButton('maxbytes', 'maxattachmentsize', 'scriptingforum');
-        $mform->setDefault('maxbytes', $CFG->scriptingforum_maxbytes);
+        $mform->addElement('select', 'maxbytes', get_string('maxattachmentsize', 'sforum'), $choices);
+        $mform->addHelpButton('maxbytes', 'maxattachmentsize', 'sforum');
+        $mform->setDefault('maxbytes', $CFG->sforum_maxbytes);
 
         $choices = array(
             0 => 0,
@@ -81,50 +81,50 @@ class mod_scriptingforum_mod_form extends moodleform_mod {
             50 => 50,
             100 => 100
         );
-        $mform->addElement('select', 'maxattachments', get_string('maxattachments', 'scriptingforum'), $choices);
-        $mform->addHelpButton('maxattachments', 'maxattachments', 'scriptingforum');
-        $mform->setDefault('maxattachments', $CFG->scriptingforum_maxattachments);
+        $mform->addElement('select', 'maxattachments', get_string('maxattachments', 'sforum'), $choices);
+        $mform->addHelpButton('maxattachments', 'maxattachments', 'sforum');
+        $mform->setDefault('maxattachments', $CFG->sforum_maxattachments);
 
-        $mform->addElement('selectyesno', 'displaywordcount', get_string('displaywordcount', 'scriptingforum'));
-        $mform->addHelpButton('displaywordcount', 'displaywordcount', 'scriptingforum');
+        $mform->addElement('selectyesno', 'displaywordcount', get_string('displaywordcount', 'sforum'));
+        $mform->addHelpButton('displaywordcount', 'displaywordcount', 'sforum');
         $mform->setDefault('displaywordcount', 0);
 
         // Subscription and tracking.
-        $mform->addElement('header', 'subscriptionandtrackinghdr', get_string('subscriptionandtracking', 'scriptingforum'));
+        $mform->addElement('header', 'subscriptionandtrackinghdr', get_string('subscriptionandtracking', 'sforum'));
 
         $options = array();
-        $options[FORUM_CHOOSESUBSCRIBE] = get_string('subscriptionoptional', 'scriptingforum');
-        $options[FORUM_FORCESUBSCRIBE] = get_string('subscriptionforced', 'scriptingforum');
-        $options[FORUM_INITIALSUBSCRIBE] = get_string('subscriptionauto', 'scriptingforum');
-        $options[FORUM_DISALLOWSUBSCRIBE] = get_string('subscriptiondisabled','scriptingforum');
-        $mform->addElement('select', 'forcesubscribe', get_string('subscriptionmode', 'scriptingforum'), $options);
-        $mform->addHelpButton('forcesubscribe', 'subscriptionmode', 'scriptingforum');
+        $options[FORUM_CHOOSESUBSCRIBE] = get_string('subscriptionoptional', 'sforum');
+        $options[FORUM_FORCESUBSCRIBE] = get_string('subscriptionforced', 'sforum');
+        $options[FORUM_INITIALSUBSCRIBE] = get_string('subscriptionauto', 'sforum');
+        $options[FORUM_DISALLOWSUBSCRIBE] = get_string('subscriptiondisabled','sforum');
+        $mform->addElement('select', 'forcesubscribe', get_string('subscriptionmode', 'sforum'), $options);
+        $mform->addHelpButton('forcesubscribe', 'subscriptionmode', 'sforum');
 
         $options = array();
-        $options[FORUM_TRACKING_OPTIONAL] = get_string('trackingoptional', 'scriptingforum');
-        $options[FORUM_TRACKING_OFF] = get_string('trackingoff', 'scriptingforum');
-        if ($CFG->scriptingforum_allowforcedreadtracking) {
-            $options[FORUM_TRACKING_FORCED] = get_string('trackingon', 'scriptingforum');
+        $options[FORUM_TRACKING_OPTIONAL] = get_string('trackingoptional', 'sforum');
+        $options[FORUM_TRACKING_OFF] = get_string('trackingoff', 'sforum');
+        if ($CFG->sforum_allowforcedreadtracking) {
+            $options[FORUM_TRACKING_FORCED] = get_string('trackingon', 'sforum');
         }
-        $mform->addElement('select', 'trackingtype', get_string('trackingtype', 'scriptingforum'), $options);
-        $mform->addHelpButton('trackingtype', 'trackingtype', 'scriptingforum');
-        $default = $CFG->scriptingforum_trackingtype;
-        if ((!$CFG->scriptingforum_allowforcedreadtracking) && ($default == FORUM_TRACKING_FORCED)) {
+        $mform->addElement('select', 'trackingtype', get_string('trackingtype', 'sforum'), $options);
+        $mform->addHelpButton('trackingtype', 'trackingtype', 'sforum');
+        $default = $CFG->sforum_trackingtype;
+        if ((!$CFG->sforum_allowforcedreadtracking) && ($default == FORUM_TRACKING_FORCED)) {
             $default = FORUM_TRACKING_OPTIONAL;
         }
         $mform->setDefault('trackingtype', $default);
 
-        if ($CFG->enablerssfeeds && isset($CFG->scriptingforum_enablerssfeeds) && $CFG->scriptingforum_enablerssfeeds) {
+        if ($CFG->enablerssfeeds && isset($CFG->sforum_enablerssfeeds) && $CFG->sforum_enablerssfeeds) {
 //-------------------------------------------------------------------------------
             $mform->addElement('header', 'rssheader', get_string('rss'));
             $choices = array();
             $choices[0] = get_string('none');
-            $choices[1] = get_string('discussions', 'scriptingforum');
-            $choices[2] = get_string('posts', 'scriptingforum');
+            $choices[1] = get_string('discussions', 'sforum');
+            $choices[2] = get_string('posts', 'sforum');
             $mform->addElement('select', 'rsstype', get_string('rsstype'), $choices);
-            $mform->addHelpButton('rsstype', 'rsstype', 'scriptingforum');
-            if (isset($CFG->scriptingforum_rsstype)) {
-                $mform->setDefault('rsstype', $CFG->scriptingforum_rsstype);
+            $mform->addHelpButton('rsstype', 'rsstype', 'sforum');
+            if (isset($CFG->sforum_rsstype)) {
+                $mform->setDefault('rsstype', $CFG->sforum_rsstype);
             }
 
             $choices = array();
@@ -142,17 +142,17 @@ class mod_scriptingforum_mod_form extends moodleform_mod {
             $choices[40] = '40';
             $choices[50] = '50';
             $mform->addElement('select', 'rssarticles', get_string('rssarticles'), $choices);
-            $mform->addHelpButton('rssarticles', 'rssarticles', 'scriptingforum');
+            $mform->addHelpButton('rssarticles', 'rssarticles', 'sforum');
             $mform->disabledIf('rssarticles', 'rsstype', 'eq', '0');
-            if (isset($CFG->scriptingforum_rssarticles)) {
-                $mform->setDefault('rssarticles', $CFG->scriptingforum_rssarticles);
+            if (isset($CFG->sforum_rssarticles)) {
+                $mform->setDefault('rssarticles', $CFG->sforum_rssarticles);
             }
         }
 
 //-------------------------------------------------------------------------------
-        $mform->addElement('header', 'blockafterheader', get_string('blockafter', 'scriptingforum'));
+        $mform->addElement('header', 'blockafterheader', get_string('blockafter', 'sforum'));
         $options = array();
-        $options[0] = get_string('blockperioddisabled','scriptingforum');
+        $options[0] = get_string('blockperioddisabled','sforum');
         $options[60*60*24]   = '1 '.get_string('day');
         $options[60*60*24*2] = '2 '.get_string('days');
         $options[60*60*24*3] = '3 '.get_string('days');
@@ -160,25 +160,25 @@ class mod_scriptingforum_mod_form extends moodleform_mod {
         $options[60*60*24*5] = '5 '.get_string('days');
         $options[60*60*24*6] = '6 '.get_string('days');
         $options[60*60*24*7] = '1 '.get_string('week');
-        $mform->addElement('select', 'blockperiod', get_string('blockperiod', 'scriptingforum'), $options);
-        $mform->addHelpButton('blockperiod', 'blockperiod', 'scriptingforum');
+        $mform->addElement('select', 'blockperiod', get_string('blockperiod', 'sforum'), $options);
+        $mform->addHelpButton('blockperiod', 'blockperiod', 'sforum');
 
-        $mform->addElement('text', 'blockafter', get_string('blockafter', 'scriptingforum'));
+        $mform->addElement('text', 'blockafter', get_string('blockafter', 'sforum'));
         $mform->setType('blockafter', PARAM_INT);
         $mform->setDefault('blockafter', '0');
         $mform->addRule('blockafter', null, 'numeric', null, 'client');
-        $mform->addHelpButton('blockafter', 'blockafter', 'scriptingforum');
+        $mform->addHelpButton('blockafter', 'blockafter', 'sforum');
         $mform->disabledIf('blockafter', 'blockperiod', 'eq', 0);
 
-        $mform->addElement('text', 'warnafter', get_string('warnafter', 'scriptingforum'));
+        $mform->addElement('text', 'warnafter', get_string('warnafter', 'sforum'));
         $mform->setType('warnafter', PARAM_INT);
         $mform->setDefault('warnafter', '0');
         $mform->addRule('warnafter', null, 'numeric', null, 'client');
-        $mform->addHelpButton('warnafter', 'warnafter', 'scriptingforum');
+        $mform->addHelpButton('warnafter', 'warnafter', 'sforum');
         $mform->disabledIf('warnafter', 'blockperiod', 'eq', 0);
 
         $coursecontext = context_course::instance($COURSE->id);
-        plagiarism_get_form_elements_module($mform, $coursecontext, 'mod_scriptingforum');
+        plagiarism_get_form_elements_module($mform, $coursecontext, 'mod_sforum');
 
 //-------------------------------------------------------------------------------
 
@@ -200,13 +200,13 @@ class mod_scriptingforum_mod_form extends moodleform_mod {
         //we don't want to have these appear as possible selections in the form but
         //we want the form to display them if they are set.
         if ($typevalue[0]=='news') {
-            $type->addOption(get_string('namenews', 'scriptingforum'), 'news');
-            $mform->addHelpButton('type', 'namenews', 'scriptingforum');
+            $type->addOption(get_string('namenews', 'sforum'), 'news');
+            $mform->addHelpButton('type', 'namenews', 'sforum');
             $type->freeze();
             $type->setPersistantFreeze(true);
         }
         if ($typevalue[0]=='social') {
-            $type->addOption(get_string('namesocial', 'scriptingforum'), 'social');
+            $type->addOption(get_string('namesocial', 'sforum'), 'social');
             $type->freeze();
             $type->setPersistantFreeze(true);
         }
@@ -240,24 +240,24 @@ class mod_scriptingforum_mod_form extends moodleform_mod {
         $mform =& $this->_form;
 
         $group=array();
-        $group[] =& $mform->createElement('checkbox', 'completionpostsenabled', '', get_string('completionposts','scriptingforum'));
+        $group[] =& $mform->createElement('checkbox', 'completionpostsenabled', '', get_string('completionposts','sforum'));
         $group[] =& $mform->createElement('text', 'completionposts', '', array('size'=>3));
         $mform->setType('completionposts',PARAM_INT);
-        $mform->addGroup($group, 'completionpostsgroup', get_string('completionpostsgroup','scriptingforum'), array(' '), false);
+        $mform->addGroup($group, 'completionpostsgroup', get_string('completionpostsgroup','sforum'), array(' '), false);
         $mform->disabledIf('completionposts','completionpostsenabled','notchecked');
 
         $group=array();
-        $group[] =& $mform->createElement('checkbox', 'completiondiscussionsenabled', '', get_string('completiondiscussions','scriptingforum'));
+        $group[] =& $mform->createElement('checkbox', 'completiondiscussionsenabled', '', get_string('completiondiscussions','sforum'));
         $group[] =& $mform->createElement('text', 'completiondiscussions', '', array('size'=>3));
         $mform->setType('completiondiscussions',PARAM_INT);
-        $mform->addGroup($group, 'completiondiscussionsgroup', get_string('completiondiscussionsgroup','scriptingforum'), array(' '), false);
+        $mform->addGroup($group, 'completiondiscussionsgroup', get_string('completiondiscussionsgroup','sforum'), array(' '), false);
         $mform->disabledIf('completiondiscussions','completiondiscussionsenabled','notchecked');
 
         $group=array();
-        $group[] =& $mform->createElement('checkbox', 'completionrepliesenabled', '', get_string('completionreplies','scriptingforum'));
+        $group[] =& $mform->createElement('checkbox', 'completionrepliesenabled', '', get_string('completionreplies','sforum'));
         $group[] =& $mform->createElement('text', 'completionreplies', '', array('size'=>3));
         $mform->setType('completionreplies',PARAM_INT);
-        $mform->addGroup($group, 'completionrepliesgroup', get_string('completionrepliesgroup','scriptingforum'), array(' '), false);
+        $mform->addGroup($group, 'completionrepliesgroup', get_string('completionrepliesgroup','sforum'), array(' '), false);
         $mform->disabledIf('completionreplies','completionrepliesenabled','notchecked');
 
         return array('completiondiscussionsgroup','completionrepliesgroup','completionpostsgroup');

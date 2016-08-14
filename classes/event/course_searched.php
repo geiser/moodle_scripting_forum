@@ -15,28 +15,28 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The mod_scriptingforum course searched event.
+ * The mod_sforum course searched event.
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scriptingforum\event;
+namespace mod_sforum\event;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The mod_scriptingforum course searched event class.
+ * The mod_sforum course searched event class.
  *
  * @property-read array $other {
  *      Extra information about the event.
  *
- *      - string searchterm: The searchterm used on scriptingforum search.
+ *      - string searchterm: The searchterm used on sforum search.
  * }
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @since      Moodle 2.7
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
@@ -61,7 +61,7 @@ class course_searched extends \core\event\base {
      */
     public function get_description() {
         $searchterm = s($this->other['searchterm']);
-        return "The user with id '$this->userid' has searched the course with id '$this->courseid' for scriptingforum posts " .
+        return "The user with id '$this->userid' has searched the course with id '$this->courseid' for sforum posts " .
             "containing \"{$searchterm}\".";
     }
 
@@ -71,7 +71,7 @@ class course_searched extends \core\event\base {
      * @return string
      */
     public static function get_name() {
-        return get_string('eventcoursesearched', 'mod_scriptingforum');
+        return get_string('eventcoursesearched', 'mod_sforum');
     }
 
     /**
@@ -80,7 +80,7 @@ class course_searched extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/mod/scriptingforum/search.php',
+        return new \moodle_url('/mod/sforum/search.php',
             array('id' => $this->courseid, 'search' => $this->other['searchterm']));
     }
 
@@ -90,10 +90,10 @@ class course_searched extends \core\event\base {
      * @return array|null
      */
     protected function get_legacy_logdata() {
-        // The legacy log table expects a relative path to /mod/scriptingforum/.
-        $logurl = substr($this->get_url()->out_as_local_url(), strlen('/mod/scriptingforum/'));
+        // The legacy log table expects a relative path to /mod/sforum/.
+        $logurl = substr($this->get_url()->out_as_local_url(), strlen('/mod/sforum/'));
 
-        return array($this->courseid, 'scriptingforum', 'search', $logurl, $this->other['searchterm']);
+        return array($this->courseid, 'sforum', 'search', $logurl, $this->other['searchterm']);
     }
 
     /**

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scriptingforum
+ * @package   mod_sforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -25,7 +25,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $capabilities = array(
 
-    'mod/scriptingforum:addinstance' => array(
+    'mod/sforum:addinstance' => array(
         'riskbitmask' => RISK_XSS,
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
@@ -36,7 +36,7 @@ $capabilities = array(
         'clonepermissionsfrom' => 'moodle/course:manageactivities'
     ),
 
-    'mod/scriptingforum:viewdiscussion' => array(
+    'mod/sforum:viewdiscussion' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -49,7 +49,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:viewhiddentimedposts' => array(
+    'mod/sforum:viewhiddentimedposts' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -59,7 +59,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:startdiscussion' => array(
+    'mod/sforum:startdiscussion' => array(
         'riskbitmask' => RISK_SPAM,
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
@@ -71,7 +71,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:replypost' => array(
+    'mod/sforum:replypost' => array(
         'riskbitmask' => RISK_SPAM,
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
@@ -83,7 +83,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:addnews' => array(
+    'mod/sforum:addnews' => array(
         'riskbitmask' => RISK_SPAM,
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
@@ -94,7 +94,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:replynews' => array(
+    'mod/sforum:replynews' => array(
         'riskbitmask' => RISK_SPAM,
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
@@ -105,7 +105,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:viewrating' => array(
+    'mod/sforum:viewrating' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -116,7 +116,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:viewanyrating' => array(
+    'mod/sforum:viewanyrating' => array(
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
@@ -127,7 +127,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:viewallratings' => array(
+    'mod/sforum:viewallratings' => array(
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
@@ -136,10 +136,10 @@ $capabilities = array(
             'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW
         ),
-        'clonepermissionsfrom' =>  'mod/scriptingforum:viewanyrating'
+        'clonepermissionsfrom' =>  'mod/sforum:viewanyrating'
     ),
 
-    'mod/scriptingforum:rate' => array(
+    'mod/sforum:rate' => array(
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -149,7 +149,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:createattachment' => array(
+    'mod/sforum:createattachment' => array(
         'riskbitmask' => RISK_SPAM,
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
@@ -161,7 +161,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:deleteownpost' => array(
+    'mod/sforum:deleteownpost' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -172,7 +172,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:deleteanypost' => array(
+    'mod/sforum:deleteanypost' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -182,7 +182,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:splitdiscussions' => array(
+    'mod/sforum:splitdiscussions' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -192,7 +192,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:movediscussions' => array(
+    'mod/sforum:movediscussions' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -202,7 +202,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:pindiscussions' => array(
+    'mod/sforum:pindiscussions' => array(
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -212,7 +212,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:editanypost' => array(
+    'mod/sforum:editanypost' => array(
         'riskbitmask' => RISK_SPAM,
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
@@ -223,7 +223,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:viewqandawithoutposting' => array(
+    'mod/sforum:viewqandawithoutposting' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -233,7 +233,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:viewsubscribers' => array(
+    'mod/sforum:viewsubscribers' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -243,7 +243,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:managesubscriptions' => array(
+    'mod/sforum:managesubscriptions' => array(
         'riskbitmask' => RISK_SPAM,
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
@@ -254,7 +254,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:postwithoutthrottling' => array(
+    'mod/sforum:postwithoutthrottling' => array(
         'riskbitmask' => RISK_SPAM,
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
@@ -265,7 +265,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:exportdiscussion' => array(
+    'mod/sforum:exportdiscussion' => array(
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
@@ -276,7 +276,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:exportpost' => array(
+    'mod/sforum:exportpost' => array(
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
@@ -287,7 +287,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:exportownpost' => array(
+    'mod/sforum:exportownpost' => array(
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
@@ -299,7 +299,7 @@ $capabilities = array(
         )
     ),
     
-    'mod/scriptingforum:addquestion' => array(
+    'mod/sforum:addquestion' => array(
         'riskbitmask' => RISK_SPAM,
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
@@ -310,7 +310,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:allowforcesubscribe' => array(
+    'mod/sforum:allowforcesubscribe' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -321,7 +321,7 @@ $capabilities = array(
         )
     ),
 
-    'mod/scriptingforum:canposttomygroups' => array(
+    'mod/sforum:canposttomygroups' => array(
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(

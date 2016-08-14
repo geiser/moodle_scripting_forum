@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @subpackage backup-moodle2
  * @copyright  2016 Geiser Chalco {@link http://github.com/geiser}
  * @copyright  2010 Eloy Lafuente {@link http://stronk7.com}
@@ -24,13 +24,13 @@
  */
 
 /**
- * Define all the backup steps that will be used by the backup_scriptingforum_activity_task
+ * Define all the backup steps that will be used by the backup_sforum_activity_task
  */
 
 /**
- * Define the complete scriptingforum structure for backup, with file and id annotations
+ * Define the complete sforum structure for backup, with file and id annotations
  */
-class backup_scriptingforum_activity_structure_step extends backup_activity_structure_step {
+class backup_sforum_activity_structure_step extends backup_activity_structure_step {
 
     protected function define_structure() {
 
@@ -39,7 +39,7 @@ class backup_scriptingforum_activity_structure_step extends backup_activity_stru
 
         // Define each element separated
 
-        $scriptingforum = new backup_nested_element('scriptingforum', array('id'), array(
+        $sforum = new backup_nested_element('sforum', array('id'), array(
             'type', 'name', 'intro', 'introformat',
             'assessed', 'assesstimestart', 'assesstimefinish', 'scale',
             'maxbytes', 'maxattachments', 'forcesubscribe', 'trackingtype',
@@ -96,19 +96,19 @@ class backup_scriptingforum_activity_structure_step extends backup_activity_stru
 
         // Build the tree
 
-        $scriptingforum->add_child($discussions);
+        $sforum->add_child($discussions);
         $discussions->add_child($discussion);
 
-        $scriptingforum->add_child($subscriptions);
+        $sforum->add_child($subscriptions);
         $subscriptions->add_child($subscription);
 
-        $scriptingforum->add_child($digests);
+        $sforum->add_child($digests);
         $digests->add_child($digest);
 
-        $scriptingforum->add_child($readposts);
+        $sforum->add_child($readposts);
         $readposts->add_child($read);
 
-        $scriptingforum->add_child($trackedprefs);
+        $sforum->add_child($trackedprefs);
         $trackedprefs->add_child($track);
 
         $discussion->add_child($posts);
@@ -122,29 +122,29 @@ class backup_scriptingforum_activity_structure_step extends backup_activity_stru
 
         // Define sources
 
-        $scriptingforum->set_source_table('scriptingforum', array('id' => backup::VAR_ACTIVITYID));
+        $sforum->set_source_table('sforum', array('id' => backup::VAR_ACTIVITYID));
 
         // All these source definitions only happen if we are including user info
         if ($userinfo) {
             $discussion->set_source_sql('
                 SELECT *
-                  FROM {scriptingforum_discussions}
-                 WHERE scriptingforum = ?',
+                  FROM {sforum_discussions}
+                 WHERE sforum = ?',
                 array(backup::VAR_PARENTID));
 
             // Need posts ordered by id so parents are always before childs on restore
-            $post->set_source_table('scriptingforum_posts', array('discussion' => backup::VAR_PARENTID), 'id ASC');
-            $discussionsub->set_source_table('scriptingforum_discussion_subs', array('discussion' => backup::VAR_PARENTID));
+            $post->set_source_table('sforum_posts', array('discussion' => backup::VAR_PARENTID), 'id ASC');
+            $discussionsub->set_source_table('sforum_discussion_subs', array('discussion' => backup::VAR_PARENTID));
 
-            $subscription->set_source_table('scriptingforum_subscriptions', array('scriptingforum' => backup::VAR_PARENTID));
-            $digest->set_source_table('scriptingforum_digests', array('scriptingforum' => backup::VAR_PARENTID));
+            $subscription->set_source_table('sforum_subscriptions', array('sforum' => backup::VAR_PARENTID));
+            $digest->set_source_table('sforum_digests', array('sforum' => backup::VAR_PARENTID));
 
-            $read->set_source_table('scriptingforum_read', array('scriptingforumid' => backup::VAR_PARENTID));
+            $read->set_source_table('sforum_read', array('sforumid' => backup::VAR_PARENTID));
 
-            $track->set_source_table('scriptingforum_track_prefs', array('scriptingforumid' => backup::VAR_PARENTID));
+            $track->set_source_table('sforum_track_prefs', array('sforumid' => backup::VAR_PARENTID));
 
             $rating->set_source_table('rating', array('contextid'  => backup::VAR_CONTEXTID,
-                                                      'component'  => backup_helper::is_sqlparam('mod_scriptingforum'),
+                                                      'component'  => backup_helper::is_sqlparam('mod_sforum'),
                                                       'ratingarea' => backup_helper::is_sqlparam('post'),
                                                       'itemid'     => backup::VAR_PARENTID));
             $rating->set_source_alias('rating', 'value');
@@ -152,7 +152,7 @@ class backup_scriptingforum_activity_structure_step extends backup_activity_stru
 
         // Define id annotations
 
-        $scriptingforum->annotate_ids('scale', 'scale');
+        $sforum->annotate_ids('scale', 'scale');
 
         $discussion->annotate_ids('group', 'groupid');
 
@@ -174,13 +174,13 @@ class backup_scriptingforum_activity_structure_step extends backup_activity_stru
 
         // Define file annotations
 
-        $scriptingforum->annotate_files('mod_scriptingforum', 'intro', null); // This file area hasn't itemid
+        $sforum->annotate_files('mod_sforum', 'intro', null); // This file area hasn't itemid
 
-        $post->annotate_files('mod_scriptingforum', 'post', 'id');
-        $post->annotate_files('mod_scriptingforum', 'attachment', 'id');
+        $post->annotate_files('mod_sforum', 'post', 'id');
+        $post->annotate_files('mod_sforum', 'attachment', 'id');
 
-        // Return the root element (scriptingforum), wrapped into standard activity structure
-        return $this->prepare_activity_structure($scriptingforum);
+        // Return the root element (sforum), wrapped into standard activity structure
+        return $this->prepare_activity_structure($sforum);
     }
 
 }

@@ -15,9 +15,9 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template mod_scriptingforum/scriptingforum_post_emaildigestfull_htmlemail
+    @template mod_sforum/sforum_post_emaildigestfull_htmlemail
 
-    Template which defines a scriptingforum post for sending in a single-post HTML email.
+    Template which defines a sforum post for sending in a single-post HTML email.
 
     Classes required for JS:
     * none
@@ -28,9 +28,9 @@
     Context variables required for this template:
     * courselink
     * coursename
-    * scriptingforumindexlink
-    * scriptingforumviewlink
-    * scriptingforumname
+    * sforumindexlink
+    * sforumviewlink
+    * sforumname
     * discussionlink
     * discussionname
     * showdiscussionname
@@ -47,17 +47,17 @@
     * canreply
     * replylink
     * permalink
-    * unsubscribescriptingforumlink
+    * unsubscribesforumlink
     * unsubscribediscussionlink
 
     Example context (json):
     {
         "courselink": "https://example.com/course/view.php?id=2",
         "coursename": "Example course",
-        "scriptingforumindexlink": "https://example.com/mod/scriptingforum/index.php?id=2",
-        "scriptingforumviewlink": "https://example.com/mod/scriptingforum/view.php?f=2",
-        "scriptingforumname": "Lorem ipsum dolor",
-        "discussionlink": "https://example.com/mod/scriptingforum/discuss.php?d=70",
+        "sforumindexlink": "https://example.com/mod/sforum/index.php?id=2",
+        "sforumviewlink": "https://example.com/mod/sforum/view.php?f=2",
+        "sforumname": "Lorem ipsum dolor",
+        "discussionlink": "https://example.com/mod/sforum/discuss.php?d=70",
         "discussionname": "Is Lorem ipsum Latin?",
         "showdiscussionname": 1,
         "firstpost": 1,
@@ -71,10 +71,10 @@
         "message": "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum et auctor libero. Quisque porta egestas neque, et bibendum libero dignissim at. Nulla facilisi. Morbi eget accumsan felis. Nunc et vulputate odio, vel venenatis nisl. Nunc maximus ipsum sed tincidunt mollis. Integer nunc erat, luctus sit amet arcu tincidunt, volutpat dignissim mi. Sed ut magna quam.  Mauris accumsan porta turpis sed aliquam. Etiam at justo tristique, imperdiet augue quis, consectetur sapien. Ut nec erat malesuada sem suscipit lobortis. Vivamus posuere nibh eu ipsum porta fringilla.  Sed vitae dapibus ipsum, ac condimentum enim. Sed dignissim ante at elit mollis, ac tempor lacus iaculis. Etiam nec lectus vitae nibh vulputate volutpat. Nulla quis tellus aliquam, commodo nisi et, dictum est.</p><p><br /></p>",
         "parentpostlink": "",
         "canreply": 1,
-        "replylink": "https://example.com/mod/scriptingforum/post.php?reply=2",
-        "permalink": "https://example.com/mod/scriptingforum/discuss.php?d=2#2",
-        "unsubscribescriptingforumlink": "https://example.com/mod/scriptingforum/subscribe.php?id=2",
+        "replylink": "https://example.com/mod/sforum/post.php?reply=2",
+        "permalink": "https://example.com/mod/sforum/discuss.php?d=2#2",
+        "unsubscribesforumlink": "https://example.com/mod/sforum/subscribe.php?id=2",
         "unsubscribediscussionlink": "https://example.com/mod/discussion/subscribe.php?id=2&d=2"
     }
 }}
-{{> mod_scriptingforum/scriptingforum_post_email_htmlemail_body }}
+{{> mod_sforum/sforum_post_email_htmlemail_body }}

@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scriptingforum
+ * @package   mod_sforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -28,21 +28,21 @@ global $DB; // TODO: this is a hack, we should really do something with the SQL 
 
 $logs = array(
         
-array('module' => 'scriptingforum', 'action' => 'add', 'mtable' => 'scriptingforum', 'field' => 'name'),
-array('module' => 'scriptingforum', 'action' => 'update', 'mtable' => 'scriptingforum', 'field' => 'name'),
-array('module' => 'scriptingforum', 'action' => 'add discussion', 'mtable' => 'scriptingforum_discussions', 'field' => 'name'),
-array('module' => 'scriptingforum', 'action' => 'add post', 'mtable' => 'scriptingforum_posts', 'field' => 'subject'),
-array('module' => 'scriptingforum', 'action' => 'update post', 'mtable' => 'scriptingforum_posts', 'field' => 'subject'),
-array('module' => 'scriptingforum', 'action' => 'user report', 'mtable' => 'user',
+array('module' => 'sforum', 'action' => 'add', 'mtable' => 'sforum', 'field' => 'name'),
+array('module' => 'sforum', 'action' => 'update', 'mtable' => 'sforum', 'field' => 'name'),
+array('module' => 'sforum', 'action' => 'add discussion', 'mtable' => 'sforum_discussions', 'field' => 'name'),
+array('module' => 'sforum', 'action' => 'add post', 'mtable' => 'sforum_posts', 'field' => 'subject'),
+array('module' => 'sforum', 'action' => 'update post', 'mtable' => 'sforum_posts', 'field' => 'subject'),
+array('module' => 'sforum', 'action' => 'user report', 'mtable' => 'user',
       'field'  => $DB->sql_concat('firstname', "' '", 'lastname')),
-array('module' => 'scriptingforum', 'action' => 'move discussion', 'mtable' => 'scriptingforum_discussions', 'field' => 'name'),
-array('module' => 'scriptingforum', 'action' => 'view subscribers', 'mtable' => 'scriptingforum', 'field' => 'name'),
-array('module' => 'scriptingforum', 'action' => 'view discussion', 'mtable' => 'scriptingforum_discussions', 'field' => 'name'),
-array('module' => 'scriptingforum', 'action' => 'view scriptingforum', 'mtable' => 'scriptingforum', 'field' => 'name'),
-array('module' => 'scriptingforum', 'action' => 'subscribe', 'mtable' => 'scriptingforum', 'field' => 'name'),
-array('module' => 'scriptingforum', 'action' => 'unsubscribe', 'mtable' => 'scriptingforum', 'field' => 'name'),
-array('module' => 'scriptingforum', 'action' => 'pin discussion', 'mtable' => 'scriptingforum_discussions', 'field' => 'name'),
-array('module' => 'scriptingforum', 'action' => 'unpin discussion', 'mtable' => 'scriptingforum_discussions', 'field' => 'name'),
+array('module' => 'sforum', 'action' => 'move discussion', 'mtable' => 'sforum_discussions', 'field' => 'name'),
+array('module' => 'sforum', 'action' => 'view subscribers', 'mtable' => 'sforum', 'field' => 'name'),
+array('module' => 'sforum', 'action' => 'view discussion', 'mtable' => 'sforum_discussions', 'field' => 'name'),
+array('module' => 'sforum', 'action' => 'view sforum', 'mtable' => 'sforum', 'field' => 'name'),
+array('module' => 'sforum', 'action' => 'subscribe', 'mtable' => 'sforum', 'field' => 'name'),
+array('module' => 'sforum', 'action' => 'unsubscribe', 'mtable' => 'sforum', 'field' => 'name'),
+array('module' => 'sforum', 'action' => 'pin discussion', 'mtable' => 'sforum_discussions', 'field' => 'name'),
+array('module' => 'sforum', 'action' => 'unpin discussion', 'mtable' => 'sforum_discussions', 'field' => 'name'),
 
 );
 

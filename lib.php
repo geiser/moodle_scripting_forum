@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scriptingforum
+ * @package   mod_sforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -40,7 +40,7 @@ define('SCRIPTING_FORUM_INITIALSUBSCRIBE', 2);
 define('SCRIPTING_FORUM_DISALLOWSUBSCRIBE',3);
 
 /**
- * SCRIPTING_FORUM_TRACKING_OFF - Tracking is not available for this scriptingforum.
+ * SCRIPTING_FORUM_TRACKING_OFF - Tracking is not available for this sforum.
  */
 define('SCRIPTING_FORUM_TRACKING_OFF', 0);
 
@@ -51,7 +51,7 @@ define('SCRIPTING_FORUM_TRACKING_OPTIONAL', 1);
 
 /**
  * SCRIPTING_FORUM_TRACKING_FORCED - Tracking is on, regardless of user setting.
- * Treated as SCRIPTING_FORUM_TRACKING_OPTIONAL if $CFG->scriptingforum_allowforcedreadtracking is off.
+ * Treated as SCRIPTING_FORUM_TRACKING_OPTIONAL if $CFG->sforum_allowforcedreadtracking is off.
  */
 define('SCRIPTING_FORUM_TRACKING_FORCED', 2);
 
@@ -60,7 +60,7 @@ define('SCRIPTING_FORUM_MAILED_SUCCESS', 1);
 define('SCRIPTING_FORUM_MAILED_ERROR', 2);
 
 if (!defined('SCRIPTING_FORUM_CRON_USER_CACHE')) {
-    /** Defines how many full user records are cached in scriptingforum cron. */
+    /** Defines how many full user records are cached in sforum cron. */
     define('SCRIPTING_FORUM_CRON_USER_CACHE', 5000);
 }
 
@@ -81,76 +81,76 @@ define('SCRIPTING_FORUM_DISCUSSION_UNPINNED', 0);
  * will create a new instance and return the id number
  * of the new instance.
  *
- * @param stdClass $scriptingforum add scriptingforum instance
- * @param mod_scriptingforum_mod_form $mform
+ * @param stdClass $sforum add sforum instance
+ * @param mod_sforum_mod_form $mform
  * @return int instance id
  */
-function scriptingforum_add_instance($scriptingforum, $mform = null) {
+function sforum_add_instance($sforum, $mform = null) {
     global $CFG, $DB;
 
-    $scriptingforum->timemodified = time();
+    $sforum->timemodified = time();
 
-    if (empty($scriptingforum->assessed)) {
-        $scriptingforum->assessed = 0;
+    if (empty($sforum->assessed)) {
+        $sforum->assessed = 0;
     }
 
-    if (empty($scriptingforum->ratingtime) or empty($scriptingforum->assessed)) {
-        $scriptingforum->assesstimestart  = 0;
-        $scriptingforum->assesstimefinish = 0;
+    if (empty($sforum->ratingtime) or empty($sforum->assessed)) {
+        $sforum->assesstimestart  = 0;
+        $sforum->assesstimefinish = 0;
     }
 
-    $scriptingforum->id = $DB->insert_record('scriptingforum', $scriptingforum);
-    $modcontext = context_module::instance($scriptingforum->coursemodule);
+    $sforum->id = $DB->insert_record('sforum', $sforum);
+    $modcontext = context_module::instance($sforum->coursemodule);
 
-    if ($scriptingforum->type == 'single') {  // Create related discussion.
+    if ($sforum->type == 'single') {  // Create related discussion.
         $discussion = new stdClass();
-        $discussion->course        = $scriptingforum->course;
-        $discussion->forum         = $scriptingforum->id;
-        $discussion->name          = $scriptingforum->name;
-        $discussion->assessed      = $scriptingforum->assessed;
-        $discussion->message       = $scriptingforum->intro;
-        $discussion->messageformat = $scriptingforum->introformat;
-        $discussion->messagetrust  = trusttext_trusted(context_course::instance($scriptingforum->course));
+        $discussion->course        = $sforum->course;
+        $discussion->forum         = $sforum->id;
+        $discussion->name          = $sforum->name;
+        $discussion->assessed      = $sforum->assessed;
+        $discussion->message       = $sforum->intro;
+        $discussion->messageformat = $sforum->introformat;
+        $discussion->messagetrust  = trusttext_trusted(context_course::instance($sforum->course));
         $discussion->mailnow       = false;
         $discussion->groupid       = -1;
 
         $message = '';
 
-        $discussion->id = scriptingforum_add_discussion($discussion, null, $message);
+        $discussion->id = sforum_add_discussion($discussion, null, $message);
 
         if ($mform and $draftid = file_get_submitted_draft_itemid('introeditor')) {
             // Ugly hack - we need to copy the files somehow.
-            $discussion = $DB->get_record('scriptingforum_discussions',
+            $discussion = $DB->get_record('sforum_discussions',
                           array('id'=>$discussion->id), '*', MUST_EXIST);
-            $post = $DB->get_record('scriptingforum_posts',
+            $post = $DB->get_record('sforum_posts',
                     array('id'=>$discussion->firstpost), '*', MUST_EXIST);
 
             $options = array('subdirs'=>true); // Use the same options as intro field!
             $post->message = file_save_draft_area_files($draftid,
-                             $modcontext->id, 'mod_scriptingforum', 'post',
+                             $modcontext->id, 'mod_sforum', 'post',
                              $post->id, $options, $post->message);
-            $DB->set_field('scriptingforum_posts', 'message', $post->message, array('id'=>$post->id));
+            $DB->set_field('sforum_posts', 'message', $post->message, array('id'=>$post->id));
         }
     }
 
-    scriptingforum_grade_item_update($scriptingforum);
+    sforum_grade_item_update($sforum);
 
-    return $scriptingforum->id;
+    return $sforum->id;
 }
 
 /**
- * Handle changes following the creation of a scriptingforum instance.
+ * Handle changes following the creation of a sforum instance.
  * This function is typically called by the course_module_created observer.
  *
- * @param object $context the scriptingforum context
- * @param stdClass $scriptingforum The scriptingforum object
+ * @param object $context the sforum context
+ * @param stdClass $sforum The sforum object
  * @return void
  */
-function scriptingforum_instance_created($context, $scriptingforum) {
-    if ($scriptingforum->forcesubscribe == SCRIPTING_FORUM_INITIALSUBSCRIBE) {
-        $users = \mod_scriptingforum\subscriptions::get_potential_subscribers($context, 0, 'u.id, u.email');
+function sforum_instance_created($context, $sforum) {
+    if ($sforum->forcesubscribe == SCRIPTING_FORUM_INITIALSUBSCRIBE) {
+        $users = \mod_sforum\subscriptions::get_potential_subscribers($context, 0, 'u.id, u.email');
         foreach ($users as $user) {
-            \mod_scriptingforum\subscriptions::subscribe_user($user->id, $scriptingforum, $context);
+            \mod_sforum\subscriptions::subscribe_user($user->id, $sforum, $context);
         }
     }
 }
@@ -162,81 +162,81 @@ function scriptingforum_instance_created($context, $scriptingforum) {
  * will update an existing instance with new data.
  *
  * @global object
- * @param object $scriptingforum scriptingforum instance (with magic quotes)
+ * @param object $sforum sforum instance (with magic quotes)
  * @return bool success
  */
-function scriptingforum_update_instance($scriptingforum, $mform) {
+function sforum_update_instance($sforum, $mform) {
     global $DB, $OUTPUT, $USER;
 
-    $scriptingforum->timemodified = time();
-    $scriptingforum->id           = $scriptingforum->instance;
+    $sforum->timemodified = time();
+    $sforum->id           = $sforum->instance;
 
-    if (empty($scriptingforum->assessed)) {
-        $scriptingforum->assessed = 0;
+    if (empty($sforum->assessed)) {
+        $sforum->assessed = 0;
     }
 
-    if (empty($scriptingforum->ratingtime) or empty($scriptingforum->assessed)) {
-        $scriptingforum->assesstimestart  = 0;
-        $scriptingforum->assesstimefinish = 0;
+    if (empty($sforum->ratingtime) or empty($sforum->assessed)) {
+        $sforum->assesstimestart  = 0;
+        $sforum->assesstimefinish = 0;
     }
 
-    $oldscriptingforum = $DB->get_record('scriptingforum', array('id'=>$scriptingforum->id));
+    $oldsforum = $DB->get_record('sforum', array('id'=>$sforum->id));
 
     // MDL-3942 - if the aggregation type or scale (i.e. max grade)
-    // changes then recalculate the grades for the entire scriptingforum
+    // changes then recalculate the grades for the entire sforum
     // if  scale changes - do we need to recheck the ratings, if ratings
     // higher than scale how do we want to respond?
     // for count and sum aggregation types the grade we check to make
     // sure they do not exceed the scale (i.e. max score) when calculating the grade
-    if (($oldscriptingforum->assessed<>$scriptingforum->assessed) or
-        ($oldscriptingforum->scale<>$scriptingforum->scale)) {
-        scriptingforum_update_grades($scriptingforum); // recalculate grades for the scriptingforum
+    if (($oldsforum->assessed<>$sforum->assessed) or
+        ($oldsforum->scale<>$sforum->scale)) {
+        sforum_update_grades($sforum); // recalculate grades for the sforum
     }
 
-    if ($scriptingforum->type == 'single') {  // Update related discussion and post.
-        $discussions = $DB->get_records('scriptingforum_discussions',
-                       array('scriptingforum'=>$scriptingforum->id), 'timemodified ASC');
+    if ($sforum->type == 'single') {  // Update related discussion and post.
+        $discussions = $DB->get_records('sforum_discussions',
+                       array('sforum'=>$sforum->id), 'timemodified ASC');
         if (!empty($discussions)) {
             if (count($discussions) > 1) {
-                echo $OUTPUT->notification(get_string('warnformorepost', 'scriptingforum'));
+                echo $OUTPUT->notification(get_string('warnformorepost', 'sforum'));
             }
             $discussion = array_pop($discussions);
         } else {
             // try to recover by creating initial discussion - MDL-16262
             $discussion = new stdClass();
-            $discussion->course          = $scriptingforum->course;
-            $discussion->forum           = $scriptingforum->id;
-            $discussion->name            = $scriptingforum->name;
-            $discussion->assessed        = $scriptingforum->assessed;
-            $discussion->message         = $scriptingforum->intro;
-            $discussion->messageformat   = $scriptingforum->introformat;
+            $discussion->course          = $sforum->course;
+            $discussion->forum           = $sforum->id;
+            $discussion->name            = $sforum->name;
+            $discussion->assessed        = $sforum->assessed;
+            $discussion->message         = $sforum->intro;
+            $discussion->messageformat   = $sforum->introformat;
             $discussion->messagetrust    = true;
             $discussion->mailnow         = false;
             $discussion->groupid         = -1;
 
             $message = '';
 
-            scriptingforum_add_discussion($discussion, null, $message);
+            sforum_add_discussion($discussion, null, $message);
 
-            if (! $discussion = $DB->get_record('scriptingforum_discussions',
-                                array('scriptingforum'=>$scriptingforum->id))) {
-                print_error('cannotadd', 'scriptingforum');
+            if (! $discussion = $DB->get_record('sforum_discussions',
+                                array('sforum'=>$sforum->id))) {
+                print_error('cannotadd', 'sforum');
             }
         }
-        if (! $post = $DB->get_record('scriptingforum_posts', array('id'=>$discussion->firstpost))) {
-            print_error('cannotfindfirstpost', 'scriptingforum');
+        if (! $post = $DB->get_record('sforum_posts', array('id'=>$discussion->firstpost))) {
+            print_error('cannotfindfirstpost', 'sforum');
         }
 
-        $cm         = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id);
+        $cm         = get_coursemodule_from_instance('sforum', $sforum->id);
         $modcontext = context_module::instance($cm->id, MUST_EXIST);
 
-        $post = $DB->get_record('scriptingforum_posts',
+        $post = $DB->get_record('sforum_posts',
                 array('id'=>$discussion->firstpost), '*', MUST_EXIST);
-        $post->subject       = $scriptingforum->name;
-        $post->message       = $scriptingforum->intro;
-        $post->messageformat = $scriptingforum->introformat;
+        $post->subject       = $sforum->name;
+        $post->message       = $sforum->intro;
+        $post->messageformat = $sforum->introformat;
         $post->messagetrust  = trusttext_trusted($modcontext);
-        $post->modified      = $scriptingforum->timemodified;
+        $post->modified      = $sforum->timemodified;
         $post->userid        = $USER->id;    // MDL-18599, so that current teacher
                                              // can take ownership of activities.
 
@@ -244,26 +244,26 @@ function scriptingforum_update_instance($scriptingforum, $mform) {
             // Ugly hack - we need to copy the files somehow.
             $options = array('subdirs'=>true); // Use the same options as intro field!
             $post->message = file_save_draft_area_files($draftid, $modcontext->id,
-                             'mod_scriptingforum', 'post', $post->id, $options, $post->message);
+                             'mod_sforum', 'post', $post->id, $options, $post->message);
         }
 
-        $DB->update_record('scriptingforum_posts', $post);
-        $discussion->name = $scriptingforum->name;
-        $DB->update_record('scriptingforum_discussions', $discussion);
+        $DB->update_record('sforum_posts', $post);
+        $discussion->name = $sforum->name;
+        $DB->update_record('sforum_discussions', $discussion);
     }
 
-    $DB->update_record('scriptingforum', $scriptingforum);
+    $DB->update_record('sforum', $sforum);
 
-    $modcontext = context_module::instance($scriptingforum->coursemodule);
-    if (($scriptingforum->forcesubscribe == SCRIPTING_FORUM_INITIALSUBSCRIBE) &&
-        ($oldscriptingforum->forcesubscribe <> $scriptingforum->forcesubscribe)) {
-        $users = \mod_scriptingforum\subscriptions::get_potential_subscribers($modcontext, 0, 'u.id, u.email', '');
+    $modcontext = context_module::instance($sforum->coursemodule);
+    if (($sforum->forcesubscribe == SCRIPTING_FORUM_INITIALSUBSCRIBE) &&
+        ($oldsforum->forcesubscribe <> $sforum->forcesubscribe)) {
+        $users = \mod_sforum\subscriptions::get_potential_subscribers($modcontext, 0, 'u.id, u.email', '');
         foreach ($users as $user) {
-            \mod_scriptingforum\subscriptions::subscribe_user($user->id, $scriptingforum, $modcontext);
+            \mod_sforum\subscriptions::subscribe_user($user->id, $sforum, $modcontext);
         }
     }
 
-    scriptingforum_grade_item_update($scriptingforum);
+    sforum_grade_item_update($sforum);
 
     return true;
 }
@@ -276,16 +276,16 @@ function scriptingforum_update_instance($scriptingforum, $mform) {
  * and any data that depends on it.
  *
  * @global object
- * @param int $id scriptingforum instance id
+ * @param int $id sforum instance id
  * @return bool success
  */
-function scriptingforum_delete_instance($id) {
+function sforum_delete_instance($id) {
     global $DB;
 
-    if (!$scriptingforum = $DB->get_record('scriptingforum', array('id'=>$id))) {
+    if (!$sforum = $DB->get_record('sforum', array('id'=>$id))) {
         return false;
     }
-    if (!$cm = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id)) {
+    if (!$cm = get_coursemodule_from_instance('sforum', $sforum->id)) {
         return false;
     }
     if (!$course = $DB->get_record('course', array('id'=>$cm->course))) {
@@ -301,36 +301,36 @@ function scriptingforum_delete_instance($id) {
     $result = true;
 
     // Delete digest and subscription preferences.
-    $DB->delete_records('scriptingforum_digests',
-         array('scriptingforum' => $scriptingforum->id));
-    $DB->delete_records('scriptingforum_subscriptions',
-         array('scriptingforum'=>$scriptingforum->id));
-    $DB->delete_records('scriptingforum_discussion_subs',
-         array('scriptingforum' => $scriptingforum->id));
+    $DB->delete_records('sforum_digests',
+         array('sforum' => $sforum->id));
+    $DB->delete_records('sforum_subscriptions',
+         array('sforum'=>$sforum->id));
+    $DB->delete_records('sforum_discussion_subs',
+         array('sforum' => $sforum->id));
 
-    if ($discussions = $DB->get_records('scriptingforum_discussions',
-                            array('scriptingforum'=>$scriptingforum->id))) {
+    if ($discussions = $DB->get_records('sforum_discussions',
+                            array('sforum'=>$sforum->id))) {
         foreach ($discussions as $discussion) {
-            if (!scriptingforum_delete_discussion($discussion, true, $course, $cm, $scriptingforum)) {
+            if (!sforum_delete_discussion($discussion, true, $course, $cm, $sforum)) {
                 $result = false;
             }
         }
     }
 
-    scriptingforum_tp_delete_read_records(-1, -1, -1, $scriptingforum->id);
+    sforum_tp_delete_read_records(-1, -1, -1, $sforum->id);
 
-    if (!$DB->delete_records('scriptingforum', array('id'=>$scriptingforum->id))) {
+    if (!$DB->delete_records('sforum', array('id'=>$sforum->id))) {
         $result = false;
     }
 
-    scriptingforum_grade_item_delete($scriptingforum);
+    sforum_grade_item_delete($sforum);
 
     return $result;
 }
 
 
 /**
- * Indicates API features that the scriptingforum supports.
+ * Indicates API features that the sforum supports.
  *
  * @uses FEATURE_GROUPS
  * @uses FEATURE_GROUPINGS
@@ -342,7 +342,7 @@ function scriptingforum_delete_instance($id) {
  * @param string $feature
  * @return mixed True if yes (some features may use other values)
  */
-function scriptingforum_supports($feature) {
+function sforum_supports($feature) {
     switch($feature) {
         case FEATURE_GROUPS:                  return true;
         case FEATURE_GROUPINGS:               return true;
@@ -362,8 +362,8 @@ function scriptingforum_supports($feature) {
 
 
 /**
- * Obtains the automatic completion state for this scriptingforum based on any conditions
- * in scriptingforum settings.
+ * Obtains the automatic completion state for this sforum based on any conditions
+ * in sforum settings.
  *
  * @global object
  * @global object
@@ -374,39 +374,39 @@ function scriptingforum_supports($feature) {
  * @return bool True if completed, false if not. (If no conditions, then return
  *   value depends on comparison type)
  */
-function scriptingforum_get_completion_state($course,$cm,$userid,$type) {
+function sforum_get_completion_state($course,$cm,$userid,$type) {
     global $CFG,$DB;
 
-    // Get scriptingforum details
-    if (!($scriptingforum=$DB->get_record('scriptingforum',array('id'=>$cm->instance)))) {
-        throw new Exception("Can't find scriptingforum {$cm->instance}");
+    // Get sforum details
+    if (!($sforum=$DB->get_record('sforum',array('id'=>$cm->instance)))) {
+        throw new Exception("Can't find sforum {$cm->instance}");
     }
 
     $result=$type; // Default return value
 
     $postcountparams=array('userid'=>$userid,
-                     'scriptingforumid'=>$scriptingforum->id);
+                     'sforumid'=>$sforum->id);
     $postcountsql="
 SELECT
     COUNT(1)
 FROM
-    {scriptingforum_posts} fp
-    INNER JOIN {scriptingforum_discussions} fd ON fp.discussion=fd.id
+    {sforum_posts} fp
+    INNER JOIN {sforum_discussions} fd ON fp.discussion=fd.id
 WHERE
-    fp.userid=:userid AND fd.scriptingforum=:scriptingforumid";
+    fp.userid=:userid AND fd.sforum=:sforumid";
 
-    if ($scriptingforum->completiondiscussions) {
-        $value = $scriptingforum->completiondiscussions <=
-                 $DB->count_records('scriptingforum_discussions',
-                      array('scriptingforum'=>$scriptingforum->id,'userid'=>$userid));
+    if ($sforum->completiondiscussions) {
+        $value = $sforum->completiondiscussions <=
+                 $DB->count_records('sforum_discussions',
+                      array('sforum'=>$sforum->id,'userid'=>$userid));
         if ($type == COMPLETION_AND) {
             $result = $result && $value;
         } else {
             $result = $result || $value;
         }
     }
-    if ($scriptingforum->completionreplies) {
-        $value = $scriptingforum->completionreplies <=
+    if ($sforum->completionreplies) {
+        $value = $sforum->completionreplies <=
                  $DB->get_field_sql($postcountsql.' AND fp.parent<>0',$postcountparams);
         if ($type==COMPLETION_AND) {
             $result = $result && $value;
@@ -414,8 +414,8 @@ WHERE
             $result = $result || $value;
         }
     }
-    if ($scriptingforum->completionposts) {
-        $value = $scriptingforum->completionposts <= $DB->get_field_sql($postcountsql,$postcountparams);
+    if ($sforum->completionposts) {
+        $value = $sforum->completionposts <= $DB->get_field_sql($postcountsql,$postcountparams);
         if ($type == COMPLETION_AND) {
             $result = $result && $value;
         } else {
@@ -427,15 +427,15 @@ WHERE
 }
 
 /**
- * Create a message-id string to use in the custom headers of scriptingforum notification emails
+ * Create a message-id string to use in the custom headers of sforum notification emails
  *
  * message-id is used by email clients to identify emails and to nest conversations
  *
- * @param int $postid The ID of the scriptingforum post we are notifying the user about
+ * @param int $postid The ID of the sforum post we are notifying the user about
  * @param int $usertoid The ID of the user being notified
  * @return string A unique message-id
  */
-function scriptingforum_get_email_message_id($postid, $usertoid) {
+function sforum_get_email_message_id($postid, $usertoid) {
     return generate_email_messageid(hash('sha256', $postid . 'to' . $usertoid));
 }
 
@@ -445,7 +445,7 @@ function scriptingforum_get_email_message_id($postid, $usertoid) {
  * @param stdClass $user
  * @return void, $user parameter is modified
  */
-function scriptingforum_cron_minimise_user_record(stdClass $user) {
+function sforum_cron_minimise_user_record(stdClass $user) {
 
     // We store large amount of users in one huge array,
     // make sure we do not store info there we do not actually need
@@ -472,18 +472,18 @@ function scriptingforum_cron_minimise_user_record(stdClass $user) {
  *
  * @todo MDL-44734 The function will be split up into seperate tasks.
  */
-function scriptingforum_cron() {
+function sforum_cron() {
     global $CFG, $USER, $DB, $PAGE;
 
     $site = get_site();
 
     // The main renderers.
-    $htmlout = $PAGE->get_renderer('mod_scriptingforum', 'email', 'htmlemail');
-    $textout = $PAGE->get_renderer('mod_scriptingforum', 'email', 'textemail');
-    $htmldigestfullout = $PAGE->get_renderer('mod_scriptingforum', 'emaildigestfull', 'htmlemail');
-    $textdigestfullout = $PAGE->get_renderer('mod_scriptingforum', 'emaildigestfull', 'textemail');
-    $htmldigestbasicout = $PAGE->get_renderer('mod_scriptingforum', 'emaildigestbasic', 'htmlemail');
-    $textdigestbasicout = $PAGE->get_renderer('mod_scriptingforum', 'emaildigestbasic', 'textemail');
+    $htmlout = $PAGE->get_renderer('mod_sforum', 'email', 'htmlemail');
+    $textout = $PAGE->get_renderer('mod_sforum', 'email', 'textemail');
+    $htmldigestfullout = $PAGE->get_renderer('mod_sforum', 'emaildigestfull', 'htmlemail');
+    $textdigestfullout = $PAGE->get_renderer('mod_sforum', 'emaildigestfull', 'textemail');
+    $htmldigestbasicout = $PAGE->get_renderer('mod_sforum', 'emaildigestbasic', 'htmlemail');
+    $textdigestbasicout = $PAGE->get_renderer('mod_sforum', 'emaildigestbasic', 'textemail');
 
     // All users that are subscribed to any post that needs sending,
     // please increase $CFG->extramemorylimit on large sites that
@@ -497,7 +497,7 @@ function scriptingforum_cron() {
 
     // caches
     $discussions        = array();
-    $scriptingforums   = array();
+    $sforums   = array();
     $courses            = array();
     $coursemodules      = array();
     $subscribedusers    = array();
@@ -510,29 +510,29 @@ function scriptingforum_cron() {
     $endtime   = $timenow - $CFG->maxeditingtime;
     $starttime = $endtime - 48 * 3600;   // Two days earlier
 
-    // Get the list of scriptingforum subscriptions for per-user per-scriptingforum maildigest settings.
-    $digestsset = $DB->get_recordset('scriptingforum_digests',
-                  null, '', 'id, userid, scriptingforum, maildigest');
+    // Get the list of sforum subscriptions for per-user per-sforum maildigest settings.
+    $digestsset = $DB->get_recordset('sforum_digests',
+                  null, '', 'id, userid, sforum, maildigest');
     $digests = array();
     foreach ($digestsset as $thisrow) {
-        if (!isset($digests[$thisrow->scriptingforum])) {
-            $digests[$thisrow->scriptingforum] = array();
+        if (!isset($digests[$thisrow->sforum])) {
+            $digests[$thisrow->sforum] = array();
         }
-        $digests[$thisrow->scriptingforum][$thisrow->userid] = $thisrow->maildigest;
+        $digests[$thisrow->sforum][$thisrow->userid] = $thisrow->maildigest;
     }
     $digestsset->close();
 
     // Create the generic messageinboundgenerator.
     $messageinboundgenerator = new \core\message\inbound\address_manager();
-    $messageinboundgenerator->set_handler('\mod_scriptingforum\message\inbound\reply_handler');
+    $messageinboundgenerator->set_handler('\mod_sforum\message\inbound\reply_handler');
 
-    if ($posts = scriptingforum_get_unmailed_posts($starttime, $endtime, $timenow)) {
+    if ($posts = sforum_get_unmailed_posts($starttime, $endtime, $timenow)) {
         // Mark them all now as being mailed.  It's unlikely but possible there
         // might be an error later so that a post is NOT actually mailed out,
         // but since mail isn't crucial, we can accept this risk.  Doing it now
         // prevents the risk of duplicated mails, which is a worse problem.
 
-        if (!scriptingforum_mark_old_posts_as_mailed($endtime)) {
+        if (!sforum_mark_old_posts_as_mailed($endtime)) {
             mtrace('Errors occurred while trying to mark some posts as being mailed.');
             return false;  // Don't continue trying to mail them, in case we are in a cron loop
         }
@@ -542,10 +542,10 @@ function scriptingforum_cron() {
 
             $discussionid = $post->discussion;
             if (!isset($discussions[$discussionid])) {
-                if ($discussion = $DB->get_record('scriptingforum_discussions', array('id'=> $post->discussion))) {
+                if ($discussion = $DB->get_record('sforum_discussions', array('id'=> $post->discussion))) {
                     $discussions[$discussionid] = $discussion;
-                    \mod_scriptingforum\subscriptions::fill_subscription_cache($discussion->scriptingforum);
-                    \mod_scriptingforum\subscriptions::fill_discussion_subscription_cache($discussion->scriptingforum);
+                    \mod_sforum\subscriptions::fill_subscription_cache($discussion->sforum);
+                    \mod_sforum\subscriptions::fill_discussion_subscription_cache($discussion->sforum);
 
                 } else {
                     mtrace('Could not find discussion ' . $discussionid);
@@ -553,17 +553,17 @@ function scriptingforum_cron() {
                     continue;
                 }
             }
-            $scriptingforumid = $discussions[$discussionid]->forum;
-            if (!isset($scriptingforums[$scriptingforumid])) {
-                if ($scriptingforum = $DB->get_record('scriptingforum', array('id' => $scriptingforumid))) {
-                    $scriptingforums[$scriptingforumid] = $scriptingforum;
+            $sforumid = $discussions[$discussionid]->forum;
+            if (!isset($sforums[$sforumid])) {
+                if ($sforum = $DB->get_record('sforum', array('id' => $sforumid))) {
+                    $sforums[$sforumid] = $sforum;
                 } else {
-                    mtrace('Could not find scriptingforum '.$scriptingforumid);
+                    mtrace('Could not find sforum '.$sforumid);
                     unset($posts[$pid]);
                     continue;
                 }
             }
-            $courseid = $scriptingforums[$scriptingforumid]->course;
+            $courseid = $sforums[$sforumid]->course;
             if (!isset($courses[$courseid])) {
                 if ($course = $DB->get_record('course', array('id' => $courseid))) {
                     $courses[$courseid] = $course;
@@ -573,12 +573,12 @@ function scriptingforum_cron() {
                     continue;
                 }
             }
-            if (!isset($coursemodules[$scriptingforumid])) {
-                if ($cm = get_coursemodule_from_instance('scriptingforum',
-                          $scriptingforumid, $courseid)) {
-                    $coursemodules[$scriptingforumid] = $cm;
+            if (!isset($coursemodules[$sforumid])) {
+                if ($cm = get_coursemodule_from_instance('sforum',
+                          $sforumid, $courseid)) {
+                    $coursemodules[$sforumid] = $cm;
                 } else {
-                    mtrace('Could not find course module for scriptingforum '.$scriptingforumid);
+                    mtrace('Could not find course module for sforum '.$sforumid);
                     unset($posts[$pid]);
                     continue;
                 }
@@ -588,14 +588,14 @@ function scriptingforum_cron() {
             $messageinboundgenerator->set_data($pid);
             $messageinboundhandlers[$pid] = $messageinboundgenerator->fetch_data_key();
 
-            // Caching subscribed users of each scriptingforum.
-            if (!isset($subscribedusers[$scriptingforumid])) {
-                $modcontext = context_module::instance($coursemodules[$scriptingforumid]->id);
-                if ($subusers = \mod_scriptingforum\subscriptions::fetch_subscribed_users($scriptingforums[$scriptingforumid], 0, $modcontext, 'u.*', true)) {
+            // Caching subscribed users of each sforum.
+            if (!isset($subscribedusers[$sforumid])) {
+                $modcontext = context_module::instance($coursemodules[$sforumid]->id);
+                if ($subusers = \mod_sforum\subscriptions::fetch_subscribed_users($sforums[$sforumid], 0, $modcontext, 'u.*', true)) {
 
                     foreach ($subusers as $postuser) {
-                        // this user is subscribed to this scriptingforum
-                        $subscribedusers[$scriptingforumid][$postuser->id] = $postuser->id;
+                        // this user is subscribed to this sforum
+                        $subscribedusers[$sforumid][$postuser->id] = $postuser->id;
                         $userscount++;
                         if ($userscount > SCRIPTING_FORUM_CRON_USER_CACHE) {
                             // Store minimal user info.
@@ -604,7 +604,7 @@ function scriptingforum_cron() {
                             $users[$postuser->id] = $minuser;
                         } else {
                             // Cache full user record.
-                            scriptingforum_cron_minimise_user_record($postuser);
+                            sforum_cron_minimise_user_record($postuser);
                             $users[$postuser->id] = $postuser;
                         }
                     }
@@ -631,7 +631,7 @@ function scriptingforum_cron() {
                 $userto = clone($userto);
             } else {
                 $userto = $DB->get_record('user', array('id' => $userto->id));
-                scriptingforum_cron_minimise_user_record($userto);
+                sforum_cron_minimise_user_record($userto);
             }
             $userto->viewfullnames = array();
             $userto->canpost       = array();
@@ -641,42 +641,42 @@ function scriptingforum_cron() {
             cron_setup_user($userto);
 
             // Reset the caches.
-            foreach ($coursemodules as $scriptingforumid => $unused) {
-                $coursemodules[$scriptingforumid]->cache       = new stdClass();
-                $coursemodules[$scriptingforumid]->cache->caps = array();
-                unset($coursemodules[$scriptingforumid]->uservisible);
+            foreach ($coursemodules as $sforumid => $unused) {
+                $coursemodules[$sforumid]->cache       = new stdClass();
+                $coursemodules[$sforumid]->cache->caps = array();
+                unset($coursemodules[$sforumid]->uservisible);
             }
 
             foreach ($posts as $pid => $post) {
                 $discussion      = $discussions[$post->discussion];
-                $scriptingforum = $scriptingforums[$discussion->forum];
-                $course          = $courses[$scriptingforum->course];
-                $cm              =& $coursemodules[$scriptingforum->id];
+                $sforum = $sforums[$discussion->forum];
+                $course          = $courses[$sforum->course];
+                $cm              =& $coursemodules[$sforum->id];
 
                 // Do some checks to see if we can bail out now.
 
                 // Only active enrolled users are in the list of subscribers.
-                // This does not necessarily mean that the user is subscribed to the scriptingforum or to the discussion though.
-                if (!isset($subscribedusers[$scriptingforum->id][$userto->id])) {
-                    // The user does not subscribe to this scriptingforum.
+                // This does not necessarily mean that the user is subscribed to the sforum or to the discussion though.
+                if (!isset($subscribedusers[$sforum->id][$userto->id])) {
+                    // The user does not subscribe to this sforum.
                     continue;
                 }
 
-                if (!\mod_scriptingforum\subscriptions::is_subscribed($userto->id, $scriptingforum, $post->discussion, $coursemodules[$scriptingforum->id])) {
-                    // The user does not subscribe to this scriptingforum, or to this specific discussion.
+                if (!\mod_sforum\subscriptions::is_subscribed($userto->id, $sforum, $post->discussion, $coursemodules[$sforum->id])) {
+                    // The user does not subscribe to this sforum, or to this specific discussion.
                     continue;
                 }
 
-                if ($subscriptiontime = \mod_scriptingforum\subscriptions::fetch_discussion_subscription($scriptingforum->id, $userto->id)) {
+                if ($subscriptiontime = \mod_sforum\subscriptions::fetch_discussion_subscription($sforum->id, $userto->id)) {
                     // Skip posts if the user subscribed to the discussion after it was created.
                     if (isset($subscriptiontime[$post->discussion]) && ($subscriptiontime[$post->discussion] > $post->created)) {
                         continue;
                     }
                 }
 
-                // Don't send email if the scriptingforum is Q&A and the user has not posted.
+                // Don't send email if the sforum is Q&A and the user has not posted.
                 // Initial topics are still mailed.
-                if ($scriptingforum->type == 'qanda' && !scriptingforum_get_user_posted_time($discussion->id, $userto->id) && $pid != $discussion->firstpost) {
+                if ($sforum->type == 'qanda' && !sforum_get_user_posted_time($discussion->id, $userto->id) && $pid != $discussion->firstpost) {
                     mtrace('Did not email ' . $userto->id.' because user has not posted in discussion');
                     continue;
                 }
@@ -688,11 +688,11 @@ function scriptingforum_cron() {
                     if (!isset($userfrom->idnumber)) {
                         // Minimalised user info, fetch full record.
                         $userfrom = $DB->get_record('user', array('id' => $userfrom->id));
-                        scriptingforum_cron_minimise_user_record($userfrom);
+                        sforum_cron_minimise_user_record($userfrom);
                     }
 
                 } else if ($userfrom = $DB->get_record('user', array('id' => $post->userid))) {
-                    scriptingforum_cron_minimise_user_record($userfrom);
+                    sforum_cron_minimise_user_record($userfrom);
                     // Fetch only once if possible, we can add it to user list, it will be skipped anyway.
                     if ($userscount <= SCRIPTING_FORUM_CRON_USER_CACHE) {
                         $userscount++;
@@ -709,24 +709,24 @@ function scriptingforum_cron() {
                 cron_setup_user($userto, $course);
 
                 // Fill caches.
-                if (!isset($userto->viewfullnames[$scriptingforum->id])) {
+                if (!isset($userto->viewfullnames[$sforum->id])) {
                     $modcontext = context_module::instance($cm->id);
-                    $userto->viewfullnames[$scriptingforum->id] = has_capability('moodle/site:viewfullnames', $modcontext);
+                    $userto->viewfullnames[$sforum->id] = has_capability('moodle/site:viewfullnames', $modcontext);
                 }
                 if (!isset($userto->canpost[$discussion->id])) {
                     $modcontext = context_module::instance($cm->id);
-                    $userto->canpost[$discussion->id] = scriptingforum_user_can_post($scriptingforum, $discussion, $userto, $cm, $course, $modcontext);
+                    $userto->canpost[$discussion->id] = sforum_user_can_post($sforum, $discussion, $userto, $cm, $course, $modcontext);
                 }
-                if (!isset($userfrom->groups[$scriptingforum->id])) {
+                if (!isset($userfrom->groups[$sforum->id])) {
                     if (!isset($userfrom->groups)) {
                         $userfrom->groups = array();
                         if (isset($users[$userfrom->id])) {
                             $users[$userfrom->id]->groups = array();
                         }
                     }
-                    $userfrom->groups[$scriptingforum->id] = groups_get_all_groups($course->id, $userfrom->id, $cm->groupingid);
+                    $userfrom->groups[$sforum->id] = groups_get_all_groups($course->id, $userfrom->id, $cm->groupingid);
                     if (isset($users[$userfrom->id])) {
-                        $users[$userfrom->id]->groups[$scriptingforum->id] = $userfrom->groups[$scriptingforum->id];
+                        $users[$userfrom->id]->groups[$sforum->id] = $userfrom->groups[$sforum->id];
                     }
                 }
 
@@ -745,7 +745,7 @@ function scriptingforum_cron() {
                 }
 
                 // Make sure we're allowed to see the post.
-                if (!scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, null, $cm)) {
+                if (!sforum_user_can_see_post($sforum, $discussion, $post, null, $cm)) {
                     mtrace('User ' . $userto->id .' can not see ' . $post->id . '. Not sending message.');
                     continue;
                 }
@@ -753,7 +753,7 @@ function scriptingforum_cron() {
                 // OK so we need to send the email.
 
                 // Does the user want this post in a digest?  If so postpone it for now.
-                $maildigest = scriptingforum_get_user_maildigest_bulk($digests, $userto, $scriptingforum->id);
+                $maildigest = sforum_get_user_maildigest_bulk($digests, $userto, $sforum->id);
 
                 if ($maildigest > 0) {
                     // This user wants the mails to be in digest form.
@@ -762,19 +762,19 @@ function scriptingforum_cron() {
                     $queue->discussionid = $discussion->id;
                     $queue->postid       = $post->id;
                     $queue->timemodified = $post->created;
-                    $DB->insert_record('scriptingforum_queue', $queue);
+                    $DB->insert_record('sforum_queue', $queue);
                     continue;
                 }
 
                 // Prepare to actually send the post now, and build up the content.
 
-                $cleanscriptingforumname = str_replace('"', "'", strip_tags(format_string($scriptingforum->name)));
+                $cleansforumname = str_replace('"', "'", strip_tags(format_string($sforum->name)));
 
                 $userfrom->customheaders = array (
                     // Headers to make emails easier to track.
-                    'List-Id: "'        . $cleanscriptingforumname . '" ' . generate_email_messageid('moodlescriptingforum' . $scriptingforum->id),
-                    'List-Help: '       . $CFG->wwwroot . '/mod/scriptingforum/view.php?f=' . $scriptingforum->id,
-                    'Message-ID: '      . scriptingforum_get_email_message_id($post->id, $userto->id),
+                    'List-Id: "'        . $cleansforumname . '" ' . generate_email_messageid('moodlesforum' . $sforum->id),
+                    'List-Help: '       . $CFG->wwwroot . '/mod/sforum/view.php?f=' . $sforum->id,
+                    'Message-ID: '      . sforum_get_email_message_id($post->id, $userto->id),
                     'X-Course-Id: '     . $course->id,
                     'X-Course-Name: '   . format_string($course->fullname, true),
 
@@ -794,15 +794,15 @@ function scriptingforum_cron() {
                 }
 
                 if (!isset($userto->canpost[$discussion->id])) {
-                    $canreply = scriptingforum_user_can_post($scriptingforum, $discussion, $userto, $cm, $course, $modcontext);
+                    $canreply = sforum_user_can_post($sforum, $discussion, $userto, $cm, $course, $modcontext);
                 } else {
                     $canreply = $userto->canpost[$discussion->id];
                 }
 
-                $data = new \mod_scriptingforum\output\scriptingforum_post_email(
+                $data = new \mod_sforum\output\sforum_post_email(
                         $course,
                         $cm,
-                        $scriptingforum,
+                        $sforum,
                         $discussion,
                         $post,
                         $userfrom,
@@ -813,29 +813,29 @@ function scriptingforum_cron() {
                 $userfrom->customheaders[] = sprintf('List-Unsubscribe: <%s>',
                     $data->get_unsubscribediscussionlink());
 
-                if (!isset($userto->viewfullnames[$scriptingforum->id])) {
+                if (!isset($userto->viewfullnames[$sforum->id])) {
                     $data->viewfullnames = has_capability('moodle/site:viewfullnames', $modcontext, $userto->id);
                 } else {
-                    $data->viewfullnames = $userto->viewfullnames[$scriptingforum->id];
+                    $data->viewfullnames = $userto->viewfullnames[$sforum->id];
                 }
 
                 // Not all of these variables are used in the default language
                 // string but are made available to support custom subjects.
                 $a = new stdClass();
                 $a->subject = $data->get_subject();
-                $a->scriptingforumname = $cleanscriptingforumname;
+                $a->sforumname = $cleansforumname;
                 $a->sitefullname = format_string($site->fullname);
                 $a->siteshortname = format_string($site->shortname);
                 $a->courseidnumber = $data->get_courseidnumber();
                 $a->coursefullname = $data->get_coursefullname();
                 $a->courseshortname = $data->get_coursename();
-                $postsubject = html_to_text(get_string('postmailsubject', 'scriptingforum', $a), 0);
+                $postsubject = html_to_text(get_string('postmailsubject', 'sforum', $a), 0);
 
-                $rootid = scriptingforum_get_email_message_id($discussion->firstpost, $userto->id);
+                $rootid = sforum_get_email_message_id($discussion->firstpost, $userto->id);
 
                 if ($post->parent) {
                     // This post is a reply, so add reply header (RFC 2822).
-                    $parentid = scriptingforum_get_email_message_id($post->parent, $userto->id);
+                    $parentid = sforum_get_email_message_id($post->parent, $userto->id);
                     $userfrom->customheaders[] = "In-Reply-To: $parentid";
 
                     // If the post is deeply nested we also reference the parent message id and
@@ -851,7 +851,7 @@ function scriptingforum_cron() {
                 // MS Outlook / Office uses poorly documented and non standard headers, including
                 // Thread-Topic which overrides the Subject and shouldn't contain Re: or Fwd: etc.
                 $a->subject = $discussion->name;
-                $threadtopic = html_to_text(get_string('postmailsubject', 'scriptingforum', $a), 0);
+                $threadtopic = html_to_text(get_string('postmailsubject', 'sforum', $a), 0);
                 $userfrom->customheaders[] = "Thread-Topic: $threadtopic";
                 $userfrom->customheaders[] = "Thread-Index: " . substr($rootid, 1, 28);
 
@@ -859,7 +859,7 @@ function scriptingforum_cron() {
                 mtrace('Sending ', '');
 
                 $eventdata = new \core\message\message();
-                $eventdata->component           = 'mod_scriptingforum';
+                $eventdata->component           = 'mod_sforum';
                 $eventdata->name                = 'posts';
                 $eventdata->userfrom            = $userfrom;
                 $eventdata->userto              = $userto;
@@ -871,40 +871,40 @@ function scriptingforum_cron() {
                 $eventdata->replyto             = $replyaddress;
                 if (!empty($replyaddress)) {
                     // Add extra text to email messages if they can reply back.
-                    $textfooter = "\n\n" . get_string('replytopostbyemail', 'mod_scriptingforum');
-                    $htmlfooter = html_writer::tag('p', get_string('replytopostbyemail', 'mod_scriptingforum'));
+                    $textfooter = "\n\n" . get_string('replytopostbyemail', 'mod_sforum');
+                    $htmlfooter = html_writer::tag('p', get_string('replytopostbyemail', 'mod_sforum'));
                     $additionalcontent = array('fullmessage' => array('footer' => $textfooter),
                                      'fullmessagehtml' => array('footer' => $htmlfooter));
                     $eventdata->set_additional_content('email', $additionalcontent);
                 }
 
-                // If scriptingforum_replytouser is not set then send mail using the noreplyaddress.
-                if (empty($CFG->scriptingforum_replytouser)) {
+                // If sforum_replytouser is not set then send mail using the noreplyaddress.
+                if (empty($CFG->sforum_replytouser)) {
                     $eventdata->userfrom = core_user::get_noreply_user();
                 }
 
                 $smallmessagestrings = new stdClass();
                 $smallmessagestrings->user          = fullname($userfrom);
-                $smallmessagestrings->scriptingforumname     = "$shortname: " . format_string($scriptingforum->name, true) . ": " . $discussion->name;
+                $smallmessagestrings->sforumname     = "$shortname: " . format_string($sforum->name, true) . ": " . $discussion->name;
                 $smallmessagestrings->message       = $post->message;
 
                 // Make sure strings are in message recipients language.
-                $eventdata->smallmessage = get_string_manager()->get_string('smallmessage', 'scriptingforum', $smallmessagestrings, $userto->lang);
+                $eventdata->smallmessage = get_string_manager()->get_string('smallmessage', 'sforum', $smallmessagestrings, $userto->lang);
 
-                $contexturl = new moodle_url('/mod/scriptingforum/discuss.php', array('d' => $discussion->id), 'p' . $post->id);
+                $contexturl = new moodle_url('/mod/sforum/discuss.php', array('d' => $discussion->id), 'p' . $post->id);
                 $eventdata->contexturl = $contexturl->out();
                 $eventdata->contexturlname = $discussion->name;
 
                 $mailresult = message_send($eventdata);
                 if (!$mailresult) {
-                    mtrace("Error: mod/scriptingforum/lib.php scriptingforum_cron(): Could not send out mail for id $post->id to user $userto->id".
+                    mtrace("Error: mod/sforum/lib.php sforum_cron(): Could not send out mail for id $post->id to user $userto->id".
                             " ($userto->email) .. not trying again.");
                     $errorcount[$post->id]++;
                 } else {
                     $mailcount[$post->id]++;
 
-                    // Mark post as read if scriptingforum_usermarksread is set off.
-                    if (!$CFG->scriptingforum_usermarksread) {
+                    // Mark post as read if sforum_usermarksread is set off.
+                    if (!$CFG->sforum_usermarksread) {
                         $userto->markposts[$post->id] = $post->id;
                     }
                 }
@@ -913,7 +913,7 @@ function scriptingforum_cron() {
             }
 
             // Mark processed posts as read.
-            scriptingforum_tp_mark_posts_read($userto, $userto->markposts);
+            sforum_tp_mark_posts_read($userto, $userto->markposts);
             unset($userto);
         }
     }
@@ -922,7 +922,7 @@ function scriptingforum_cron() {
         foreach ($posts as $post) {
             mtrace($mailcount[$post->id]." users were sent post $post->id, '$post->subject'");
             if ($errorcount[$post->id]) {
-                $DB->set_field('scriptingforum_posts', 'mailed', SCRIPTING_FORUM_MAILED_ERROR, array('id' => $post->id));
+                $DB->set_field('sforum_posts', 'mailed', SCRIPTING_FORUM_MAILED_ERROR, array('id' => $post->id));
             }
         }
     }
@@ -951,14 +951,14 @@ function scriptingforum_cron() {
 
     // Delete any really old ones (normally there shouldn't be any)
     $weekago = $timenow - (7 * 24 * 3600);
-    $DB->delete_records_select('scriptingforum_queue', "timemodified < ?", array($weekago));
+    $DB->delete_records_select('sforum_queue', "timemodified < ?", array($weekago));
     mtrace ('Cleaned old digest records');
 
     if ($CFG->digestmailtimelast < $digesttime and $timenow > $digesttime) {
 
-        mtrace('Sending scriptingforum digests: '.userdate($timenow, '', $sitetimezone));
+        mtrace('Sending sforum digests: '.userdate($timenow, '', $sitetimezone));
 
-        $digestposts_rs = $DB->get_recordset_select('scriptingforum_queue', "timemodified < ?", array($digesttime));
+        $digestposts_rs = $DB->get_recordset_select('sforum_queue', "timemodified < ?", array($digesttime));
 
         if ($digestposts_rs->valid()) {
 
@@ -971,7 +971,7 @@ function scriptingforum_cron() {
 
             foreach ($digestposts_rs as $digestpost) {
                 if (!isset($posts[$digestpost->postid])) {
-                    if ($post = $DB->get_record('scriptingforum_posts', array('id' => $digestpost->postid))) {
+                    if ($post = $DB->get_record('sforum_posts', array('id' => $digestpost->postid))) {
                         $posts[$digestpost->postid] = $post;
                     } else {
                         continue;
@@ -979,22 +979,22 @@ function scriptingforum_cron() {
                 }
                 $discussionid = $digestpost->discussionid;
                 if (!isset($discussions[$discussionid])) {
-                    if ($discussion = $DB->get_record('scriptingforum_discussions', array('id' => $discussionid))) {
+                    if ($discussion = $DB->get_record('sforum_discussions', array('id' => $discussionid))) {
                         $discussions[$discussionid] = $discussion;
                     } else {
                         continue;
                     }
                 }
-                $scriptingforumid = $discussions[$discussionid]->forum;
-                if (!isset($scriptingforums[$scriptingforumid])) {
-                    if ($scriptingforum = $DB->get_record('scriptingforum', array('id' => $scriptingforumid))) {
-                        $scriptingforums[$scriptingforumid] = $scriptingforum;
+                $sforumid = $discussions[$discussionid]->forum;
+                if (!isset($sforums[$sforumid])) {
+                    if ($sforum = $DB->get_record('sforum', array('id' => $sforumid))) {
+                        $sforums[$sforumid] = $sforum;
                     } else {
                         continue;
                     }
                 }
 
-                $courseid = $scriptingforums[$scriptingforumid]->course;
+                $courseid = $sforums[$sforumid]->course;
                 if (!isset($courses[$courseid])) {
                     if ($course = $DB->get_record('course', array('id' => $courseid))) {
                         $courses[$courseid] = $course;
@@ -1003,9 +1003,9 @@ function scriptingforum_cron() {
                     }
                 }
 
-                if (!isset($coursemodules[$scriptingforumid])) {
-                    if ($cm = get_coursemodule_from_instance('scriptingforum', $scriptingforumid, $courseid)) {
-                        $coursemodules[$scriptingforumid] = $cm;
+                if (!isset($coursemodules[$sforumid])) {
+                    if ($cm = get_coursemodule_from_instance('sforum', $sforumid, $courseid)) {
+                        $coursemodules[$sforumid] = $cm;
                     } else {
                         continue;
                     }
@@ -1022,10 +1022,10 @@ function scriptingforum_cron() {
 
                 cron_setup_user();
 
-                mtrace(get_string('processingdigest', 'scriptingforum', $userid), '... ');
+                mtrace(get_string('processingdigest', 'sforum', $userid), '... ');
 
                 // First of all delete all the queue entries for this user
-                $DB->delete_records_select('scriptingforum_queue', "userid = ? AND timemodified < ?", array($userid, $digesttime));
+                $DB->delete_records_select('sforum_queue', "userid = ? AND timemodified < ?", array($userid, $digesttime));
 
                 // Init user caches - we keep the cache for one cycle only,
                 // otherwise it would unnecessarily consume memory.
@@ -1033,7 +1033,7 @@ function scriptingforum_cron() {
                     $userto = clone($users[$userid]);
                 } else {
                     $userto = $DB->get_record('user', array('id' => $userid));
-                    scriptingforum_cron_minimise_user_record($userto);
+                    sforum_cron_minimise_user_record($userto);
                 }
                 $userto->viewfullnames = array();
                 $userto->canpost       = array();
@@ -1043,16 +1043,16 @@ function scriptingforum_cron() {
                 // mail is customised for the receiver.
                 cron_setup_user($userto);
 
-                $postsubject = get_string('digestmailsubject', 'scriptingforum', format_string($site->shortname, true));
+                $postsubject = get_string('digestmailsubject', 'sforum', format_string($site->shortname, true));
 
                 $headerdata = new stdClass();
                 $headerdata->sitename = format_string($site->fullname, true);
-                $headerdata->userprefs = $CFG->wwwroot.'/user/scriptingforum.php?id='.$userid.'&amp;course='.$site->id;
+                $headerdata->userprefs = $CFG->wwwroot.'/user/sforum.php?id='.$userid.'&amp;course='.$site->id;
 
-                $posttext = get_string('digestmailheader', 'scriptingforum', $headerdata)."\n\n";
-                $headerdata->userprefs = '<a target="_blank" href="'.$headerdata->userprefs.'">'.get_string('digestmailprefs', 'scriptingforum').'</a>';
+                $posttext = get_string('digestmailheader', 'sforum', $headerdata)."\n\n";
+                $headerdata->userprefs = '<a target="_blank" href="'.$headerdata->userprefs.'">'.get_string('digestmailprefs', 'sforum').'</a>';
 
-                $posthtml = '<p>'.get_string('digestmailheader', 'scriptingforum', $headerdata).'</p>'
+                $posthtml = '<p>'.get_string('digestmailheader', 'sforum', $headerdata).'</p>'
                     . '<br /><hr size="1" noshade="noshade" />';
 
                 foreach ($thesediscussions as $discussionid) {
@@ -1060,47 +1060,47 @@ function scriptingforum_cron() {
                     core_php_time_limit::raise(120);   // to be reset for each post
 
                     $discussion      = $discussions[$discussionid];
-                    $scriptingforum = $scriptingforums[$discussion->forum];
-                    $course          = $courses[$scriptingforum->course];
-                    $cm              = $coursemodules[$scriptingforum->id];
+                    $sforum = $sforums[$discussion->forum];
+                    $course          = $courses[$sforum->course];
+                    $cm              = $coursemodules[$sforum->id];
 
                     //override language
                     cron_setup_user($userto, $course);
 
                     // Fill caches
-                    if (!isset($userto->viewfullnames[$scriptingforum->id])) {
+                    if (!isset($userto->viewfullnames[$sforum->id])) {
                         $modcontext = context_module::instance($cm->id);
-                        $userto->viewfullnames[$scriptingforum->id] = has_capability('moodle/site:viewfullnames', $modcontext);
+                        $userto->viewfullnames[$sforum->id] = has_capability('moodle/site:viewfullnames', $modcontext);
                     }
                     if (!isset($userto->canpost[$discussion->id])) {
                         $modcontext = context_module::instance($cm->id);
-                        $userto->canpost[$discussion->id] = scriptingforum_user_can_post($scriptingforum, $discussion, $userto, $cm, $course, $modcontext);
+                        $userto->canpost[$discussion->id] = sforum_user_can_post($sforum, $discussion, $userto, $cm, $course, $modcontext);
                     }
 
-                    $strscriptingforums      = get_string('scriptingforums', 'scriptingforum');
-                    $canunsubscribe = ! \mod_scriptingforum\subscriptions::is_forcesubscribed($scriptingforum);
+                    $strsforums      = get_string('sforums', 'sforum');
+                    $canunsubscribe = ! \mod_sforum\subscriptions::is_forcesubscribed($sforum);
                     $canreply       = $userto->canpost[$discussion->id];
                     $shortname = format_string($course->shortname, true, array('context' => context_course::instance($course->id)));
 
                     $posttext .= "\n \n";
                     $posttext .= '=====================================================================';
                     $posttext .= "\n \n";
-                    $posttext .= "$shortname -> $strscriptingforums -> ".format_string($scriptingforum->name,true);
-                    if ($discussion->name != $scriptingforum->name) {
+                    $posttext .= "$shortname -> $strsforums -> ".format_string($sforum->name,true);
+                    if ($discussion->name != $sforum->name) {
                         $posttext  .= " -> ".format_string($discussion->name,true);
                     }
                     $posttext .= "\n";
-                    $posttext .= $CFG->wwwroot.'/mod/scriptingforum/discuss.php?d='.$discussion->id;
+                    $posttext .= $CFG->wwwroot.'/mod/sforum/discuss.php?d='.$discussion->id;
                     $posttext .= "\n";
 
                     $posthtml .= "<p><font face=\"sans-serif\">".
                     "<a target=\"_blank\" href=\"$CFG->wwwroot/course/view.php?id=$course->id\">$shortname</a> -> ".
-                    "<a target=\"_blank\" href=\"$CFG->wwwroot/mod/scriptingforum/index.php?id=$course->id\">$strscriptingforums</a> -> ".
-                    "<a target=\"_blank\" href=\"$CFG->wwwroot/mod/scriptingforum/view.php?f=$scriptingforum->id\">".format_string($scriptingforum->name,true)."</a>";
-                    if ($discussion->name == $scriptingforum->name) {
+                    "<a target=\"_blank\" href=\"$CFG->wwwroot/mod/sforum/index.php?id=$course->id\">$strsforums</a> -> ".
+                    "<a target=\"_blank\" href=\"$CFG->wwwroot/mod/sforum/view.php?f=$sforum->id\">".format_string($sforum->name,true)."</a>";
+                    if ($discussion->name == $sforum->name) {
                         $posthtml .= "</font></p>";
                     } else {
-                        $posthtml .= " -> <a target=\"_blank\" href=\"$CFG->wwwroot/mod/scriptingforum/discuss.php?d=$discussion->id\">".format_string($discussion->name,true)."</a></font></p>";
+                        $posthtml .= " -> <a target=\"_blank\" href=\"$CFG->wwwroot/mod/sforum/discuss.php?d=$discussion->id\">".format_string($discussion->name,true)."</a></font></p>";
                     }
                     $posthtml .= '<p>';
 
@@ -1115,11 +1115,11 @@ function scriptingforum_cron() {
                             $userfrom = $users[$post->userid];
                             if (!isset($userfrom->idnumber)) {
                                 $userfrom = $DB->get_record('user', array('id' => $userfrom->id));
-                                scriptingforum_cron_minimise_user_record($userfrom);
+                                sforum_cron_minimise_user_record($userfrom);
                             }
 
                         } else if ($userfrom = $DB->get_record('user', array('id' => $post->userid))) {
-                            scriptingforum_cron_minimise_user_record($userfrom);
+                            sforum_cron_minimise_user_record($userfrom);
                             if ($userscount <= SCRIPTING_FORUM_CRON_USER_CACHE) {
                                 $userscount++;
                                 $users[$userfrom->id] = $userfrom;
@@ -1130,16 +1130,16 @@ function scriptingforum_cron() {
                             continue;
                         }
 
-                        if (!isset($userfrom->groups[$scriptingforum->id])) {
+                        if (!isset($userfrom->groups[$sforum->id])) {
                             if (!isset($userfrom->groups)) {
                                 $userfrom->groups = array();
                                 if (isset($users[$userfrom->id])) {
                                     $users[$userfrom->id]->groups = array();
                                 }
                             }
-                            $userfrom->groups[$scriptingforum->id] = groups_get_all_groups($course->id, $userfrom->id, $cm->groupingid);
+                            $userfrom->groups[$sforum->id] = groups_get_all_groups($course->id, $userfrom->id, $cm->groupingid);
                             if (isset($users[$userfrom->id])) {
-                                $users[$userfrom->id]->groups[$scriptingforum->id] = $userfrom->groups[$scriptingforum->id];
+                                $users[$userfrom->id]->groups[$sforum->id] = $userfrom->groups[$sforum->id];
                             }
                         }
 
@@ -1150,17 +1150,17 @@ function scriptingforum_cron() {
                                 'Auto-Submitted: auto-generated',
                             );
 
-                        $maildigest = scriptingforum_get_user_maildigest_bulk($digests, $userto, $scriptingforum->id);
+                        $maildigest = sforum_get_user_maildigest_bulk($digests, $userto, $sforum->id);
                         if (!isset($userto->canpost[$discussion->id])) {
-                            $canreply = scriptingforum_user_can_post($scriptingforum, $discussion, $userto, $cm, $course, $modcontext);
+                            $canreply = sforum_user_can_post($sforum, $discussion, $userto, $cm, $course, $modcontext);
                         } else {
                             $canreply = $userto->canpost[$discussion->id];
                         }
 
-                        $data = new \mod_scriptingforum\output\scriptingforum_post_email(
+                        $data = new \mod_sforum\output\sforum_post_email(
                                 $course,
                                 $cm,
-                                $scriptingforum,
+                                $sforum,
                                 $discussion,
                                 $post,
                                 $userfrom,
@@ -1168,10 +1168,10 @@ function scriptingforum_cron() {
                                 $canreply
                             );
 
-                        if (!isset($userto->viewfullnames[$scriptingforum->id])) {
+                        if (!isset($userto->viewfullnames[$sforum->id])) {
                             $data->viewfullnames = has_capability('moodle/site:viewfullnames', $modcontext, $userto->id);
                         } else {
-                            $data->viewfullnames = $userto->viewfullnames[$scriptingforum->id];
+                            $data->viewfullnames = $userto->viewfullnames[$sforum->id];
                         }
 
                         if ($maildigest == 2) {
@@ -1184,7 +1184,7 @@ function scriptingforum_cron() {
                             $posthtml .= $htmldigestfullout->render($data);
 
                             // Create an array of postid's for this user to mark as read.
-                            if (!$CFG->scriptingforum_usermarksread) {
+                            if (!$CFG->sforum_usermarksread) {
                                 $userto->markposts[$post->id] = $post->id;
                             }
                         }
@@ -1192,11 +1192,11 @@ function scriptingforum_cron() {
                     }
                     $footerlinks = array();
                     if ($canunsubscribe) {
-                        $footerlinks[] = "<a href=\"$CFG->wwwroot/mod/scriptingforum/subscribe.php?id=$scriptingforum->id\">" . get_string("unsubscribe", "scriptingforum") . "</a>";
+                        $footerlinks[] = "<a href=\"$CFG->wwwroot/mod/sforum/subscribe.php?id=$sforum->id\">" . get_string("unsubscribe", "sforum") . "</a>";
                     } else {
-                        $footerlinks[] = get_string("everyoneissubscribed", "scriptingforum");
+                        $footerlinks[] = get_string("everyoneissubscribed", "sforum");
                     }
-                    $footerlinks[] = "<a href='{$CFG->wwwroot}/mod/scriptingforum/index.php?id={$scriptingforum->course}'>" . get_string("digestmailpost", "scriptingforum") . '</a>';
+                    $footerlinks[] = "<a href='{$CFG->wwwroot}/mod/sforum/index.php?id={$sforum->course}'>" . get_string("digestmailpost", "sforum") . '</a>';
                     $posthtml .= "\n<div class='mdl-right'><font size=\"1\">" . implode('&nbsp;', $footerlinks) . '</font></div>';
                     $posthtml .= '<hr size="1" noshade="noshade" /></p>';
                 }
@@ -1207,7 +1207,7 @@ function scriptingforum_cron() {
                 }
 
                 $eventdata = new \core\message\message();
-                $eventdata->component           = 'mod_scriptingforum';
+                $eventdata->component           = 'mod_sforum';
                 $eventdata->name                = 'digests';
                 $eventdata->userfrom            = core_user::get_noreply_user();
                 $eventdata->userto              = $userto;
@@ -1216,18 +1216,18 @@ function scriptingforum_cron() {
                 $eventdata->fullmessageformat   = FORMAT_PLAIN;
                 $eventdata->fullmessagehtml     = $posthtml;
                 $eventdata->notification        = 1;
-                $eventdata->smallmessage        = get_string('smallmessagedigest', 'scriptingforum', $sentcount);
+                $eventdata->smallmessage        = get_string('smallmessagedigest', 'sforum', $sentcount);
                 $mailresult = message_send($eventdata);
 
                 if (!$mailresult) {
-                    mtrace("ERROR: mod/scriptingforum/cron.php: Could not send out digest mail to user $userto->id ".
+                    mtrace("ERROR: mod/sforum/cron.php: Could not send out digest mail to user $userto->id ".
                         "($userto->email)... not trying again.");
                 } else {
                     mtrace("success.");
                     $usermailcount++;
 
-                    // Mark post as read if scriptingforum_usermarksread is set off
-                    scriptingforum_tp_mark_posts_read($userto, $userto->markposts);
+                    // Mark post as read if sforum_usermarksread is set off
+                    sforum_tp_mark_posts_read($userto, $userto->markposts);
                 }
             }
         }
@@ -1238,18 +1238,18 @@ function scriptingforum_cron() {
     cron_setup_user();
 
     if (!empty($usermailcount)) {
-        mtrace(get_string('digestsentusers', 'scriptingforum', $usermailcount));
+        mtrace(get_string('digestsentusers', 'sforum', $usermailcount));
     }
 
-    if (!empty($CFG->scriptingforum_lastreadclean)) {
+    if (!empty($CFG->sforum_lastreadclean)) {
         $timenow = time();
-        if ($CFG->scriptingforum_lastreadclean + (24*3600) < $timenow) {
-            set_config('scriptingforum_lastreadclean', $timenow);
-            mtrace('Removing old scriptingforum read tracking info...');
-            scriptingforum_tp_clean_read_records();
+        if ($CFG->sforum_lastreadclean + (24*3600) < $timenow) {
+            set_config('sforum_lastreadclean', $timenow);
+            mtrace('Removing old sforum read tracking info...');
+            sforum_tp_clean_read_records();
         }
     } else {
-        set_config('scriptingforum_lastreadclean', time());
+        set_config('sforum_lastreadclean', time());
     }
 
     return true;
@@ -1259,24 +1259,24 @@ function scriptingforum_cron() {
  * @param object $course
  * @param object $user
  * @param object $mod TODO this is not used here, refactor
- * @param object $scriptingforum
+ * @param object $sforum
  * @return object A standard object with 2 variables: info (number of posts for this user) and time (last modified)
  */
-function scriptingforum_user_outline($course, $user, $mod, $scriptingforum) {
+function sforum_user_outline($course, $user, $mod, $sforum) {
     global $CFG;
     require_once("$CFG->libdir/gradelib.php");
-    $grades = grade_get_grades($course->id, 'mod', 'scriptingforum', $scriptingforum->id, $user->id);
+    $grades = grade_get_grades($course->id, 'mod', 'sforum', $sforum->id, $user->id);
     if (empty($grades->items[0]->grades)) {
         $grade = false;
     } else {
         $grade = reset($grades->items[0]->grades);
     }
 
-    $count = scriptingforum_count_user_posts($scriptingforum->id, $user->id);
+    $count = sforum_count_user_posts($sforum->id, $user->id);
 
     if ($count && $count->postcount > 0) {
         $result = new stdClass();
-        $result->info = get_string("numposts", "scriptingforum", $count->postcount);
+        $result->info = get_string("numposts", "sforum", $count->postcount);
         $result->time = $count->lastpost;
         if ($grade) {
             $result->info .= ', ' . get_string('grade') . ': ' . $grade->str_long_grade;
@@ -1307,13 +1307,13 @@ function scriptingforum_user_outline($course, $user, $mod, $scriptingforum) {
  * @param object $coure
  * @param object $user
  * @param object $mod
- * @param object $scriptingforum
+ * @param object $sforum
  */
-function scriptingforum_user_complete($course, $user, $mod, $scriptingforum) {
+function sforum_user_complete($course, $user, $mod, $sforum) {
     global $CFG,$USER, $OUTPUT;
     require_once("$CFG->libdir/gradelib.php");
 
-    $grades = grade_get_grades($course->id, 'mod', 'scriptingforum', $scriptingforum->id, $user->id);
+    $grades = grade_get_grades($course->id, 'mod', 'sforum', $sforum->id, $user->id);
     if (!empty($grades->items[0]->grades)) {
         $grade = reset($grades->items[0]->grades);
         echo $OUTPUT->container(get_string('grade').': '.$grade->str_long_grade);
@@ -1322,12 +1322,12 @@ function scriptingforum_user_complete($course, $user, $mod, $scriptingforum) {
         }
     }
 
-    if ($posts = scriptingforum_get_user_posts($scriptingforum->id, $user->id)) {
+    if ($posts = sforum_get_user_posts($sforum->id, $user->id)) {
 
-        if (!$cm = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id, $course->id)) {
+        if (!$cm = get_coursemodule_from_instance('sforum', $sforum->id, $course->id)) {
             print_error('invalidcoursemodule');
         }
-        $discussions = scriptingforum_get_user_involved_discussions($scriptingforum->id, $user->id);
+        $discussions = sforum_get_user_involved_discussions($sforum->id, $user->id);
 
         foreach ($posts as $post) {
             if (!isset($discussions[$post->discussion])) {
@@ -1335,48 +1335,48 @@ function scriptingforum_user_complete($course, $user, $mod, $scriptingforum) {
             }
             $discussion = $discussions[$post->discussion];
 
-            scriptingforum_print_post($post, $discussion, $scriptingforum, $cm, $course, false, false, false);
+            sforum_print_post($post, $discussion, $sforum, $cm, $course, false, false, false);
         }
     } else {
-        echo "<p>".get_string("noposts", "scriptingforum")."</p>";
+        echo "<p>".get_string("noposts", "sforum")."</p>";
     }
 }
 
 /**
- * Filters the scriptingforum discussions according to groups membership and config.
+ * Filters the sforum discussions according to groups membership and config.
  *
  * @since  Moodle 2.8, 2.7.1, 2.6.4
  * @param  array $discussions Discussions with new posts array
  * @return array Forums with the number of new posts
  */
-function scriptingforum_filter_user_groups_discussions($discussions) {
+function sforum_filter_user_groups_discussions($discussions) {
 
-    // Group the remaining discussions posts by their scriptingforumid.
-    $filteredscriptingforums = array();
+    // Group the remaining discussions posts by their sforumid.
+    $filteredsforums = array();
 
     // Discard not visible groups.
     foreach ($discussions as $discussion) {
 
         // Course data is already cached.
         $instances = get_fast_modinfo($discussion->course)->get_instances();
-        $scriptingforum = $instances['scriptingforum'][$discussion->scriptingforum];
+        $sforum = $instances['sforum'][$discussion->sforum];
 
         // Continue if the user should not see this discussion.
-        if (!scriptingforum_is_user_group_discussion($scriptingforum, $discussion->groupid)) {
+        if (!sforum_is_user_group_discussion($sforum, $discussion->groupid)) {
             continue;
         }
 
-        // Grouping results by scriptingforum.
-        if (empty($filteredscriptingforums[$scriptingforum->instance])) {
-            $filteredscriptingforums[$scriptingforum->instance] = new stdClass();
-            $filteredscriptingforums[$scriptingforum->instance]->id = $scriptingforum->id;
-            $filteredscriptingforums[$scriptingforum->instance]->count = 0;
+        // Grouping results by sforum.
+        if (empty($filteredsforums[$sforum->instance])) {
+            $filteredsforums[$sforum->instance] = new stdClass();
+            $filteredsforums[$sforum->instance]->id = $sforum->id;
+            $filteredsforums[$sforum->instance]->count = 0;
         }
-        $filteredscriptingforums[$scriptingforum->instance]->count += $discussion->count;
+        $filteredsforums[$sforum->instance]->count += $discussion->count;
 
     }
 
-    return $filteredscriptingforums;
+    return $filteredsforums;
 }
 
 /**
@@ -1387,7 +1387,7 @@ function scriptingforum_filter_user_groups_discussions($discussions) {
  * @param int $discussiongroupid The discussion groupid
  * @return bool
  */
-function scriptingforum_is_user_group_discussion(cm_info $cm, $discussiongroupid) {
+function sforum_is_user_group_discussion(cm_info $cm, $discussiongroupid) {
 
     if ($discussiongroupid == -1 || $cm->effectivegroupmode != SEPARATEGROUPS) {
         return true;
@@ -1412,14 +1412,14 @@ function scriptingforum_is_user_group_discussion(cm_info $cm, $discussiongroupid
  * @param array $courses
  * @param array $htmlarray
  */
-function scriptingforum_print_overview($courses,&$htmlarray) {
+function sforum_print_overview($courses,&$htmlarray) {
     global $USER, $CFG, $DB, $SESSION;
 
     if (empty($courses) || !is_array($courses) || count($courses) == 0) {
         return array();
     }
 
-    if (!$scriptingforums = get_all_instances_in_courses('scriptingforum',$courses)) {
+    if (!$sforums = get_all_instances_in_courses('sforum',$courses)) {
         return;
     }
 
@@ -1443,9 +1443,9 @@ function scriptingforum_print_overview($courses,&$htmlarray) {
     $params[] = $USER->id;
     $coursessql = implode(' OR ', $coursessqls);
 
-    $sql = "SELECT d.id, d.scriptingforum, d.course, d.groupid, COUNT(*) as count "
-                .'FROM {scriptingforum_discussions} d '
-                .'JOIN {scriptingforum_posts} p ON p.discussion = d.id '
+    $sql = "SELECT d.id, d.sforum, d.course, d.groupid, COUNT(*) as count "
+                .'FROM {sforum_discussions} d '
+                .'JOIN {sforum_posts} p ON p.discussion = d.id '
                 ."WHERE ($coursessql) "
                 .'AND p.userid != ? '
                 .'AND (d.timestart <= ? AND (d.timeend = 0 OR d.timeend > ?)) '
@@ -1459,25 +1459,25 @@ function scriptingforum_print_overview($courses,&$htmlarray) {
         $discussions = array();
     }
 
-    $scriptingforumsnewposts = scriptingforum_filter_user_groups_discussions($discussions);
+    $sforumsnewposts = sforum_filter_user_groups_discussions($discussions);
 
-    // also get all scriptingforum tracking stuff ONCE.
-    $trackingscriptingforums = array();
-    foreach ($scriptingforums as $scriptingforum) {
-        if (scriptingforum_tp_can_track_scriptingforums($scriptingforum)) {
-            $trackingscriptingforums[$scriptingforum->id] = $scriptingforum;
+    // also get all sforum tracking stuff ONCE.
+    $trackingsforums = array();
+    foreach ($sforums as $sforum) {
+        if (sforum_tp_can_track_sforums($sforum)) {
+            $trackingsforums[$sforum->id] = $sforum;
         }
     }
 
-    if (count($trackingscriptingforums) > 0) {
-        $cutoffdate = isset($CFG->scriptingforum_oldpostdays) ? (time() - ($CFG->scriptingforum_oldpostdays*24*60*60)) : 0;
+    if (count($trackingsforums) > 0) {
+        $cutoffdate = isset($CFG->sforum_oldpostdays) ? (time() - ($CFG->sforum_oldpostdays*24*60*60)) : 0;
         $sql = 'SELECT d.forum,d.course,COUNT(p.id) AS count '.
-            ' FROM {scriptingforum_posts} p '.
-            ' JOIN {scriptingforum_discussions} d ON p.discussion = d.id '.
-            ' LEFT JOIN {scriptingforum_read} r ON r.postid = p.id AND r.userid = ? WHERE (';
+            ' FROM {sforum_posts} p '.
+            ' JOIN {sforum_discussions} d ON p.discussion = d.id '.
+            ' LEFT JOIN {sforum_read} r ON r.postid = p.id AND r.userid = ? WHERE (';
         $params = array($USER->id);
 
-        foreach ($trackingscriptingforums as $track) {
+        foreach ($trackingsforums as $track) {
             $sql .= '(d.forum = ? AND (d.groupid = -1 OR d.groupid = 0 OR d.groupid = ?)) OR ';
             $params[] = $track->id;
             if (isset($SESSION->currentgroup[$track->course])) {
@@ -1511,42 +1511,42 @@ function scriptingforum_print_overview($courses,&$htmlarray) {
         $unread = array();
     }
 
-    if (empty($unread) and empty($scriptingforumsnewposts)) {
+    if (empty($unread) and empty($sforumsnewposts)) {
         return;
     }
 
-    $strscriptingforum = get_string('modulename','scriptingforum');
+    $strsforum = get_string('modulename','sforum');
 
-    foreach ($scriptingforums as $scriptingforum) {
+    foreach ($sforums as $sforum) {
         $str = '';
         $count = 0;
         $thisunread = 0;
         $showunread = false;
         // either we have something from logs, or trackposts, or nothing.
-        if (array_key_exists($scriptingforum->id, $scriptingforumsnewposts) && !empty($scriptingforumsnewposts[$scriptingforum->id])) {
-            $count = $scriptingforumsnewposts[$scriptingforum->id]->count;
+        if (array_key_exists($sforum->id, $sforumsnewposts) && !empty($sforumsnewposts[$sforum->id])) {
+            $count = $sforumsnewposts[$sforum->id]->count;
         }
-        if (array_key_exists($scriptingforum->id,$unread)) {
-            $thisunread = $unread[$scriptingforum->id]->count;
+        if (array_key_exists($sforum->id,$unread)) {
+            $thisunread = $unread[$sforum->id]->count;
             $showunread = true;
         }
         if ($count > 0 || $thisunread > 0) {
-            $str .= '<div class="overview scriptingforum"><div class="name">'.$strscriptingforum.': <a title="'.$strscriptingforum.'" href="'.$CFG->wwwroot.'/mod/scriptingforum/view.php?f='.$scriptingforum->id.'">'.$scriptingforum->name.'</a></div>';
+            $str .= '<div class="overview sforum"><div class="name">'.$strsforum.': <a title="'.$strsforum.'" href="'.$CFG->wwwroot.'/mod/sforum/view.php?f='.$sforum->id.'">'.$sforum->name.'</a></div>';
             $str .= '<div class="info"><span class="postsincelogin">';
-            $str .= get_string('overviewnumpostssince', 'scriptingforum', $count)."</span>";
+            $str .= get_string('overviewnumpostssince', 'sforum', $count)."</span>";
             if (!empty($showunread)) {
-                $str .= '<div class="unreadposts">'.get_string('overviewnumunread', 'scriptingforum', $thisunread).'</div>';
+                $str .= '<div class="unreadposts">'.get_string('overviewnumunread', 'sforum', $thisunread).'</div>';
             }
             $str .= '</div></div>';
         }
         if (!empty($str)) {
-            if (!array_key_exists($scriptingforum->course,$htmlarray)) {
-                $htmlarray[$scriptingforum->course] = array();
+            if (!array_key_exists($sforum->course,$htmlarray)) {
+                $htmlarray[$sforum->course] = array();
             }
-            if (!array_key_exists('scriptingforum',$htmlarray[$scriptingforum->course])) {
-                $htmlarray[$scriptingforum->course]['scriptingforum'] = ''; // initialize, avoid warnings
+            if (!array_key_exists('sforum',$htmlarray[$sforum->course])) {
+                $htmlarray[$sforum->course]['sforum'] = ''; // initialize, avoid warnings
             }
-            $htmlarray[$scriptingforum->course]['scriptingforum'] .= $str;
+            $htmlarray[$sforum->course]['sforum'] .= $str;
         }
     }
 }
@@ -1565,17 +1565,17 @@ function scriptingforum_print_overview($courses,&$htmlarray) {
  * @param int $timestart
  * @return bool success
  */
-function scriptingforum_print_recent_activity($course, $viewfullnames, $timestart) {
+function sforum_print_recent_activity($course, $viewfullnames, $timestart) {
     global $CFG, $USER, $DB, $OUTPUT;
 
     // do not use log table if possible, it may be huge and is expensive to join with other tables
 
     $allnamefields = user_picture::fields('u', null, 'duserid');
-    if (!$posts = $DB->get_records_sql("SELECT p.*, f.type AS scriptingforumtype, d.forum, d.groupid,
+    if (!$posts = $DB->get_records_sql("SELECT p.*, f.type AS sforumtype, d.forum, d.groupid,
                                               d.timestart, d.timeend, $allnamefields
-                                         FROM {scriptingforum_posts} p
-                                              JOIN {scriptingforum_discussions} d ON d.id = p.discussion
-                                              JOIN {scriptingforum} f             ON f.id = d.scriptingforum
+                                         FROM {sforum_posts} p
+                                              JOIN {sforum_discussions} d ON d.id = p.discussion
+                                              JOIN {sforum} f             ON f.id = d.sforum
                                               JOIN {user} u              ON u.id = p.userid
                                         WHERE p.created > ? AND f.course = ?
                                      ORDER BY p.id ASC", array($timestart, $course->id))) { // order by initial posting date
@@ -1591,29 +1591,29 @@ function scriptingforum_print_recent_activity($course, $viewfullnames, $timestar
 
     $printposts = array();
     foreach ($posts as $post) {
-        if (!isset($modinfo->instances['scriptingforum'][$post->forum])) {
+        if (!isset($modinfo->instances['sforum'][$post->forum])) {
             // not visible
             continue;
         }
-        $cm = $modinfo->instances['scriptingforum'][$post->forum];
+        $cm = $modinfo->instances['sforum'][$post->forum];
         if (!$cm->uservisible) {
             continue;
         }
         $context = context_module::instance($cm->id);
 
-        if (!has_capability('mod/scriptingforum:viewdiscussion', $context)) {
+        if (!has_capability('mod/sforum:viewdiscussion', $context)) {
             continue;
         }
 
-        if (!empty($CFG->scriptingforum_enabletimedposts) and $USER->id != $post->duserid
+        if (!empty($CFG->sforum_enabletimedposts) and $USER->id != $post->duserid
           and (($post->timestart > 0 and $post->timestart > time()) or ($post->timeend > 0 and $post->timeend < time()))) {
-            if (!has_capability('mod/scriptingforum:viewhiddentimedposts', $context)) {
+            if (!has_capability('mod/sforum:viewhiddentimedposts', $context)) {
                 continue;
             }
         }
 
         // Check that the user can see the discussion.
-        if (scriptingforum_is_user_group_discussion($cm, $post->groupid)) {
+        if (sforum_is_user_group_discussion($cm, $post->groupid)) {
             $printposts[] = $post;
         }
 
@@ -1624,7 +1624,7 @@ function scriptingforum_print_recent_activity($course, $viewfullnames, $timestar
         return false;
     }
 
-    echo $OUTPUT->heading(get_string('newscriptingforumposts', 'scriptingforum').':', 3);
+    echo $OUTPUT->heading(get_string('newsforumposts', 'sforum').':', 3);
     echo "\n<ul class='unlist'>\n";
 
     foreach ($printposts as $post) {
@@ -1636,9 +1636,9 @@ function scriptingforum_print_recent_activity($course, $viewfullnames, $timestar
              '</div>';
         echo '<div class="info'.$subjectclass.'">';
         if (empty($post->parent)) {
-            echo '"<a href="'.$CFG->wwwroot.'/mod/scriptingforum/discuss.php?d='.$post->discussion.'">';
+            echo '"<a href="'.$CFG->wwwroot.'/mod/sforum/discuss.php?d='.$post->discussion.'">';
         } else {
-            echo '"<a href="'.$CFG->wwwroot.'/mod/scriptingforum/discuss.php?d='.$post->discussion.'&amp;parent='.$post->parent.'#p'.$post->id.'">';
+            echo '"<a href="'.$CFG->wwwroot.'/mod/sforum/discuss.php?d='.$post->discussion.'&amp;parent='.$post->parent.'#p'.$post->id.'">';
         }
         $post->subject = break_up_long_words(format_string($post->subject, true));
         echo $post->subject;
@@ -1655,26 +1655,26 @@ function scriptingforum_print_recent_activity($course, $viewfullnames, $timestar
  *
  * @global object
  * @global object
- * @param object $scriptingforum
+ * @param object $sforum
  * @param int $userid optional user id, 0 means all users
  * @return array array of grades, false if none
  */
-function scriptingforum_get_user_grades($scriptingforum, $userid = 0) {
+function sforum_get_user_grades($sforum, $userid = 0) {
     global $CFG;
 
     require_once($CFG->dirroot.'/rating/lib.php');
 
     $ratingoptions = new stdClass;
-    $ratingoptions->component = 'mod_scriptingforum';
+    $ratingoptions->component = 'mod_sforum';
     $ratingoptions->ratingarea = 'post';
 
     //need these to work backwards to get a context id. Is there a better way to get contextid from a module instance?
-    $ratingoptions->modulename = 'scriptingforum';
-    $ratingoptions->moduleid   = $scriptingforum->id;
+    $ratingoptions->modulename = 'sforum';
+    $ratingoptions->moduleid   = $sforum->id;
     $ratingoptions->userid = $userid;
-    $ratingoptions->aggregationmethod = $scriptingforum->assessed;
-    $ratingoptions->scaleid = $scriptingforum->scale;
-    $ratingoptions->itemtable = 'scriptingforum_posts';
+    $ratingoptions->aggregationmethod = $sforum->assessed;
+    $ratingoptions->scaleid = $sforum->scale;
+    $ratingoptions->itemtable = 'sforum_posts';
     $ratingoptions->itemtableusercolumn = 'userid';
 
     $rm = new rating_manager();
@@ -1685,62 +1685,62 @@ function scriptingforum_get_user_grades($scriptingforum, $userid = 0) {
  * Update activity grades
  *
  * @category grade
- * @param object $scriptingforum
+ * @param object $sforum
  * @param int $userid specific user only, 0 means all
  * @param boolean $nullifnone return null if grade does not exist
  * @return void
  */
-function scriptingforum_update_grades($scriptingforum, $userid=0, $nullifnone=true) {
+function sforum_update_grades($sforum, $userid=0, $nullifnone=true) {
     global $CFG, $DB;
     require_once($CFG->libdir.'/gradelib.php');
 
-    if (!$scriptingforum->assessed) {
-        scriptingforum_grade_item_update($scriptingforum);
+    if (!$sforum->assessed) {
+        sforum_grade_item_update($sforum);
 
-    } else if ($grades = scriptingforum_get_user_grades($scriptingforum, $userid)) {
-        scriptingforum_grade_item_update($scriptingforum, $grades);
+    } else if ($grades = sforum_get_user_grades($sforum, $userid)) {
+        sforum_grade_item_update($sforum, $grades);
 
     } else if ($userid and $nullifnone) {
         $grade = new stdClass();
         $grade->userid   = $userid;
         $grade->rawgrade = NULL;
-        scriptingforum_grade_item_update($scriptingforum, $grade);
+        sforum_grade_item_update($sforum, $grade);
 
     } else {
-        scriptingforum_grade_item_update($scriptingforum);
+        sforum_grade_item_update($sforum);
     }
 }
 
 /**
- * Create/update grade item for given scriptingforum
+ * Create/update grade item for given sforum
  *
  * @category grade
  * @uses GRADE_TYPE_NONE
  * @uses GRADE_TYPE_VALUE
  * @uses GRADE_TYPE_SCALE
- * @param stdClass $scriptingforum Forum object with extra cmidnumber
+ * @param stdClass $sforum Forum object with extra cmidnumber
  * @param mixed $grades Optional array/object of grade(s); 'reset' means reset grades in gradebook
  * @return int 0 if ok
  */
-function scriptingforum_grade_item_update($scriptingforum, $grades=NULL) {
+function sforum_grade_item_update($sforum, $grades=NULL) {
     global $CFG;
     if (!function_exists('grade_update')) { //workaround for buggy PHP versions
         require_once($CFG->libdir.'/gradelib.php');
     }
 
-    $params = array('itemname'=>$scriptingforum->name, 'idnumber'=>$scriptingforum->cmidnumber);
+    $params = array('itemname'=>$sforum->name, 'idnumber'=>$sforum->cmidnumber);
 
-    if (!$scriptingforum->assessed or $scriptingforum->scale == 0) {
+    if (!$sforum->assessed or $sforum->scale == 0) {
         $params['gradetype'] = GRADE_TYPE_NONE;
 
-    } else if ($scriptingforum->scale > 0) {
+    } else if ($sforum->scale > 0) {
         $params['gradetype'] = GRADE_TYPE_VALUE;
-        $params['grademax']  = $scriptingforum->scale;
+        $params['grademax']  = $sforum->scale;
         $params['grademin']  = 0;
 
-    } else if ($scriptingforum->scale < 0) {
+    } else if ($sforum->scale < 0) {
         $params['gradetype'] = GRADE_TYPE_SCALE;
-        $params['scaleid']   = -$scriptingforum->scale;
+        $params['scaleid']   = -$sforum->scale;
     }
 
     if ($grades  === 'reset') {
@@ -1748,37 +1748,37 @@ function scriptingforum_grade_item_update($scriptingforum, $grades=NULL) {
         $grades = NULL;
     }
 
-    return grade_update('mod/scriptingforum', $scriptingforum->course, 'mod', 'scriptingforum', $scriptingforum->id, 0, $grades, $params);
+    return grade_update('mod/sforum', $sforum->course, 'mod', 'sforum', $sforum->id, 0, $grades, $params);
 }
 
 /**
- * Delete grade item for given scriptingforum
+ * Delete grade item for given sforum
  *
  * @category grade
- * @param stdClass $scriptingforum Forum object
+ * @param stdClass $sforum Forum object
  * @return grade_item
  */
-function scriptingforum_grade_item_delete($scriptingforum) {
+function sforum_grade_item_delete($sforum) {
     global $CFG;
     require_once($CFG->libdir.'/gradelib.php');
 
-    return grade_update('mod/scriptingforum', $scriptingforum->course, 'mod', 'scriptingforum', $scriptingforum->id, 0, NULL, array('deleted'=>1));
+    return grade_update('mod/sforum', $sforum->course, 'mod', 'sforum', $sforum->id, 0, NULL, array('deleted'=>1));
 }
 
 
 /**
- * This function returns if a scale is being used by one scriptingforum
+ * This function returns if a scale is being used by one sforum
  *
  * @global object
- * @param int $scriptingforumid
+ * @param int $sforumid
  * @param int $scaleid negative number
  * @return bool
  */
-function scriptingforum_scale_used ($scriptingforumid,$scaleid) {
+function sforum_scale_used ($sforumid,$scaleid) {
     global $DB;
     $return = false;
 
-    $rec = $DB->get_record("scriptingforum",array("id" => "$scriptingforumid","scale" => "-$scaleid"));
+    $rec = $DB->get_record("sforum",array("id" => "$sforumid","scale" => "-$scaleid"));
 
     if (!empty($rec) && !empty($scaleid)) {
         $return = true;
@@ -1788,17 +1788,17 @@ function scriptingforum_scale_used ($scriptingforumid,$scaleid) {
 }
 
 /**
- * Checks if scale is being used by any instance of scriptingforum
+ * Checks if scale is being used by any instance of sforum
  *
  * This is used to find out if scale used anywhere
  *
  * @global object
  * @param $scaleid int
- * @return boolean True if the scale is used by any scriptingforum
+ * @return boolean True if the scale is used by any sforum
  */
-function scriptingforum_scale_used_anywhere($scaleid) {
+function sforum_scale_used_anywhere($scaleid) {
     global $DB;
-    if ($scaleid and $DB->record_exists('scriptingforum', array('scale' => -$scaleid))) {
+    if ($scaleid and $DB->record_exists('sforum', array('scale' => -$scaleid))) {
         return true;
     } else {
         return false;
@@ -1808,21 +1808,21 @@ function scriptingforum_scale_used_anywhere($scaleid) {
 // SQL FUNCTIONS ///////////////////////////////////////////////////////////
 
 /**
- * Gets a post with all info ready for scriptingforum_print_post
- * Most of these joins are just to get the scriptingforum id
+ * Gets a post with all info ready for sforum_print_post
+ * Most of these joins are just to get the sforum id
  *
  * @global object
  * @global object
  * @param int $postid
  * @return mixed array of posts or false
  */
-function scriptingforum_get_post_full($postid) {
+function sforum_get_post_full($postid) {
     global $CFG, $DB;
 
     $allnames = get_all_user_name_fields(true, 'u');
     return $DB->get_record_sql("SELECT p.*, d.forum, $allnames, u.email, u.picture, u.imagealt
-                             FROM {scriptingforum_posts} p
-                                  JOIN {scriptingforum_discussions} d ON p.discussion = d.id
+                             FROM {sforum_posts} p
+                                  JOIN {sforum_discussions} d ON p.discussion = d.id
                                   LEFT JOIN {user} u ON p.userid = u.id
                             WHERE p.id = ?", array($postid));
 }
@@ -1835,10 +1835,10 @@ function scriptingforum_get_post_full($postid) {
  * @global object
  * @param int $discussionid
  * @param string $sort
- * @param bool $tracking does user track the scriptingforum?
+ * @param bool $tracking does user track the sforum?
  * @return array of posts
  */
-function scriptingforum_get_all_discussion_posts($discussionid, $sort, $tracking=false) {
+function sforum_get_all_discussion_posts($discussionid, $sort, $tracking=false) {
     global $CFG, $DB, $USER;
 
     $tr_sel  = "";
@@ -1847,14 +1847,14 @@ function scriptingforum_get_all_discussion_posts($discussionid, $sort, $tracking
 
     if ($tracking) {
         $tr_sel  = ", fr.id AS postread";
-        $tr_join = "LEFT JOIN {scriptingforum_read} fr ON (fr.postid = p.id AND fr.userid = ?)";
+        $tr_join = "LEFT JOIN {sforum_read} fr ON (fr.postid = p.id AND fr.userid = ?)";
         $params[] = $USER->id;
     }
 
     $allnames = get_all_user_name_fields(true, 'u');
     $params[] = $discussionid;
     if (!$posts = $DB->get_records_sql("SELECT p.*, $allnames, u.email, u.picture, u.imagealt $tr_sel
-                                     FROM {scriptingforum_posts} p
+                                     FROM {sforum_posts} p
                                           LEFT JOIN {user} u ON p.userid = u.id
                                           $tr_join
                                     WHERE p.discussion = ?
@@ -1864,7 +1864,7 @@ function scriptingforum_get_all_discussion_posts($discussionid, $sort, $tracking
 
     foreach ($posts as $pid=>$p) {
         if ($tracking) {
-            if (scriptingforum_tp_is_post_old($p)) {
+            if (sforum_tp_is_post_old($p)) {
                  $posts[$pid]->postread = true;
             }
         }
@@ -1898,24 +1898,24 @@ function scriptingforum_get_all_discussion_posts($discussionid, $sort, $tracking
 }
 
 /**
- * An array of scriptingforum objects that the user is allowed to read/search through.
+ * An array of sforum objects that the user is allowed to read/search through.
  *
  * @global object
  * @global object
  * @global object
  * @param int $userid
- * @param int $courseid if 0, we look for scriptingforums throughout the whole site.
- * @return array of scriptingforum objects, or false if no matches
+ * @param int $courseid if 0, we look for sforums throughout the whole site.
+ * @return array of sforum objects, or false if no matches
  *         Forum objects have the following attributes:
  *         id, type, course, cmid, cmvisible, cmgroupmode, accessallgroups,
  *         viewhiddentimedposts
  */
-function scriptingforum_get_readable_scriptingforums($userid, $courseid=0) {
+function sforum_get_readable_sforums($userid, $courseid=0) {
     global $CFG, $DB, $USER;
     require_once($CFG->dirroot.'/course/lib.php');
 
-    if (!$scriptingforummod = $DB->get_record('modules', array('name' => 'scriptingforum'))) {
-        print_error('notinstalled', 'scriptingforum');
+    if (!$sforummod = $DB->get_record('modules', array('name' => 'sforum'))) {
+        print_error('notinstalled', 'sforum');
     }
 
     if ($courseid) {
@@ -1930,29 +1930,29 @@ function scriptingforum_get_readable_scriptingforums($userid, $courseid=0) {
         return array();
     }
 
-    $readablescriptingforums = array();
+    $readablesforums = array();
 
     foreach ($courses as $course) {
 
         $modinfo = get_fast_modinfo($course);
 
-        if (empty($modinfo->instances['scriptingforum'])) {
-            // hmm, no scriptingforums?
+        if (empty($modinfo->instances['sforum'])) {
+            // hmm, no sforums?
             continue;
         }
 
-        $coursescriptingforums = $DB->get_records('scriptingforum', array('course' => $course->id));
+        $coursesforums = $DB->get_records('sforum', array('course' => $course->id));
 
-        foreach ($modinfo->instances['scriptingforum'] as $scriptingforumid => $cm) {
-            if (!$cm->uservisible or !isset($coursescriptingforums[$scriptingforumid])) {
+        foreach ($modinfo->instances['sforum'] as $sforumid => $cm) {
+            if (!$cm->uservisible or !isset($coursesforums[$sforumid])) {
                 continue;
             }
             $context = context_module::instance($cm->id);
-            $scriptingforum = $coursescriptingforums[$scriptingforumid];
-            $scriptingforum->context = $context;
-            $scriptingforum->cm = $cm;
+            $sforum = $coursesforums[$sforumid];
+            $sforum->context = $context;
+            $sforum->cm = $cm;
 
-            if (!has_capability('mod/scriptingforum:viewdiscussion', $context)) {
+            if (!has_capability('mod/sforum:viewdiscussion', $context)) {
                 continue;
             }
 
@@ -1960,39 +1960,39 @@ function scriptingforum_get_readable_scriptingforums($userid, $courseid=0) {
             if (groups_get_activity_groupmode($cm, $course) == SEPARATEGROUPS and
                 !has_capability('moodle/site:accessallgroups', $context)) {
 
-                $scriptingforum->onlygroups = $modinfo->get_groups($cm->groupingid);
-                $scriptingforum->onlygroups[] = -1;
+                $sforum->onlygroups = $modinfo->get_groups($cm->groupingid);
+                $sforum->onlygroups[] = -1;
             }
 
             /// hidden timed discussions
-            $scriptingforum->viewhiddentimedposts = true;
-            if (!empty($CFG->scriptingforum_enabletimedposts)) {
-                if (!has_capability('mod/scriptingforum:viewhiddentimedposts', $context)) {
-                    $scriptingforum->viewhiddentimedposts = false;
+            $sforum->viewhiddentimedposts = true;
+            if (!empty($CFG->sforum_enabletimedposts)) {
+                if (!has_capability('mod/sforum:viewhiddentimedposts', $context)) {
+                    $sforum->viewhiddentimedposts = false;
                 }
             }
 
             /// qanda access
-            if ($scriptingforum->type == 'qanda'
-                    && !has_capability('mod/scriptingforum:viewqandawithoutposting', $context)) {
+            if ($sforum->type == 'qanda'
+                    && !has_capability('mod/sforum:viewqandawithoutposting', $context)) {
 
-                // We need to check whether the user has posted in the qanda scriptingforum.
-                $scriptingforum->onlydiscussions = array();  // Holds discussion ids for the discussions
-                if ($discussionspostedin = scriptingforum_discussions_user_has_posted_in($scriptingforum->id, $USER->id)) {
+                // We need to check whether the user has posted in the qanda sforum.
+                $sforum->onlydiscussions = array();  // Holds discussion ids for the discussions
+                if ($discussionspostedin = sforum_discussions_user_has_posted_in($sforum->id, $USER->id)) {
                     foreach ($discussionspostedin as $d) {
-                        $scriptingforum->onlydiscussions[] = $d->id;
+                        $sforum->onlydiscussions[] = $d->id;
                     }
                 }
             }
 
-            $readablescriptingforums[$scriptingforum->id] = $scriptingforum;
+            $readablesforums[$sforum->id] = $sforum;
         }
 
         unset($modinfo);
 
     } // End foreach $courses
 
-    return $readablescriptingforums;
+    return $readablesforums;
 }
 
 /**
@@ -2009,14 +2009,14 @@ function scriptingforum_get_readable_scriptingforums($userid, $courseid=0) {
  * @param string $extrasql
  * @return array|bool Array of posts found or false
  */
-function scriptingforum_search_posts($searchterms, $courseid=0, $limitfrom=0, $limitnum=50,
+function sforum_search_posts($searchterms, $courseid=0, $limitfrom=0, $limitnum=50,
                             &$totalcount, $extrasql='') {
     global $CFG, $DB, $USER;
     require_once($CFG->libdir.'/searchlib.php');
 
-    $scriptingforums = scriptingforum_get_readable_scriptingforums($USER->id, $courseid);
+    $sforums = sforum_get_readable_sforums($USER->id, $courseid);
 
-    if (count($scriptingforums) == 0) {
+    if (count($sforums) == 0) {
         $totalcount = 0;
         return false;
     }
@@ -2027,21 +2027,21 @@ function scriptingforum_search_posts($searchterms, $courseid=0, $limitfrom=0, $l
     $where = array();
     $params = array();
 
-    foreach ($scriptingforums as $scriptingforumid => $scriptingforum) {
+    foreach ($sforums as $sforumid => $sforum) {
         $select = array();
 
-        if (!$scriptingforum->viewhiddentimedposts) {
-            $select[] = "(d.userid = :userid{$scriptingforumid} OR (d.timestart < :timestart{$scriptingforumid} AND (d.timeend = 0 OR d.timeend > :timeend{$scriptingforumid})))";
-            $params = array_merge($params, array('userid'.$scriptingforumid=>$USER->id, 'timestart'.$scriptingforumid=>$now, 'timeend'.$scriptingforumid=>$now));
+        if (!$sforum->viewhiddentimedposts) {
+            $select[] = "(d.userid = :userid{$sforumid} OR (d.timestart < :timestart{$sforumid} AND (d.timeend = 0 OR d.timeend > :timeend{$sforumid})))";
+            $params = array_merge($params, array('userid'.$sforumid=>$USER->id, 'timestart'.$sforumid=>$now, 'timeend'.$sforumid=>$now));
         }
 
-        $cm = $scriptingforum->cm;
-        $context = $scriptingforum->context;
+        $cm = $sforum->cm;
+        $context = $sforum->context;
 
-        if ($scriptingforum->type == 'qanda'
-            && !has_capability('mod/scriptingforum:viewqandawithoutposting', $context)) {
-            if (!empty($scriptingforum->onlydiscussions)) {
-                list($discussionid_sql, $discussionid_params) = $DB->get_in_or_equal($scriptingforum->onlydiscussions, SQL_PARAMS_NAMED, 'qanda'.$scriptingforumid.'_');
+        if ($sforum->type == 'qanda'
+            && !has_capability('mod/sforum:viewqandawithoutposting', $context)) {
+            if (!empty($sforum->onlydiscussions)) {
+                list($discussionid_sql, $discussionid_params) = $DB->get_in_or_equal($sforum->onlydiscussions, SQL_PARAMS_NAMED, 'qanda'.$sforumid.'_');
                 $params = array_merge($params, $discussionid_params);
                 $select[] = "(d.id $discussionid_sql OR p.parent = 0)";
             } else {
@@ -2049,18 +2049,18 @@ function scriptingforum_search_posts($searchterms, $courseid=0, $limitfrom=0, $l
             }
         }
 
-        if (!empty($scriptingforum->onlygroups)) {
-            list($groupid_sql, $groupid_params) = $DB->get_in_or_equal($scriptingforum->onlygroups, SQL_PARAMS_NAMED, 'grps'.$scriptingforumid.'_');
+        if (!empty($sforum->onlygroups)) {
+            list($groupid_sql, $groupid_params) = $DB->get_in_or_equal($sforum->onlygroups, SQL_PARAMS_NAMED, 'grps'.$sforumid.'_');
             $params = array_merge($params, $groupid_params);
             $select[] = "d.groupid $groupid_sql";
         }
 
         if ($select) {
             $selects = implode(" AND ", $select);
-            $where[] = "(d.forum = :scriptingforum{$scriptingforumid} AND $selects)";
-            $params['scriptingforum'.$scriptingforumid] = $scriptingforumid;
+            $where[] = "(d.forum = :sforum{$sforumid} AND $selects)";
+            $params['sforum'.$sforumid] = $sforumid;
         } else {
-            $fullaccess[] = $scriptingforumid;
+            $fullaccess[] = $sforumid;
         }
     }
 
@@ -2097,8 +2097,8 @@ function scriptingforum_search_posts($searchterms, $courseid=0, $limitfrom=0, $l
         $params = array_merge($params, $msparams);
     }
 
-    $fromsql = "{scriptingforum_posts} p,
-                  {scriptingforum_discussions} d,
+    $fromsql = "{sforum_posts} p,
+                  {sforum_discussions} d,
                   {user} u";
 
     $selectsql = " $messagesearch
@@ -2135,7 +2135,7 @@ function scriptingforum_search_posts($searchterms, $courseid=0, $limitfrom=0, $l
  * @param int $now used for timed discussions only
  * @return array
  */
-function scriptingforum_get_unmailed_posts($starttime, $endtime, $now=null) {
+function sforum_get_unmailed_posts($starttime, $endtime, $now=null) {
     global $CFG, $DB;
 
     $params = array();
@@ -2144,7 +2144,7 @@ function scriptingforum_get_unmailed_posts($starttime, $endtime, $now=null) {
     $params['ptimeend'] = $endtime;
     $params['mailnow'] = 1;
 
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
+    if (!empty($CFG->sforum_enabletimedposts)) {
         if (empty($now)) {
             $now = time();
         }
@@ -2159,8 +2159,8 @@ function scriptingforum_get_unmailed_posts($starttime, $endtime, $now=null) {
     }
 
     return $DB->get_records_sql("SELECT p.*, d.course, d.forum
-                                 FROM {scriptingforum_posts} p
-                                 JOIN {scriptingforum_discussions} d ON d.id = p.discussion
+                                 FROM {sforum_posts} p
+                                 JOIN {sforum_discussions} d ON d.id = p.discussion
                                  WHERE p.mailed = :mailed
                                  $selectsql
                                  AND (p.created < :ptimeend OR p.mailnow = :mailnow)
@@ -2177,7 +2177,7 @@ function scriptingforum_get_unmailed_posts($starttime, $endtime, $now=null) {
  * @param int $now Defaults to time()
  * @return bool
  */
-function scriptingforum_mark_old_posts_as_mailed($endtime, $now=null) {
+function sforum_mark_old_posts_as_mailed($endtime, $now=null) {
     global $CFG, $DB;
 
     if (empty($now)) {
@@ -2191,16 +2191,16 @@ function scriptingforum_mark_old_posts_as_mailed($endtime, $now=null) {
     $params['mailnow'] = 1;
     $params['mailedpending'] = SCRIPTING_FORUM_MAILED_PENDING;
 
-    if (empty($CFG->scriptingforum_enabletimedposts)) {
-        return $DB->execute("UPDATE {scriptingforum_posts}
+    if (empty($CFG->sforum_enabletimedposts)) {
+        return $DB->execute("UPDATE {sforum_posts}
                              SET mailed = :mailedsuccess
                              WHERE (created < :endtime OR mailnow = :mailnow)
                              AND mailed = :mailedpending", $params);
     } else {
-        return $DB->execute("UPDATE {scriptingforum_posts}
+        return $DB->execute("UPDATE {sforum_posts}
                              SET mailed = :mailedsuccess
                              WHERE discussion NOT IN (SELECT d.id
-                                                      FROM {scriptingforum_discussions} d
+                                                      FROM {sforum_discussions} d
                                                       WHERE d.timestart > :now)
                              AND (created < :endtime OR mailnow = :mailnow)
                              AND mailed = :mailedpending", $params);
@@ -2208,22 +2208,22 @@ function scriptingforum_mark_old_posts_as_mailed($endtime, $now=null) {
 }
 
 /**
- * Get all the posts for a user in a scriptingforum suitable for scriptingforum_print_post
+ * Get all the posts for a user in a sforum suitable for sforum_print_post
  *
  * @global object
  * @global object
  * @uses CONTEXT_MODULE
  * @return array
  */
-function scriptingforum_get_user_posts($scriptingforumid, $userid) {
+function sforum_get_user_posts($sforumid, $userid) {
     global $CFG, $DB;
 
     $timedsql = "";
-    $params = array($scriptingforumid, $userid);
+    $params = array($sforumid, $userid);
 
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
-        $cm = get_coursemodule_from_instance('scriptingforum', $scriptingforumid);
-        if (!has_capability('mod/scriptingforum:viewhiddentimedposts' , context_module::instance($cm->id))) {
+    if (!empty($CFG->sforum_enabletimedposts)) {
+        $cm = get_coursemodule_from_instance('sforum', $sforumid);
+        if (!has_capability('mod/sforum:viewhiddentimedposts' , context_module::instance($cm->id))) {
             $now = time();
             $timedsql = "AND (d.timestart < ? AND (d.timeend = 0 OR d.timeend > ?))";
             $params[] = $now;
@@ -2233,9 +2233,9 @@ function scriptingforum_get_user_posts($scriptingforumid, $userid) {
 
     $allnames = get_all_user_name_fields(true, 'u');
     return $DB->get_records_sql("SELECT p.*, d.forum, $allnames, u.email, u.picture, u.imagealt
-                              FROM {scriptingforum} f
-                                   JOIN {scriptingforum_discussions} d ON d.forum = f.id
-                                   JOIN {scriptingforum_posts} p ON p.discussion = d.id
+                              FROM {sforum} f
+                                   JOIN {sforum_discussions} d ON d.forum = f.id
+                                   JOIN {sforum_posts} p ON p.discussion = d.id
                                    JOIN {user} u ON u.id = p.userid
                              WHERE f.id = ?
                                    AND p.userid = ?
@@ -2249,18 +2249,18 @@ function scriptingforum_get_user_posts($scriptingforumid, $userid) {
  * @global object
  * @global object
  * @uses CONTEXT_MODULE
- * @param int $scriptingforumid
+ * @param int $sforumid
  * @param int $userid
  * @return array Array or false
  */
-function scriptingforum_get_user_involved_discussions($scriptingforumid, $userid) {
+function sforum_get_user_involved_discussions($sforumid, $userid) {
     global $CFG, $DB;
 
     $timedsql = "";
-    $params = array($scriptingforumid, $userid);
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
-        $cm = get_coursemodule_from_instance('scriptingforum', $scriptingforumid);
-        if (!has_capability('mod/scriptingforum:viewhiddentimedposts' , context_module::instance($cm->id))) {
+    $params = array($sforumid, $userid);
+    if (!empty($CFG->sforum_enabletimedposts)) {
+        $cm = get_coursemodule_from_instance('sforum', $sforumid);
+        if (!has_capability('mod/sforum:viewhiddentimedposts' , context_module::instance($cm->id))) {
             $now = time();
             $timedsql = "AND (d.timestart < ? AND (d.timeend = 0 OR d.timeend > ?))";
             $params[] = $now;
@@ -2269,31 +2269,31 @@ function scriptingforum_get_user_involved_discussions($scriptingforumid, $userid
     }
 
     return $DB->get_records_sql("SELECT DISTINCT d.*
-                              FROM {scriptingforum} f
-                                   JOIN {scriptingforum_discussions} d ON d.forum = f.id
-                                   JOIN {scriptingforum_posts} p ON p.discussion = d.id
+                              FROM {sforum} f
+                                   JOIN {sforum_discussions} d ON d.forum = f.id
+                                   JOIN {sforum_posts} p ON p.discussion = d.id
                              WHERE f.id = ?
                                    AND p.userid = ?
                                    $timedsql", $params);
 }
 
 /**
- * Get all the posts for a user in a scriptingforum suitable for scriptingforum_print_post
+ * Get all the posts for a user in a sforum suitable for sforum_print_post
  *
  * @global object
  * @global object
- * @param int $scriptingforumid
+ * @param int $sforumid
  * @param int $userid
  * @return array of counts or false
  */
-function scriptingforum_count_user_posts($scriptingforumid, $userid) {
+function sforum_count_user_posts($sforumid, $userid) {
     global $CFG, $DB;
 
     $timedsql = "";
-    $params = array($scriptingforumid, $userid);
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
-        $cm = get_coursemodule_from_instance('scriptingforum', $scriptingforumid);
-        if (!has_capability('mod/scriptingforum:viewhiddentimedposts' , context_module::instance($cm->id))) {
+    $params = array($sforumid, $userid);
+    if (!empty($CFG->sforum_enabletimedposts)) {
+        $cm = get_coursemodule_from_instance('sforum', $sforumid);
+        if (!has_capability('mod/sforum:viewhiddentimedposts' , context_module::instance($cm->id))) {
             $now = time();
             $timedsql = "AND (d.timestart < ? AND (d.timeend = 0 OR d.timeend > ?))";
             $params[] = $now;
@@ -2302,9 +2302,9 @@ function scriptingforum_count_user_posts($scriptingforumid, $userid) {
     }
 
     return $DB->get_record_sql("SELECT COUNT(p.id) AS postcount, MAX(p.modified) AS lastpost
-                             FROM {scriptingforum} f
-                                  JOIN {scriptingforum_discussions} d ON d.forum = f.id
-                                  JOIN {scriptingforum_posts} p       ON p.discussion = d.id
+                             FROM {sforum} f
+                                  JOIN {sforum_discussions} d ON d.forum = f.id
+                                  JOIN {sforum_posts} p       ON p.discussion = d.id
                                   JOIN {user} u              ON u.id = p.userid
                             WHERE f.id = ?
                                   AND p.userid = ?
@@ -2312,23 +2312,23 @@ function scriptingforum_count_user_posts($scriptingforumid, $userid) {
 }
 
 /**
- * Given a log entry, return the scriptingforum post details for it.
+ * Given a log entry, return the sforum post details for it.
  *
  * @global object
  * @global object
  * @param object $log
  * @return array|null
  */
-function scriptingforum_get_post_from_log($log) {
+function sforum_get_post_from_log($log) {
     global $CFG, $DB;
 
     $allnames = get_all_user_name_fields(true, 'u');
     if ($log->action == "add post") {
 
-        return $DB->get_record_sql("SELECT p.*, f.type AS scriptingforumtype, d.forum, d.groupid, $allnames, u.email, u.picture
-                                 FROM {scriptingforum_discussions} d,
-                                      {scriptingforum_posts} p,
-                                      {scriptingforum} f,
+        return $DB->get_record_sql("SELECT p.*, f.type AS sforumtype, d.forum, d.groupid, $allnames, u.email, u.picture
+                                 FROM {sforum_discussions} d,
+                                      {sforum_posts} p,
+                                      {sforum} f,
                                       {user} u
                                 WHERE p.id = ?
                                   AND d.id = p.discussion
@@ -2339,10 +2339,10 @@ function scriptingforum_get_post_from_log($log) {
 
     } else if ($log->action == "add discussion") {
 
-        return $DB->get_record_sql("SELECT p.*, f.type AS scriptingforumtype, d.scriptingforum, d.groupid, $allnames, u.email, u.picture
-                                 FROM {scriptingforum_discussions} d,
-                                      {scriptingforum_posts} p,
-                                      {scriptingforum} f,
+        return $DB->get_record_sql("SELECT p.*, f.type AS sforumtype, d.sforum, d.groupid, $allnames, u.email, u.picture
+                                 FROM {sforum_discussions} d,
+                                      {sforum_posts} p,
+                                      {sforum} f,
                                       {user} u
                                 WHERE d.id = ?
                                   AND d.firstpost = p.id
@@ -2361,12 +2361,12 @@ function scriptingforum_get_post_from_log($log) {
  * @param int $dicsussionid
  * @return array
  */
-function scriptingforum_get_firstpost_from_discussion($discussionid) {
+function sforum_get_firstpost_from_discussion($discussionid) {
     global $CFG, $DB;
 
     return $DB->get_record_sql("SELECT p.*
-                             FROM {scriptingforum_discussions} d,
-                                  {scriptingforum_posts} p
+                             FROM {sforum_discussions} d,
+                                  {sforum_posts} p
                             WHERE d.id = ?
                               AND d.firstpost = p.id ", array($discussionid));
 }
@@ -2376,14 +2376,14 @@ function scriptingforum_get_firstpost_from_discussion($discussionid) {
  *
  * @global object
  * @global object
- * @param int $scriptingforumid
- * @param string $scriptingforumsort
+ * @param int $sforumid
+ * @param string $sforumsort
  * @param int $limit
  * @param int $page
  * @param int $perpage
  * @return array
  */
-function scriptingforum_count_discussion_replies($scriptingforumid, $scriptingforumsort="", $limit=-1, $page=-1, $perpage=0) {
+function sforum_count_discussion_replies($sforumid, $sforumsort="", $limit=-1, $page=-1, $perpage=0) {
     global $CFG, $DB;
 
     if ($limit > 0) {
@@ -2397,32 +2397,32 @@ function scriptingforum_count_discussion_replies($scriptingforumid, $scriptingfo
         $limitnum  = 0;
     }
 
-    if ($scriptingforumsort == "") {
+    if ($sforumsort == "") {
         $orderby = "";
         $groupby = "";
 
     } else {
-        $orderby = "ORDER BY $scriptingforumsort";
-        $groupby = ", ".strtolower($scriptingforumsort);
+        $orderby = "ORDER BY $sforumsort";
+        $groupby = ", ".strtolower($sforumsort);
         $groupby = str_replace('desc', '', $groupby);
         $groupby = str_replace('asc', '', $groupby);
     }
 
-    if (($limitfrom == 0 and $limitnum == 0) or $scriptingforumsort == "") {
+    if (($limitfrom == 0 and $limitnum == 0) or $sforumsort == "") {
         $sql = "SELECT p.discussion, COUNT(p.id) AS replies, MAX(p.id) AS lastpostid
-                  FROM {scriptingforum_posts} p
-                       JOIN {scriptingforum_discussions} d ON p.discussion = d.id
+                  FROM {sforum_posts} p
+                       JOIN {sforum_discussions} d ON p.discussion = d.id
                  WHERE p.parent > 0 AND d.forum = ?
               GROUP BY p.discussion";
-        return $DB->get_records_sql($sql, array($scriptingforumid));
+        return $DB->get_records_sql($sql, array($sforumid));
 
     } else {
         $sql = "SELECT p.discussion, (COUNT(p.id) - 1) AS replies, MAX(p.id) AS lastpostid
-                  FROM {scriptingforum_posts} p
-                       JOIN {scriptingforum_discussions} d ON p.discussion = d.id
+                  FROM {sforum_posts} p
+                       JOIN {sforum_discussions} d ON p.discussion = d.id
                  WHERE d.forum = ?
               GROUP BY p.discussion $groupby $orderby";
-        return $DB->get_records_sql($sql, array($scriptingforumid), $limitfrom, $limitnum);
+        return $DB->get_records_sql($sql, array($sforumid), $limitfrom, $limitnum);
     }
 }
 
@@ -2431,12 +2431,12 @@ function scriptingforum_count_discussion_replies($scriptingforumid, $scriptingfo
  * @global object
  * @global object
  * @staticvar array $cache
- * @param object $scriptingforum
+ * @param object $sforum
  * @param object $cm
  * @param object $course
  * @return mixed
  */
-function scriptingforum_count_discussions($scriptingforum, $cm, $course) {
+function sforum_count_discussions($sforum, $cm, $course) {
     global $CFG, $DB, $USER;
 
     static $cache = array();
@@ -2446,7 +2446,7 @@ function scriptingforum_count_discussions($scriptingforum, $cm, $course) {
     $params = array($course->id);
 
     if (!isset($cache[$course->id])) {
-        if (!empty($CFG->scriptingforum_enabletimedposts)) {
+        if (!empty($CFG->sforum_enabletimedposts)) {
             $timedsql = "AND d.timestart < ? AND (d.timeend = 0 OR d.timeend > ?)";
             $params[] = $now;
             $params[] = $now;
@@ -2455,8 +2455,8 @@ function scriptingforum_count_discussions($scriptingforum, $cm, $course) {
         }
 
         $sql = "SELECT f.id, COUNT(d.id) as dcount
-                  FROM {scriptingforum} f
-                       JOIN {scriptingforum_discussions} d ON d.forum = f.id
+                  FROM {sforum} f
+                       JOIN {sforum_discussions} d ON d.forum = f.id
                  WHERE f.course = ?
                        $timedsql
               GROUP BY f.id";
@@ -2471,18 +2471,18 @@ function scriptingforum_count_discussions($scriptingforum, $cm, $course) {
         }
     }
 
-    if (empty($cache[$course->id][$scriptingforum->id])) {
+    if (empty($cache[$course->id][$sforum->id])) {
         return 0;
     }
 
     $groupmode = groups_get_activity_groupmode($cm, $course);
 
     if ($groupmode != SEPARATEGROUPS) {
-        return $cache[$course->id][$scriptingforum->id];
+        return $cache[$course->id][$sforum->id];
     }
 
     if (has_capability('moodle/site:accessallgroups', context_module::instance($cm->id))) {
-        return $cache[$course->id][$scriptingforum->id];
+        return $cache[$course->id][$sforum->id];
     }
 
     require_once($CFG->dirroot.'/course/lib.php');
@@ -2495,9 +2495,9 @@ function scriptingforum_count_discussions($scriptingforum, $cm, $course) {
     $mygroups[-1] = -1;
 
     list($mygroups_sql, $params) = $DB->get_in_or_equal($mygroups);
-    $params[] = $scriptingforum->id;
+    $params[] = $sforum->id;
 
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
+    if (!empty($CFG->sforum_enabletimedposts)) {
         $timedsql = "AND d.timestart < $now AND (d.timeend = 0 OR d.timeend > $now)";
         $params[] = $now;
         $params[] = $now;
@@ -2506,7 +2506,7 @@ function scriptingforum_count_discussions($scriptingforum, $cm, $course) {
     }
 
     $sql = "SELECT COUNT(d.id)
-              FROM {scriptingforum_discussions} d
+              FROM {sforum_discussions} d
              WHERE d.groupid $mygroups_sql AND d.forum = ?
                    $timedsql";
 
@@ -2514,7 +2514,7 @@ function scriptingforum_count_discussions($scriptingforum, $cm, $course) {
 }
 
 /**
- * Get all discussions in a scriptingforum
+ * Get all discussions in a sforum
  *
  * @global object
  * @global object
@@ -2522,7 +2522,7 @@ function scriptingforum_count_discussions($scriptingforum, $cm, $course) {
  * @uses CONTEXT_MODULE
  * @uses VISIBLEGROUPS
  * @param object $cm
- * @param string $scriptingforumsort
+ * @param string $sforumsort
  * @param bool $fullpost
  * @param int $unused
  * @param int $limit
@@ -2533,7 +2533,7 @@ function scriptingforum_count_discussions($scriptingforum, $cm, $course) {
  *                     Use SCRIPTING_FORUM_POSTS_ALL_USER_GROUPS for all the user groups
  * @return array
  */
-function scriptingforum_get_discussions($cm, $scriptingforumsort="", $fullpost=true, $unused=-1,
+function sforum_get_discussions($cm, $sforumsort="", $fullpost=true, $unused=-1,
         $limit=-1, $userlastmodified=false, $page=-1, $perpage=0, $groupid = -1) {
     global $CFG, $DB, $USER;
 
@@ -2544,13 +2544,13 @@ function scriptingforum_get_discussions($cm, $scriptingforumsort="", $fullpost=t
 
     $modcontext = context_module::instance($cm->id);
 
-    if (!has_capability('mod/scriptingforum:viewdiscussion', $modcontext)) { /// User must have perms to view discussions
+    if (!has_capability('mod/sforum:viewdiscussion', $modcontext)) { /// User must have perms to view discussions
         return array();
     }
 
-    if (!empty($CFG->scriptingforum_enabletimedposts)) { /// Users must fulfill timed posts
+    if (!empty($CFG->sforum_enabletimedposts)) { /// Users must fulfill timed posts
 
-        if (!has_capability('mod/scriptingforum:viewhiddentimedposts', $modcontext)) {
+        if (!has_capability('mod/sforum:viewhiddentimedposts', $modcontext)) {
             $timelimit = " AND ((d.timestart <= ? AND (d.timeend = 0 OR d.timeend > ?))";
             $params[] = $now;
             $params[] = $now;
@@ -2627,8 +2627,8 @@ function scriptingforum_get_discussions($cm, $scriptingforumsort="", $fullpost=t
     } else {
         $groupselect = "";
     }
-    if (empty($scriptingforumsort)) {
-        $scriptingforumsort = scriptingforum_get_default_sort_order();
+    if (empty($sforumsort)) {
+        $sforumsort = sforum_get_default_sort_order();
     }
     if (empty($fullpost)) {
         $postdata = "p.id,p.subject,p.modified,p.discussion,p.userid";
@@ -2648,13 +2648,13 @@ function scriptingforum_get_discussions($cm, $scriptingforumsort="", $fullpost=t
     $allnames = get_all_user_name_fields(true, 'u');
     $sql = "SELECT $postdata, d.name, d.timemodified, d.usermodified, d.groupid, d.timestart, d.timeend, d.pinned, $allnames,
                    u.email, u.picture, u.imagealt $umfields
-              FROM {scriptingforum_discussions} d
-                   JOIN {scriptingforum_posts} p ON p.discussion = d.id
+              FROM {sforum_discussions} d
+                   JOIN {sforum_posts} p ON p.discussion = d.id
                    JOIN {user} u ON p.userid = u.id
                    $umtable
              WHERE d.forum = ? AND p.parent = 0
                    $timelimit $groupselect
-          ORDER BY $scriptingforumsort, d.id DESC";
+          ORDER BY $sforumsort, d.id DESC";
     return $DB->get_records_sql($sql, $params, $limitfrom, $limitnum);
 }
 
@@ -2664,7 +2664,7 @@ function scriptingforum_get_discussions($cm, $scriptingforumsort="", $fullpost=t
  * The calculation is based on the timemodified when time modified or time created is identical
  * It will revert to using the ID to sort consistently. This is better tha skipping a discussion.
  *
- * For blog-style scriptingforums, the calculation is based on the original creation time of the
+ * For blog-style sforums, the calculation is based on the original creation time of the
  * blog post.
  *
  * Please note that this does not check whether or not the discussion passed is accessible
@@ -2673,16 +2673,16 @@ function scriptingforum_get_discussions($cm, $scriptingforumsort="", $fullpost=t
  *
  * @param object $cm The CM record.
  * @param object $discussion The discussion record.
- * @param object $scriptingforum The scriptingforum instance record.
+ * @param object $sforum The sforum instance record.
  * @return array That always contains the keys 'prev' and 'next'. When there is a result
  *               they contain the record with minimal information such as 'id' and 'name'.
  *               When the neighbour is not found the value is false.
  */
-function scriptingforum_get_discussion_neighbours($cm, $discussion, $scriptingforum) {
+function sforum_get_discussion_neighbours($cm, $discussion, $sforum) {
     global $CFG, $DB, $USER;
 
-    if ($cm->instance != $discussion->scriptingforum or $discussion->scriptingforum != $scriptingforum->id or $scriptingforum->id != $cm->instance) {
-        throw new coding_exception('Discussion is not part of the same scriptingforum.');
+    if ($cm->instance != $discussion->sforum or $discussion->sforum != $sforum->id or $sforum->id != $cm->instance) {
+        throw new coding_exception('Discussion is not part of the same sforum.');
     }
 
     $neighbours = array('prev' => false, 'next' => false);
@@ -2695,8 +2695,8 @@ function scriptingforum_get_discussion_neighbours($cm, $discussion, $scriptingfo
 
     // Users must fulfill timed posts.
     $timelimit = '';
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
-        if (!has_capability('mod/scriptingforum:viewhiddentimedposts', $modcontext)) {
+    if (!empty($CFG->sforum_enabletimedposts)) {
+        if (!has_capability('mod/sforum:viewhiddentimedposts', $modcontext)) {
             $timelimit = ' AND ((d.timestart <= :tltimestart AND (d.timeend = 0 OR d.timeend > :tltimeend))';
             $params['tltimestart'] = $now;
             $params['tltimeend'] = $now;
@@ -2726,7 +2726,7 @@ function scriptingforum_get_discussion_neighbours($cm, $discussion, $scriptingfo
         }
     }
 
-    $params['scriptingforumid'] = $cm->instance;
+    $params['sforumid'] = $cm->instance;
     $params['discid1'] = $discussion->id;
     $params['discid2'] = $discussion->id;
     $params['discid3'] = $discussion->id;
@@ -2739,16 +2739,16 @@ function scriptingforum_get_discussion_neighbours($cm, $discussion, $scriptingfo
     $params['pinnedstate4'] = (int) $discussion->pinned;
 
     $sql = "SELECT d.id, d.name, d.timemodified, d.groupid, d.timestart, d.timeend
-              FROM {scriptingforum_discussions} d
-              JOIN {scriptingforum_posts} p ON d.firstpost = p.id
-             WHERE d.scriptingforum = :scriptingforumid
+              FROM {sforum_discussions} d
+              JOIN {sforum_posts} p ON d.firstpost = p.id
+             WHERE d.sforum = :sforumid
                AND d.id <> :discid1
                    $timelimit
                    $groupselect";
     $comparefield = "d.timemodified";
     $comparevalue = ":disctimecompare1";
     $comparevalue2  = ":disctimecompare2";
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
+    if (!empty($CFG->sforum_enabletimedposts)) {
         // Here we need to take into account the release time (timestart)
         // if one is set, of the neighbouring posts and compare it to the
         // timestart or timemodified of *this* post depending on if the
@@ -2767,13 +2767,13 @@ function scriptingforum_get_discussion_neighbours($cm, $discussion, $scriptingfo
             $params['disctimecompare2'] = $discussion->timestart;
         }
     }
-    $orderbydesc = scriptingforum_get_default_sort_order(true, $comparefield, 'd', false);
-    $orderbyasc = scriptingforum_get_default_sort_order(false, $comparefield, 'd', false);
+    $orderbydesc = sforum_get_default_sort_order(true, $comparefield, 'd', false);
+    $orderbyasc = sforum_get_default_sort_order(false, $comparefield, 'd', false);
 
-    if ($scriptingforum->type === 'blog') {
+    if ($sforum->type === 'blog') {
          $subselect = "SELECT pp.created
-                   FROM {scriptingforum_discussions} dd
-                   JOIN {scriptingforum_posts} pp ON dd.firstpost = pp.id ";
+                   FROM {sforum_discussions} dd
+                   JOIN {sforum_posts} pp ON dd.firstpost = pp.id ";
 
          $subselectwhere1 = " WHERE dd.id = :discid3";
          $subselectwhere2 = " WHERE dd.id = :discid4";
@@ -2806,7 +2806,7 @@ function scriptingforum_get_discussion_neighbours($cm, $discussion, $scriptingfo
 }
 
 /**
- * Get the sql to use in the ORDER BY clause for scriptingforum discussions.
+ * Get the sql to use in the ORDER BY clause for sforum discussions.
  *
  * This has the ordering take timed discussion windows into account.
  *
@@ -2816,7 +2816,7 @@ function scriptingforum_get_discussion_neighbours($cm, $discussion, $scriptingfo
  * @param bool $pinned sort pinned posts to the top
  * @return string
  */
-function scriptingforum_get_default_sort_order($desc = true, $compare = 'd.timemodified', $prefix = 'd', $pinned = true) {
+function sforum_get_default_sort_order($desc = true, $compare = 'd.timemodified', $prefix = 'd', $pinned = true) {
     global $CFG;
 
     if (!empty($prefix)) {
@@ -2832,7 +2832,7 @@ function scriptingforum_get_default_sort_order($desc = true, $compare = 'd.timem
     }
 
     $sort = "{$prefix}timemodified";
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
+    if (!empty($CFG->sforum_enabletimedposts)) {
         $sort = "CASE WHEN {$compare} < {$prefix}timestart
                  THEN {$prefix}timestart
                  ELSE {$compare}
@@ -2851,11 +2851,11 @@ function scriptingforum_get_default_sort_order($desc = true, $compare = 'd.timem
  * @param object $cm
  * @return array
  */
-function scriptingforum_get_discussions_unread($cm) {
+function sforum_get_discussions_unread($cm) {
     global $CFG, $DB, $USER;
 
     $now = round(time(), -2);
-    $cutoffdate = $now - ($CFG->scriptingforum_oldpostdays*24*60*60);
+    $cutoffdate = $now - ($CFG->sforum_oldpostdays*24*60*60);
 
     $params = array();
     $groupmode    = groups_get_activity_groupmode($cm);
@@ -2885,7 +2885,7 @@ function scriptingforum_get_discussions_unread($cm) {
         $groupselect = "";
     }
 
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
+    if (!empty($CFG->sforum_enabletimedposts)) {
         $timedsql = "AND d.timestart < :now1 AND (d.timeend = 0 OR d.timeend > :now2)";
         $params['now1'] = $now;
         $params['now2'] = $now;
@@ -2894,9 +2894,9 @@ function scriptingforum_get_discussions_unread($cm) {
     }
 
     $sql = "SELECT d.id, COUNT(p.id) AS unread
-              FROM {scriptingforum_discussions} d
-                   JOIN {scriptingforum_posts} p ON p.discussion = d.id
-                   LEFT JOIN {scriptingforum_read} r ON (r.postid = p.id AND r.userid = $USER->id)
+              FROM {sforum_discussions} d
+                   JOIN {sforum_posts} p ON p.discussion = d.id
+                   LEFT JOIN {sforum_read} r ON (r.postid = p.id AND r.userid = $USER->id)
              WHERE d.forum = {$cm->instance}
                    AND p.modified >= :cutoffdate AND r.id is NULL
                    $groupselect
@@ -2923,7 +2923,7 @@ function scriptingforum_get_discussions_unread($cm) {
  * @param object $cm
  * @return array
  */
-function scriptingforum_get_discussions_count($cm) {
+function sforum_get_discussions_count($cm) {
     global $CFG, $DB, $USER;
 
     $now = round(time(), -2);
@@ -2957,11 +2957,11 @@ function scriptingforum_get_discussions_count($cm) {
 
     $timelimit = "";
 
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
+    if (!empty($CFG->sforum_enabletimedposts)) {
 
         $modcontext = context_module::instance($cm->id);
 
-        if (!has_capability('mod/scriptingforum:viewhiddentimedposts', $modcontext)) {
+        if (!has_capability('mod/sforum:viewhiddentimedposts', $modcontext)) {
             $timelimit = " AND ((d.timestart <= ? AND (d.timeend = 0 OR d.timeend > ?))";
             $params[] = $now;
             $params[] = $now;
@@ -2974,8 +2974,8 @@ function scriptingforum_get_discussions_count($cm) {
     }
 
     $sql = "SELECT COUNT(d.id)
-              FROM {scriptingforum_discussions} d
-                   JOIN {scriptingforum_posts} p ON p.discussion = d.id
+              FROM {sforum_discussions} d
+                   JOIN {sforum_posts} p ON p.discussion = d.id
              WHERE d.forum = ? AND p.parent = 0
                    $groupselect $timelimit";
 
@@ -2992,65 +2992,65 @@ function scriptingforum_get_discussions_count($cm) {
  * @param int $courseid
  * @param string $type
  */
-function scriptingforum_get_course_scriptingforum($courseid, $type) {
-// How to set up special 1-per-course scriptingforums
+function sforum_get_course_sforum($courseid, $type) {
+// How to set up special 1-per-course sforums
     global $CFG, $DB, $OUTPUT, $USER;
 
-    if ($scriptingforums = $DB->get_records_select("scriptingforum", "course = ? AND type = ?", array($courseid, $type), "id ASC")) {
+    if ($sforums = $DB->get_records_select("sforum", "course = ? AND type = ?", array($courseid, $type), "id ASC")) {
         // There should always only be ONE, but with the right combination of
         // errors there might be more.  In this case, just return the oldest one (lowest ID).
-        foreach ($scriptingforums as $scriptingforum) {
-            return $scriptingforum;   // ie the first one
+        foreach ($sforums as $sforum) {
+            return $sforum;   // ie the first one
         }
     }
 
     // Doesn't exist, so create one now.
-    $scriptingforum = new stdClass();
-    $scriptingforum->course = $courseid;
-    $scriptingforum->type = "$type";
+    $sforum = new stdClass();
+    $sforum->course = $courseid;
+    $sforum->type = "$type";
     if (!empty($USER->htmleditor)) {
-        $scriptingforum->introformat = $USER->htmleditor;
+        $sforum->introformat = $USER->htmleditor;
     }
-    switch ($scriptingforum->type) {
+    switch ($sforum->type) {
         case "news":
-            $scriptingforum->name  = get_string("namenews", "scriptingforum");
-            $scriptingforum->intro = get_string("intronews", "scriptingforum");
-            $scriptingforum->forcesubscribe = SCRIPTING_FORUM_FORCESUBSCRIBE;
-            $scriptingforum->assessed = 0;
+            $sforum->name  = get_string("namenews", "sforum");
+            $sforum->intro = get_string("intronews", "sforum");
+            $sforum->forcesubscribe = SCRIPTING_FORUM_FORCESUBSCRIBE;
+            $sforum->assessed = 0;
             if ($courseid == SITEID) {
-                $scriptingforum->name  = get_string("sitenews");
-                $scriptingforum->forcesubscribe = 0;
+                $sforum->name  = get_string("sitenews");
+                $sforum->forcesubscribe = 0;
             }
             break;
         case "social":
-            $scriptingforum->name  = get_string("namesocial", "scriptingforum");
-            $scriptingforum->intro = get_string("introsocial", "scriptingforum");
-            $scriptingforum->assessed = 0;
-            $scriptingforum->forcesubscribe = 0;
+            $sforum->name  = get_string("namesocial", "sforum");
+            $sforum->intro = get_string("introsocial", "sforum");
+            $sforum->assessed = 0;
+            $sforum->forcesubscribe = 0;
             break;
         case "blog":
-            $scriptingforum->name = get_string('blogscriptingforum', 'scriptingforum');
-            $scriptingforum->intro = get_string('introblog', 'scriptingforum');
-            $scriptingforum->assessed = 0;
-            $scriptingforum->forcesubscribe = 0;
+            $sforum->name = get_string('blogsforum', 'sforum');
+            $sforum->intro = get_string('introblog', 'sforum');
+            $sforum->assessed = 0;
+            $sforum->forcesubscribe = 0;
             break;
         default:
-            echo $OUTPUT->notification("That scriptingforum type doesn't exist!");
+            echo $OUTPUT->notification("That sforum type doesn't exist!");
             return false;
             break;
     }
 
-    $scriptingforum->timemodified = time();
-    $scriptingforum->id = $DB->insert_record("scriptingforum", $scriptingforum);
+    $sforum->timemodified = time();
+    $sforum->id = $DB->insert_record("sforum", $sforum);
 
-    if (! $module = $DB->get_record("modules", array("name" => "scriptingforum"))) {
-        echo $OUTPUT->notification("Could not find scriptingforum module!!");
+    if (! $module = $DB->get_record("modules", array("name" => "sforum"))) {
+        echo $OUTPUT->notification("Could not find sforum module!!");
         return false;
     }
     $mod = new stdClass();
     $mod->course = $courseid;
     $mod->module = $module->id;
-    $mod->instance = $scriptingforum->id;
+    $mod->instance = $sforum->id;
     $mod->section = 0;
     include_once("$CFG->dirroot/course/lib.php");
     if (! $mod->coursemodule = add_course_module($mod) ) {
@@ -3058,11 +3058,11 @@ function scriptingforum_get_course_scriptingforum($courseid, $type) {
         return false;
     }
     $sectionid = course_add_cm_to_section($courseid, $mod->coursemodule, 0);
-    return $DB->get_record("scriptingforum", array("id" => "$scriptingforum->id"));
+    return $DB->get_record("sforum", array("id" => "$sforum->id"));
 }
 
 /**
- * Print a scriptingforum post
+ * Print a sforum post
  *
  * @global object
  * @global object
@@ -3074,7 +3074,7 @@ function scriptingforum_get_course_scriptingforum($courseid, $type) {
  * @uses CONTEXT_MODULE
  * @param object $post The post to print.
  * @param object $discussion
- * @param object $scriptingforum
+ * @param object $sforum
  * @param object $cm
  * @param object $course
  * @param boolean $ownpost Whether this post belongs to the current user.
@@ -3085,14 +3085,14 @@ function scriptingforum_get_course_scriptingforum($courseid, $type) {
  * @param int $post_read true, false or -99. If we already know whether this user
  *          has read this post, pass that in, otherwise, pass in -99, and this
  *          function will work it out.
- * @param boolean $dummyifcantsee When scriptingforum_user_can_see_post says that
+ * @param boolean $dummyifcantsee When sforum_user_can_see_post says that
  *          the current user can't see this post, if this argument is true
  *          (the default) then print a dummy 'you can't see this post' post.
  *          If false, don't output anything at all.
  * @param bool|null $istracked
  * @return void
  */
-function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $course, $ownpost=false, $reply=false, $link=false,
+function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=false, $reply=false, $link=false,
                           $footer="", $highlight="", $postisread=null, $dummyifcantsee=true, $istracked=null, $return=false) {
     global $USER, $CFG, $OUTPUT;
 
@@ -3110,15 +3110,15 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
     $modcontext = context_module::instance($cm->id);
 
     $post->course = $course->id;
-    $post->scriptingforum  = $scriptingforum->id;
-    $post->message = file_rewrite_pluginfile_urls($post->message, 'pluginfile.php', $modcontext->id, 'mod_scriptingforum', 'post', $post->id);
+    $post->sforum  = $sforum->id;
+    $post->message = file_rewrite_pluginfile_urls($post->message, 'pluginfile.php', $modcontext->id, 'mod_sforum', 'post', $post->id);
     if (!empty($CFG->enableplagiarism)) {
         require_once($CFG->libdir.'/plagiarismlib.php');
         $post->message .= plagiarism_get_links(array('userid' => $post->userid,
             'content' => $post->message,
             'cmid' => $cm->id,
             'course' => $post->course,
-            'scriptingforum' => $post->forum));
+            'sforum' => $post->forum));
     }
 
     // caching
@@ -3128,15 +3128,15 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
 
     if (!isset($cm->cache->caps)) {
         $cm->cache->caps = array();
-        $cm->cache->caps['mod/scriptingforum:viewdiscussion']   = has_capability('mod/scriptingforum:viewdiscussion', $modcontext);
+        $cm->cache->caps['mod/sforum:viewdiscussion']   = has_capability('mod/sforum:viewdiscussion', $modcontext);
         $cm->cache->caps['moodle/site:viewfullnames']  = has_capability('moodle/site:viewfullnames', $modcontext);
-        $cm->cache->caps['mod/scriptingforum:editanypost']      = has_capability('mod/scriptingforum:editanypost', $modcontext);
-        $cm->cache->caps['mod/scriptingforum:splitdiscussions'] = has_capability('mod/scriptingforum:splitdiscussions', $modcontext);
-        $cm->cache->caps['mod/scriptingforum:deleteownpost']    = has_capability('mod/scriptingforum:deleteownpost', $modcontext);
-        $cm->cache->caps['mod/scriptingforum:deleteanypost']    = has_capability('mod/scriptingforum:deleteanypost', $modcontext);
-        $cm->cache->caps['mod/scriptingforum:viewanyrating']    = has_capability('mod/scriptingforum:viewanyrating', $modcontext);
-        $cm->cache->caps['mod/scriptingforum:exportpost']       = has_capability('mod/scriptingforum:exportpost', $modcontext);
-        $cm->cache->caps['mod/scriptingforum:exportownpost']    = has_capability('mod/scriptingforum:exportownpost', $modcontext);
+        $cm->cache->caps['mod/sforum:editanypost']      = has_capability('mod/sforum:editanypost', $modcontext);
+        $cm->cache->caps['mod/sforum:splitdiscussions'] = has_capability('mod/sforum:splitdiscussions', $modcontext);
+        $cm->cache->caps['mod/sforum:deleteownpost']    = has_capability('mod/sforum:deleteownpost', $modcontext);
+        $cm->cache->caps['mod/sforum:deleteanypost']    = has_capability('mod/sforum:deleteanypost', $modcontext);
+        $cm->cache->caps['mod/sforum:viewanyrating']    = has_capability('mod/sforum:viewanyrating', $modcontext);
+        $cm->cache->caps['mod/sforum:exportpost']       = has_capability('mod/sforum:exportpost', $modcontext);
+        $cm->cache->caps['mod/sforum:exportownpost']    = has_capability('mod/sforum:exportownpost', $modcontext);
     }
 
     if (!isset($cm->uservisible)) {
@@ -3144,10 +3144,10 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
     }
 
     if ($istracked && is_null($postisread)) {
-        $postisread = scriptingforum_tp_is_post_read($USER->id, $post);
+        $postisread = sforum_tp_is_post_read($USER->id, $post);
     }
 
-    if (!scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, NULL, $cm)) {
+    if (!sforum_user_can_see_post($sforum, $discussion, $post, NULL, $cm)) {
         $output = '';
         if (!$dummyifcantsee) {
             if ($return) {
@@ -3157,9 +3157,9 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
             return;
         }
         $output .= html_writer::tag('a', '', array('id'=>'p'.$post->id));
-        $output .= html_writer::start_tag('div', array('class'=>'scriptingforumpost clearfix',
+        $output .= html_writer::start_tag('div', array('class'=>'sforumpost clearfix',
                                                        'role' => 'region',
-                                                       'aria-label' => get_string('hiddenscriptingforumpost', 'scriptingforum')));
+                                                       'aria-label' => get_string('hiddensforumpost', 'sforum')));
         $output .= html_writer::start_tag('div', array('class'=>'row header'));
         $output .= html_writer::tag('div', '', array('class'=>'left picture')); // Picture
         if ($post->parent) {
@@ -3167,17 +3167,17 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
         } else {
             $output .= html_writer::start_tag('div', array('class'=>'topic starter'));
         }
-        $output .= html_writer::tag('div', get_string('scriptingforumsubjecthidden','scriptingforum'), array('class' => 'subject',
+        $output .= html_writer::tag('div', get_string('sforumsubjecthidden','sforum'), array('class' => 'subject',
                                                                                            'role' => 'header')); // Subject.
-        $output .= html_writer::tag('div', get_string('scriptingforumauthorhidden', 'scriptingforum'), array('class' => 'author',
+        $output .= html_writer::tag('div', get_string('sforumauthorhidden', 'sforum'), array('class' => 'author',
                                                                                            'role' => 'header')); // Author.
         $output .= html_writer::end_tag('div');
         $output .= html_writer::end_tag('div'); // row
         $output .= html_writer::start_tag('div', array('class'=>'row'));
         $output .= html_writer::tag('div', '&nbsp;', array('class'=>'left side')); // Groups
-        $output .= html_writer::tag('div', get_string('scriptingforumbodyhidden','scriptingforum'), array('class'=>'content')); // Content
+        $output .= html_writer::tag('div', get_string('sforumbodyhidden','sforum'), array('class'=>'content')); // Content
         $output .= html_writer::end_tag('div'); // row
-        $output .= html_writer::end_tag('div'); // scriptingforumpost
+        $output .= html_writer::end_tag('div'); // sforumpost
 
         if ($return) {
             return $output;
@@ -3188,18 +3188,18 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
 
     if (empty($str)) {
         $str = new stdClass;
-        $str->edit         = get_string('edit', 'scriptingforum');
-        $str->delete       = get_string('delete', 'scriptingforum');
-        $str->reply        = get_string('reply', 'scriptingforum');
-        $str->parent       = get_string('parent', 'scriptingforum');
-        $str->pruneheading = get_string('pruneheading', 'scriptingforum');
-        $str->prune        = get_string('prune', 'scriptingforum');
-        $str->displaymode     = get_user_preferences('scriptingforum_displaymode', $CFG->scriptingforum_displaymode);
-        $str->markread     = get_string('markread', 'scriptingforum');
-        $str->markunread   = get_string('markunread', 'scriptingforum');
+        $str->edit         = get_string('edit', 'sforum');
+        $str->delete       = get_string('delete', 'sforum');
+        $str->reply        = get_string('reply', 'sforum');
+        $str->parent       = get_string('parent', 'sforum');
+        $str->pruneheading = get_string('pruneheading', 'sforum');
+        $str->prune        = get_string('prune', 'sforum');
+        $str->displaymode     = get_user_preferences('sforum_displaymode', $CFG->sforum_displaymode);
+        $str->markread     = get_string('markread', 'sforum');
+        $str->markunread   = get_string('markunread', 'sforum');
     }
 
-    $discussionlink = new moodle_url('/mod/scriptingforum/discuss.php', array('d'=>$post->discussion));
+    $discussionlink = new moodle_url('/mod/sforum/discuss.php', array('d'=>$post->discussion));
 
     // Build an object that represents the posting user
     $postuser = new stdClass;
@@ -3222,10 +3222,10 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
     }
 
     // Prepare the attachements for the post, files then images
-    list($attachments, $attachedimages) = scriptingforum_print_attachments($post, $cm, 'separateimages');
+    list($attachments, $attachedimages) = sforum_print_attachments($post, $cm, 'separateimages');
 
     // Determine if we need to shorten this post
-    $shortenpost = ($link && (strlen(strip_tags($post->message)) > $CFG->scriptingforum_longpost));
+    $shortenpost = ($link && (strlen(strip_tags($post->message)) > $CFG->sforum_longpost));
 
 
     // Prepare an array of commands
@@ -3234,11 +3234,11 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
     // Add a permalink.
     $permalink = new moodle_url($discussionlink);
     $permalink->set_anchor('p' . $post->id);
-    $commands[] = array('url' => $permalink, 'text' => get_string('permalink', 'scriptingforum'));
+    $commands[] = array('url' => $permalink, 'text' => get_string('permalink', 'sforum'));
 
     // SPECIAL CASE: The front page can display a news item post to non-logged in users.
     // Don't display the mark read / unread controls in this case.
-    if ($istracked && $CFG->scriptingforum_usermarksread && isloggedin()) {
+    if ($istracked && $CFG->sforum_usermarksread && isloggedin()) {
         $url = new moodle_url($discussionlink, array('postid'=>$post->id, 'mark'=>'unread'));
         $text = $str->markunread;
         if (!$postisread) {
@@ -3266,38 +3266,38 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
 
     // Hack for allow to edit news posts those are not displayed yet until they are displayed
     $age = time() - $post->created;
-    if (!$post->parent && $scriptingforum->type == 'news' && $discussion->timestart > time()) {
+    if (!$post->parent && $sforum->type == 'news' && $discussion->timestart > time()) {
         $age = 0;
     }
 
-    if ($scriptingforum->type == 'single' and $discussion->firstpost == $post->id) {
+    if ($sforum->type == 'single' and $discussion->firstpost == $post->id) {
         if (has_capability('moodle/course:manageactivities', $modcontext)) {
-            // The first post in single simple is the scriptingforum description.
+            // The first post in single simple is the sforum description.
             $commands[] = array('url'=>new moodle_url('/course/modedit.php', array('update'=>$cm->id, 'sesskey'=>sesskey(), 'return'=>1)), 'text'=>$str->edit);
         }
-    } else if (($ownpost && $age < $CFG->maxeditingtime) || $cm->cache->caps['mod/scriptingforum:editanypost']) {
-        $commands[] = array('url'=>new moodle_url('/mod/scriptingforum/post.php', array('edit'=>$post->id)), 'text'=>$str->edit);
+    } else if (($ownpost && $age < $CFG->maxeditingtime) || $cm->cache->caps['mod/sforum:editanypost']) {
+        $commands[] = array('url'=>new moodle_url('/mod/sforum/post.php', array('edit'=>$post->id)), 'text'=>$str->edit);
     }
 
-    if ($cm->cache->caps['mod/scriptingforum:splitdiscussions'] && $post->parent && $scriptingforum->type != 'single') {
-        $commands[] = array('url'=>new moodle_url('/mod/scriptingforum/post.php', array('prune'=>$post->id)), 'text'=>$str->prune, 'title'=>$str->pruneheading);
+    if ($cm->cache->caps['mod/sforum:splitdiscussions'] && $post->parent && $sforum->type != 'single') {
+        $commands[] = array('url'=>new moodle_url('/mod/sforum/post.php', array('prune'=>$post->id)), 'text'=>$str->prune, 'title'=>$str->pruneheading);
     }
 
-    if ($scriptingforum->type == 'single' and $discussion->firstpost == $post->id) {
+    if ($sforum->type == 'single' and $discussion->firstpost == $post->id) {
         // Do not allow deleting of first post in single simple type.
-    } else if (($ownpost && $age < $CFG->maxeditingtime && $cm->cache->caps['mod/scriptingforum:deleteownpost']) || $cm->cache->caps['mod/scriptingforum:deleteanypost']) {
-        $commands[] = array('url'=>new moodle_url('/mod/scriptingforum/post.php', array('delete'=>$post->id)), 'text'=>$str->delete);
+    } else if (($ownpost && $age < $CFG->maxeditingtime && $cm->cache->caps['mod/sforum:deleteownpost']) || $cm->cache->caps['mod/sforum:deleteanypost']) {
+        $commands[] = array('url'=>new moodle_url('/mod/sforum/post.php', array('delete'=>$post->id)), 'text'=>$str->delete);
     }
 
     if ($reply) {
-        $commands[] = array('url'=>new moodle_url('/mod/scriptingforum/post.php#mformscriptingforum', array('reply'=>$post->id)), 'text'=>$str->reply);
+        $commands[] = array('url'=>new moodle_url('/mod/sforum/post.php#mformsforum', array('reply'=>$post->id)), 'text'=>$str->reply);
     }
 
-    if ($CFG->enableportfolios && ($cm->cache->caps['mod/scriptingforum:exportpost'] || ($ownpost && $cm->cache->caps['mod/scriptingforum:exportownpost']))) {
+    if ($CFG->enableportfolios && ($cm->cache->caps['mod/sforum:exportpost'] || ($ownpost && $cm->cache->caps['mod/sforum:exportownpost']))) {
         $p = array('postid' => $post->id);
         require_once($CFG->libdir.'/portfoliolib.php');
         $button = new portfolio_add_button();
-        $button->set_callback_options('scriptingforum_portfolio_caller', array('postid' => $post->id), 'mod_scriptingforum');
+        $button->set_callback_options('sforum_portfolio_caller', array('postid' => $post->id), 'mod_sforum');
         if (empty($attachments)) {
             $button->set_formats(PORTFOLIO_FORMAT_PLAINHTML);
         } else {
@@ -3318,9 +3318,9 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
 
     if ($istracked) {
         if ($postisread) {
-            $scriptingforumpostclass = ' read';
+            $sforumpostclass = ' read';
         } else {
-            $scriptingforumpostclass = ' unread';
+            $sforumpostclass = ' unread';
             // If this is the first unread post printed then give it an anchor and id of unread.
             if (!$firstunreadanchorprinted) {
                 $output .= html_writer::tag('a', '', array('id' => 'unread'));
@@ -3329,7 +3329,7 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
         }
     } else {
         // ignore trackign status if not tracked or tracked param missing
-        $scriptingforumpostclass = '';
+        $sforumpostclass = '';
     }
 
     $topicclass = '';
@@ -3338,15 +3338,15 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
     }
 
     if (!empty($post->lastpost)) {
-        $scriptingforumpostclass .= ' lastpost';
+        $sforumpostclass .= ' lastpost';
     }
 
     $postbyuser = new stdClass;
     $postbyuser->post = $post->subject;
     $postbyuser->user = $postuser->fullname;
-    $discussionbyuser = get_string('postbyuser', 'scriptingforum', $postbyuser);
+    $discussionbyuser = get_string('postbyuser', 'sforum', $postbyuser);
     $output .= html_writer::tag('a', '', array('id'=>'p'.$post->id));
-    $output .= html_writer::start_tag('div', array('class'=>'scriptingforumpost clearfix'.$scriptingforumpostclass.$topicclass,
+    $output .= html_writer::start_tag('div', array('class'=>'sforumpost clearfix'.$sforumpostclass.$topicclass,
                                                    'role' => 'region',
                                                    'aria-label' => $discussionbyuser));
     $output .= html_writer::start_tag('div', array('class'=>'row header clearfix'));
@@ -3367,7 +3367,7 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
     $by = new stdClass();
     $by->name = html_writer::link($postuser->profilelink, $postuser->fullname);
     $by->date = userdate($post->modified);
-    $output .= html_writer::tag('div', get_string('bynameondate', 'scriptingforum', $by), array('class'=>'author',
+    $output .= html_writer::tag('div', get_string('bynameondate', 'sforum', $by), array('class'=>'author',
                                                                                        'role' => 'heading',
                                                                                        'aria-level' => '2'));
 
@@ -3398,8 +3398,8 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
         // Prepare shortened version by filtering the text then shortening it.
         $postclass    = 'shortenedpost';
         $postcontent  = format_text($post->message, $post->messageformat, $options);
-        $postcontent  = shorten_text($postcontent, $CFG->scriptingforum_shortpost);
-        $postcontent .= html_writer::link($discussionlink, get_string('readtherest', 'scriptingforum'));
+        $postcontent  = shorten_text($postcontent, $CFG->sforum_shortpost);
+        $postcontent .= html_writer::link($discussionlink, get_string('readtherest', 'sforum'));
         $postcontent .= html_writer::tag('div', '('.get_string('numwords', 'moodle', count_words($post->message)).')',
             array('class'=>'post-word-count'));
     } else {
@@ -3409,7 +3409,7 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
         if (!empty($highlight)) {
             $postcontent = highlight($highlight, $postcontent);
         }
-        if (!empty($scriptingforum->displaywordcount)) {
+        if (!empty($sforum->displaywordcount)) {
             $postcontent .= html_writer::tag('div', get_string('numwords', 'moodle', count_words($post->message)),
                 array('class'=>'post-word-count'));
         }
@@ -3432,7 +3432,7 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
 
     // Output ratings
     if (!empty($post->rating)) {
-        $output .= html_writer::tag('div', $OUTPUT->render($post->rating), array('class'=>'scriptingforum-post-rating'));
+        $output .= html_writer::tag('div', $OUTPUT->render($post->rating), array('class'=>'sforum-post-rating'));
     }
 
     // Output the commands
@@ -3447,24 +3447,24 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
     $output .= html_writer::tag('div', implode(' | ', $commandhtml), array('class'=>'commands'));
 
     // Output link to post if required
-    if ($link && scriptingforum_user_can_post($scriptingforum, $discussion, $USER, $cm, $course, $modcontext)) {
+    if ($link && sforum_user_can_post($sforum, $discussion, $USER, $cm, $course, $modcontext)) {
         if ($post->replies == 1) {
-            $replystring = get_string('repliesone', 'scriptingforum', $post->replies);
+            $replystring = get_string('repliesone', 'sforum', $post->replies);
         } else {
-            $replystring = get_string('repliesmany', 'scriptingforum', $post->replies);
+            $replystring = get_string('repliesmany', 'sforum', $post->replies);
         }
         if (!empty($discussion->unread) && $discussion->unread !== '-') {
             $replystring .= ' <span class="sep">/</span> <span class="unread">';
             if ($discussion->unread == 1) {
-                $replystring .= get_string('unreadpostsone', 'scriptingforum');
+                $replystring .= get_string('unreadpostsone', 'sforum');
             } else {
-                $replystring .= get_string('unreadpostsnumber', 'scriptingforum', $discussion->unread);
+                $replystring .= get_string('unreadpostsnumber', 'sforum', $discussion->unread);
             }
             $replystring .= '</span>';
         }
 
         $output .= html_writer::start_tag('div', array('class'=>'link'));
-        $output .= html_writer::link($discussionlink, get_string('discussthistopic', 'scriptingforum'));
+        $output .= html_writer::link($discussionlink, get_string('discussthistopic', 'sforum'));
         $output .= '&nbsp;('.$replystring.')';
         $output .= html_writer::end_tag('div'); // link
     }
@@ -3477,11 +3477,11 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
     // Close remaining open divs
     $output .= html_writer::end_tag('div'); // content
     $output .= html_writer::end_tag('div'); // row
-    $output .= html_writer::end_tag('div'); // scriptingforumpost
+    $output .= html_writer::end_tag('div'); // sforumpost
 
-    // Mark the scriptingforum post as read if required
-    if ($istracked && !$CFG->scriptingforum_usermarksread && !$postisread) {
-        scriptingforum_tp_mark_post_read($USER->id, $post, $scriptingforum->id);
+    // Mark the sforum post as read if required
+    if ($istracked && !$CFG->sforum_usermarksread && !$postisread) {
+        sforum_tp_mark_post_read($USER->id, $post, $sforum->id);
     }
 
     if ($return) {
@@ -3497,18 +3497,18 @@ function scriptingforum_print_post($post, $discussion, $scriptingforum, &$cm, $c
  * @param string $options the context id
  * @return array an associative array of the user's rating permissions
  */
-function scriptingforum_rating_permissions($contextid, $component, $ratingarea) {
+function sforum_rating_permissions($contextid, $component, $ratingarea) {
     $context = context::instance_by_id($contextid, MUST_EXIST);
-    if ($component != 'mod_scriptingforum' || $ratingarea != 'post') {
+    if ($component != 'mod_sforum' || $ratingarea != 'post') {
         // We don't know about this component/ratingarea so just return null to get the
         // default restrictive permissions.
         return null;
     }
     return array(
-        'view'    => has_capability('mod/scriptingforum:viewrating', $context),
-        'viewany' => has_capability('mod/scriptingforum:viewanyrating', $context),
-        'viewall' => has_capability('mod/scriptingforum:viewallratings', $context),
-        'rate'    => has_capability('mod/scriptingforum:rate', $context)
+        'view'    => has_capability('mod/sforum:viewrating', $context),
+        'viewany' => has_capability('mod/sforum:viewanyrating', $context),
+        'viewall' => has_capability('mod/sforum:viewallratings', $context),
+        'rate'    => has_capability('mod/sforum:rate', $context)
     );
 }
 
@@ -3516,7 +3516,7 @@ function scriptingforum_rating_permissions($contextid, $component, $ratingarea) 
  * Validates a submitted rating
  * @param array $params submitted data
  *            context => object the context in which the rated items exists [required]
- *            component => The component for this module - should always be mod_scriptingforum [required]
+ *            component => The component for this module - should always be mod_sforum [required]
  *            ratingarea => object the context in which the rated items exists [required]
  *            itemid => int the ID of the object being rated [required]
  *            scaleid => int the scale from which the user can select a rating. Used for bounds checking. [required]
@@ -3525,15 +3525,15 @@ function scriptingforum_rating_permissions($contextid, $component, $ratingarea) 
  *            aggregation => int the aggregation method to apply when calculating grades ie RATING_AGGREGATE_AVERAGE [required]
  * @return boolean true if the rating is valid. Will throw rating_exception if not
  */
-function scriptingforum_rating_validate($params) {
+function sforum_rating_validate($params) {
     global $DB, $USER;
 
-    // Check the component is mod_scriptingforum
-    if ($params['component'] != 'mod_scriptingforum') {
+    // Check the component is mod_sforum
+    if ($params['component'] != 'mod_sforum') {
         throw new rating_exception('invalidcomponent');
     }
 
-    // Check the ratingarea is post (the only rating area in scriptingforum)
+    // Check the ratingarea is post (the only rating area in sforum)
     if ($params['ratingarea'] != 'post') {
         throw new rating_exception('invalidratingarea');
     }
@@ -3543,27 +3543,27 @@ function scriptingforum_rating_validate($params) {
         throw new rating_exception('nopermissiontorate');
     }
 
-    // Fetch all the related records ... we need to do this anyway to call scriptingforum_user_can_see_post
-    $post = $DB->get_record('scriptingforum_posts', array('id' => $params['itemid'], 'userid' => $params['rateduserid']), '*', MUST_EXIST);
-    $discussion = $DB->get_record('scriptingforum_discussions', array('id' => $post->discussion), '*', MUST_EXIST);
-    $scriptingforum = $DB->get_record('scriptingforum', array('id' => $discussion->forum), '*', MUST_EXIST);
-    $course = $DB->get_record('course', array('id' => $scriptingforum->course), '*', MUST_EXIST);
-    $cm = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id, $course->id , false, MUST_EXIST);
+    // Fetch all the related records ... we need to do this anyway to call sforum_user_can_see_post
+    $post = $DB->get_record('sforum_posts', array('id' => $params['itemid'], 'userid' => $params['rateduserid']), '*', MUST_EXIST);
+    $discussion = $DB->get_record('sforum_discussions', array('id' => $post->discussion), '*', MUST_EXIST);
+    $sforum = $DB->get_record('sforum', array('id' => $discussion->forum), '*', MUST_EXIST);
+    $course = $DB->get_record('course', array('id' => $sforum->course), '*', MUST_EXIST);
+    $cm = get_coursemodule_from_instance('sforum', $sforum->id, $course->id , false, MUST_EXIST);
     $context = context_module::instance($cm->id);
 
-    // Make sure the context provided is the context of the scriptingforum
+    // Make sure the context provided is the context of the sforum
     if ($context->id != $params['context']->id) {
         throw new rating_exception('invalidcontext');
     }
 
-    if ($scriptingforum->scale != $params['scaleid']) {
+    if ($sforum->scale != $params['scaleid']) {
         //the scale being submitted doesnt match the one in the database
         throw new rating_exception('invalidscaleid');
     }
 
     // check the item we're rating was created in the assessable time window
-    if (!empty($scriptingforum->assesstimestart) && !empty($scriptingforum->assesstimefinish)) {
-        if ($post->created < $scriptingforum->assesstimestart || $post->created > $scriptingforum->assesstimefinish) {
+    if (!empty($sforum->assesstimestart) && !empty($sforum->assesstimefinish)) {
+        if ($post->created < $sforum->assesstimestart || $post->created > $sforum->assesstimefinish) {
             throw new rating_exception('notavailable');
         }
     }
@@ -3576,9 +3576,9 @@ function scriptingforum_rating_validate($params) {
     }
 
     // upper limit
-    if ($scriptingforum->scale < 0) {
+    if ($sforum->scale < 0) {
         //its a custom scale
-        $scalerecord = $DB->get_record('scale', array('id' => -$scriptingforum->scale));
+        $scalerecord = $DB->get_record('scale', array('id' => -$sforum->scale));
         if ($scalerecord) {
             $scalearray = explode(',', $scalerecord->scale);
             if ($params['rating'] > count($scalearray)) {
@@ -3587,7 +3587,7 @@ function scriptingforum_rating_validate($params) {
         } else {
             throw new rating_exception('invalidscaleid');
         }
-    } else if ($params['rating'] > $scriptingforum->scale) {
+    } else if ($params['rating'] > $sforum->scale) {
         //if its numeric and submitted rating is above maximum
         throw new rating_exception('invalidnum');
     }
@@ -3605,7 +3605,7 @@ function scriptingforum_rating_validate($params) {
     }
 
     // perform some final capability checks
-    if (!scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, $USER, $cm)) {
+    if (!sforum_user_can_see_post($sforum, $discussion, $post, $USER, $cm)) {
         throw new rating_exception('nopermissiontorate');
     }
 
@@ -3617,7 +3617,7 @@ function scriptingforum_rating_validate($params) {
  *
  * @param array $params submitted data
  *            contextid => int contextid [required]
- *            component => The component for this module - should always be mod_scriptingforum [required]
+ *            component => The component for this module - should always be mod_sforum [required]
  *            ratingarea => object the context in which the rated items exists [required]
  *            itemid => int the ID of the object being rated [required]
  *            scaleid => int scale id [optional]
@@ -3625,15 +3625,15 @@ function scriptingforum_rating_validate($params) {
  * @throws coding_exception
  * @throws rating_exception
  */
-function mod_scriptingforum_rating_can_see_item_ratings($params) {
+function mod_sforum_rating_can_see_item_ratings($params) {
     global $DB, $USER;
 
-    // Check the component is mod_scriptingforum.
-    if (!isset($params['component']) || $params['component'] != 'mod_scriptingforum') {
+    // Check the component is mod_sforum.
+    if (!isset($params['component']) || $params['component'] != 'mod_sforum') {
         throw new rating_exception('invalidcomponent');
     }
 
-    // Check the ratingarea is post (the only rating area in scriptingforum).
+    // Check the ratingarea is post (the only rating area in sforum).
     if (!isset($params['ratingarea']) || $params['ratingarea'] != 'post') {
         throw new rating_exception('invalidratingarea');
     }
@@ -3642,38 +3642,38 @@ function mod_scriptingforum_rating_can_see_item_ratings($params) {
         throw new rating_exception('invaliditemid');
     }
 
-    $post = $DB->get_record('scriptingforum_posts', array('id' => $params['itemid']), '*', MUST_EXIST);
-    $discussion = $DB->get_record('scriptingforum_discussions', array('id' => $post->discussion), '*', MUST_EXIST);
-    $scriptingforum = $DB->get_record('scriptingforum', array('id' => $discussion->forum), '*', MUST_EXIST);
-    $course = $DB->get_record('course', array('id' => $scriptingforum->course), '*', MUST_EXIST);
-    $cm = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id, $course->id , false, MUST_EXIST);
+    $post = $DB->get_record('sforum_posts', array('id' => $params['itemid']), '*', MUST_EXIST);
+    $discussion = $DB->get_record('sforum_discussions', array('id' => $post->discussion), '*', MUST_EXIST);
+    $sforum = $DB->get_record('sforum', array('id' => $discussion->forum), '*', MUST_EXIST);
+    $course = $DB->get_record('course', array('id' => $sforum->course), '*', MUST_EXIST);
+    $cm = get_coursemodule_from_instance('sforum', $sforum->id, $course->id , false, MUST_EXIST);
 
     // Perform some final capability checks.
-    if (!scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, $USER, $cm)) {
+    if (!sforum_user_can_see_post($sforum, $discussion, $post, $USER, $cm)) {
         return false;
     }
     return true;
 }
 
 /**
- * This function prints the overview of a discussion in the scriptingforum listing.
+ * This function prints the overview of a discussion in the sforum listing.
  * It needs some discussion information and some post information, these
  * happen to be combined for efficiency in the $post parameter by the function
- * that calls this one: scriptingforum_print_latest_discussions()
+ * that calls this one: sforum_print_latest_discussions()
  *
  * @global object
  * @global object
  * @param object $post The post object (passed by reference for speed).
- * @param object $scriptingforum The scriptingforum object.
+ * @param object $sforum The sforum object.
  * @param int $group Current group.
  * @param string $datestring Format to use for the dates.
- * @param boolean $cantrack Is tracking enabled for this scriptingforum.
- * @param boolean $scriptingforumtracked Is the user tracking this scriptingforum.
+ * @param boolean $cantrack Is tracking enabled for this sforum.
+ * @param boolean $sforumtracked Is the user tracking this sforum.
  * @param boolean $canviewparticipants True if user has the viewparticipants permission for this course
- * @param boolean $canviewhiddentimedposts True if user has the viewhiddentimedposts permission for this scriptingforum
+ * @param boolean $canviewhiddentimedposts True if user has the viewhiddentimedposts permission for this sforum
  */
-function scriptingforum_print_discussion_header(&$post, $scriptingforum, $group = -1, $datestring = "",
-        $cantrack = true, $scriptingforumtracked = true,
+function sforum_print_discussion_header(&$post, $sforum, $group = -1, $datestring = "",
+        $cantrack = true, $sforumtracked = true,
         $canviewparticipants = true, $modcontext = null,
         $canviewhiddentimedposts = false) {
 
@@ -3683,7 +3683,7 @@ function scriptingforum_print_discussion_header(&$post, $scriptingforum, $group 
     static $strmarkalldread;
 
     if (empty($modcontext)) {
-        if (!$cm = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id, $scriptingforum->course)) {
+        if (!$cm = get_coursemodule_from_instance('sforum', $sforum->id, $sforum->course)) {
             print_error('invalidcoursemodule');
         }
         $modcontext = context_module::instance($cm->id);
@@ -3691,14 +3691,14 @@ function scriptingforum_print_discussion_header(&$post, $scriptingforum, $group 
 
     if (!isset($rowcount)) {
         $rowcount = 0;
-        $strmarkalldread = get_string('markalldread', 'scriptingforum');
+        $strmarkalldread = get_string('markalldread', 'sforum');
     } else {
         $rowcount = ($rowcount + 1) % 2;
     }
 
     $post->subject = format_string($post->subject,true);
 
-    $timeddiscussion = !empty($CFG->scriptingforum_enabletimedposts) &&
+    $timeddiscussion = !empty($CFG->sforum_enabletimedposts) &&
             ($post->timestart || $post->timeend);
     $timedoutsidewindow = '';
     if ($timeddiscussion && ($post->timestart > time() ||
@@ -3715,15 +3715,15 @@ function scriptingforum_print_discussion_header(&$post, $scriptingforum, $group 
     }
     echo '<td class="'.$topicclass.'">';
     if (SCRIPTING_FORUM_DISCUSSION_PINNED == $post->pinned) {
-        echo $OUTPUT->pix_icon('i/pinned', get_string('discussionpinned', 'scriptingforum'),
-             'mod_scriptingforum');
+        echo $OUTPUT->pix_icon('i/pinned', get_string('discussionpinned', 'sforum'),
+             'mod_sforum');
     }
     $canalwaysseetimedpost = $USER->id == $post->userid || $canviewhiddentimedposts;
     if ($timeddiscussion && $canalwaysseetimedpost) {
-        echo $PAGE->get_renderer('mod_scriptingforum')->timed_discussion_tooltip($post, empty($timedoutsidewindow));
+        echo $PAGE->get_renderer('mod_sforum')->timed_discussion_tooltip($post, empty($timedoutsidewindow));
     }
 
-    echo '<a href="'.$CFG->wwwroot.'/mod/scriptingforum/discuss.php?d='.$post->discussion.'">'.$post->subject.'</a>';
+    echo '<a href="'.$CFG->wwwroot.'/mod/sforum/discuss.php?d='.$post->discussion.'">'.$post->subject.'</a>';
     echo "</td>\n";
 
     // Picture
@@ -3732,14 +3732,14 @@ function scriptingforum_print_discussion_header(&$post, $scriptingforum, $group 
     $postuser = username_load_fields_from_object($postuser, $post, null, $postuserfields);
     $postuser->id = $post->userid;
     echo '<td class="picture">';
-    echo $OUTPUT->user_picture($postuser, array('courseid'=>$scriptingforum->course));
+    echo $OUTPUT->user_picture($postuser, array('courseid'=>$sforum->course));
     echo "</td>\n";
 
     // User name
     $fullname = fullname($postuser, has_capability('moodle/site:viewfullnames', $modcontext));
     echo '<td class="author">';
     echo '<a href="'.$CFG->wwwroot.'/user/view.php?id='.$post->userid.'&amp;course='.
-            $scriptingforum->course.'">'.$fullname.'</a>';
+            $sforum->course.'">'.$fullname.'</a>';
     echo "</td>\n";
 
     // Group picture
@@ -3751,11 +3751,11 @@ function scriptingforum_print_discussion_header(&$post, $scriptingforum, $group 
             } else {
                 $picturelink = false;
             }
-            print_group_picture($group, $scriptingforum->course, false, false, $picturelink);
+            print_group_picture($group, $sforum->course, false, false, $picturelink);
         } else if (isset($group->id)) {
             if ($canviewparticipants && $COURSE->groupmode) {
                 echo '<a href="'.$CFG->wwwroot.'/user/index.php?id='.
-                     $scriptingforum->course.'&amp;group='.$group->id.'">'.$group->name.'</a>';
+                     $sforum->course.'&amp;group='.$group->id.'">'.$group->name.'</a>';
             } else {
                 echo $group->name;
             }
@@ -3763,22 +3763,22 @@ function scriptingforum_print_discussion_header(&$post, $scriptingforum, $group 
         echo "</td>\n";
     }
 
-    if (has_capability('mod/scriptingforum:viewdiscussion', $modcontext)) {   // Show the column with replies
+    if (has_capability('mod/sforum:viewdiscussion', $modcontext)) {   // Show the column with replies
         echo '<td class="replies">';
-        echo '<a href="'.$CFG->wwwroot.'/mod/scriptingforum/discuss.php?d='.$post->discussion.'">';
+        echo '<a href="'.$CFG->wwwroot.'/mod/sforum/discuss.php?d='.$post->discussion.'">';
         echo $post->replies.'</a>';
         echo "</td>\n";
 
         if ($cantrack) {
             echo '<td class="replies">';
-            if ($scriptingforumtracked) {
+            if ($sforumtracked) {
                 if ($post->unread > 0) {
                     echo '<span class="unread">';
-                    echo '<a href="'.$CFG->wwwroot.'/mod/scriptingforum/discuss.php?d='.$post->discussion.'#unread">';
+                    echo '<a href="'.$CFG->wwwroot.'/mod/sforum/discuss.php?d='.$post->discussion.'#unread">';
                     echo $post->unread;
                     echo '</a>';
-                    echo '<a title="'.$strmarkalldread.'" href="'.$CFG->wwwroot.'/mod/scriptingforum/markposts.php?f='.
-                         $scriptingforum->id.'&amp;d='.$post->discussion.'&amp;mark=read&amp;returnpage=view.php&amp;sesskey=' . sesskey() . '">' .
+                    echo '<a title="'.$strmarkalldread.'" href="'.$CFG->wwwroot.'/mod/sforum/markposts.php?f='.
+                         $sforum->id.'&amp;d='.$post->discussion.'&amp;mark=read&amp;returnpage=view.php&amp;sesskey=' . sesskey() . '">' .
                          '<img src="'.$OUTPUT->pix_url('t/markasread') . '" class="iconsmall" alt="'.$strmarkalldread.'" /></a>';
                     echo '</span>';
                 } else {
@@ -3802,26 +3802,26 @@ function scriptingforum_print_discussion_header(&$post, $scriptingforum, $group 
     $usermodified->id = $post->usermodified;
     $usermodified = username_load_fields_from_object($usermodified, $post, 'um');
 
-    // In QA scriptingforums we check that the user can view participants.
-    if ($scriptingforum->type !== 'qanda' || $canviewparticipants) {
+    // In QA sforums we check that the user can view participants.
+    if ($sforum->type !== 'qanda' || $canviewparticipants) {
         echo '<a href="'.$CFG->wwwroot.'/user/view.php?id='.
-             $post->usermodified.'&amp;course='.$scriptingforum->course.'">'.
+             $post->usermodified.'&amp;course='.$sforum->course.'">'.
              fullname($usermodified).'</a><br />';
         $parenturl = (empty($post->lastpostid)) ? '' : '&amp;parent='.$post->lastpostid;
     }
 
-    echo '<a href="'.$CFG->wwwroot.'/mod/scriptingforum/discuss.php?d='.
+    echo '<a href="'.$CFG->wwwroot.'/mod/sforum/discuss.php?d='.
          $post->discussion.$parenturl.'">'.userdate($usedate, $datestring).'</a>';
     echo "</td>\n";
 
     // is_guest should be used here as this also checks whether the user is a guest in the current course.
     // Guests and visitors cannot subscribe - only enrolled users.
     if ((!is_guest($modcontext, $USER) && isloggedin()) &&
-        has_capability('mod/scriptingforum:viewdiscussion', $modcontext)) {
+        has_capability('mod/sforum:viewdiscussion', $modcontext)) {
         // Discussion subscription.
-        if (\mod_scriptingforum\subscriptions::is_subscribable($scriptingforum)) {
+        if (\mod_sforum\subscriptions::is_subscribable($sforum)) {
             echo '<td class="discussionsubscription">';
-            echo scriptingforum_get_discussion_subscription_icon($scriptingforum, $post->discussion);
+            echo sforum_get_discussion_subscription_icon($sforum, $post->discussion);
             echo '</td>';
         }
     }
@@ -3833,11 +3833,11 @@ function scriptingforum_print_discussion_header(&$post, $scriptingforum, $group 
 /**
  * Return the markup for the discussion subscription toggling icon.
  *
- * @param stdClass $scriptingforum The scriptingforum object.
+ * @param stdClass $sforum The sforum object.
  * @param int $discussionid The discussion to create an icon for.
  * @return string The generated markup.
  */
-function scriptingforum_get_discussion_subscription_icon($scriptingforum,
+function sforum_get_discussion_subscription_icon($sforum,
         $discussionid, $returnurl = null, $includetext = false) {
     global $USER, $OUTPUT, $PAGE;
 
@@ -3846,46 +3846,46 @@ function scriptingforum_get_discussion_subscription_icon($scriptingforum,
     }
 
     $o = '';
-    $subscriptionstatus = \mod_scriptingforum\subscriptions::is_subscribed($USER->id,
-            $scriptingforum, $discussionid);
-    $subscriptionlink = new moodle_url('/mod/scriptingforum/subscribe.php', array(
+    $subscriptionstatus = \mod_sforum\subscriptions::is_subscribed($USER->id,
+            $sforum, $discussionid);
+    $subscriptionlink = new moodle_url('/mod/sforum/subscribe.php', array(
         'sesskey' => sesskey(),
-        'id' => $scriptingforum->id,
+        'id' => $sforum->id,
         'd' => $discussionid,
         'returnurl' => $returnurl,
     ));
 
     if ($includetext) {
         $o .= $subscriptionstatus ? get_string('subscribed',
-              'mod_scriptingforum') : get_string('notsubscribed', 'mod_scriptingforum');
+              'mod_sforum') : get_string('notsubscribed', 'mod_sforum');
     }
 
     if ($subscriptionstatus) {
         $output = $OUTPUT->pix_icon('t/subscribed',
-                  get_string('clicktounsubscribe', 'scriptingforum'), 'mod_scriptingforum');
+                  get_string('clicktounsubscribe', 'sforum'), 'mod_sforum');
         if ($includetext) {
-            $output .= get_string('subscribed', 'mod_scriptingforum');
+            $output .= get_string('subscribed', 'mod_sforum');
         }
 
         return html_writer::link($subscriptionlink, $output, array(
-                'title' => get_string('clicktounsubscribe', 'scriptingforum'),
+                'title' => get_string('clicktounsubscribe', 'sforum'),
                 'class' => 'discussiontoggle iconsmall',
-                'data-scriptingforumid' => $scriptingforum->id,
+                'data-sforumid' => $sforum->id,
                 'data-discussionid' => $discussionid,
                 'data-includetext' => $includetext,
             ));
 
     } else {
         $output = $OUTPUT->pix_icon('t/unsubscribed',
-                  get_string('clicktosubscribe', 'scriptingforum'), 'mod_scriptingforum');
+                  get_string('clicktosubscribe', 'sforum'), 'mod_sforum');
         if ($includetext) {
-            $output .= get_string('notsubscribed', 'mod_scriptingforum');
+            $output .= get_string('notsubscribed', 'mod_sforum');
         }
 
         return html_writer::link($subscriptionlink, $output, array(
-                'title' => get_string('clicktosubscribe', 'scriptingforum'),
+                'title' => get_string('clicktosubscribe', 'sforum'),
                 'class' => 'discussiontoggle iconsmall',
-                'data-scriptingforumid' => $scriptingforum->id,
+                'data-sforumid' => $sforum->id,
                 'data-discussionid' => $discussionid,
                 'data-includetext' => $includetext,
             ));
@@ -3898,7 +3898,7 @@ function scriptingforum_get_discussion_subscription_icon($scriptingforum,
  *
  * @return string The generated markup
  */
-function scriptingforum_get_discussion_subscription_icon_preloaders() {
+function sforum_get_discussion_subscription_icon_preloaders() {
     $o = '';
     $o .= html_writer::span('&nbsp;', 'preload-subscribe');
     $o .= html_writer::span('&nbsp;', 'preload-unsubscribe');
@@ -3909,20 +3909,20 @@ function scriptingforum_get_discussion_subscription_icon_preloaders() {
  * Print the drop down that allows the user to select how they want to have
  * the discussion displayed.
  *
- * @param int $id scriptingforum id if $scriptingforumtype is 'single',
- *              discussion id for any other scriptingforum type
- * @param mixed $mode scriptingforum layout mode
- * @param string $scriptingforumtype optional
+ * @param int $id sforum id if $sforumtype is 'single',
+ *              discussion id for any other sforum type
+ * @param mixed $mode sforum layout mode
+ * @param string $sforumtype optional
  */
-function scriptingforum_print_mode_form($id, $mode, $scriptingforumtype='') {
+function sforum_print_mode_form($id, $mode, $sforumtype='') {
     global $OUTPUT;
-    if ($scriptingforumtype == 'single') {
-        $select = new single_select(new moodle_url("/mod/scriptingforum/view.php", array('f'=>$id)), 'mode', scriptingforum_get_layout_modes(), $mode, null, "mode");
-        $select->set_label(get_string('displaymode', 'scriptingforum'), array('class' => 'accesshide'));
-        $select->class = "scriptingforummode";
+    if ($sforumtype == 'single') {
+        $select = new single_select(new moodle_url("/mod/sforum/view.php", array('f'=>$id)), 'mode', sforum_get_layout_modes(), $mode, null, "mode");
+        $select->set_label(get_string('displaymode', 'sforum'), array('class' => 'accesshide'));
+        $select->class = "sforummode";
     } else {
-        $select = new single_select(new moodle_url("/mod/scriptingforum/discuss.php", array('d'=>$id)), 'mode', scriptingforum_get_layout_modes(), $mode, null, "mode");
-        $select->set_label(get_string('displaymode', 'scriptingforum'), array('class' => 'accesshide'));
+        $select = new single_select(new moodle_url("/mod/sforum/discuss.php", array('d'=>$id)), 'mode', sforum_get_layout_modes(), $mode, null, "mode");
+        $select->set_label(get_string('displaymode', 'sforum'), array('class' => 'accesshide'));
     }
     echo $OUTPUT->render($select);
 }
@@ -3933,20 +3933,20 @@ function scriptingforum_print_mode_form($id, $mode, $scriptingforumtype='') {
  * @param string $search
  * @return string
  */
-function scriptingforum_search_form($course, $search='') {
+function sforum_search_form($course, $search='') {
     global $CFG, $OUTPUT;
 
-    $output  = '<div class="scriptingforumsearch">';
-    $output .= '<form action="'.$CFG->wwwroot.'/mod/scriptingforum/search.php" style="display:inline">';
+    $output  = '<div class="sforumsearch">';
+    $output .= '<form action="'.$CFG->wwwroot.'/mod/sforum/search.php" style="display:inline">';
     $output .= '<fieldset class="invisiblefieldset">';
     $output .= $OUTPUT->help_icon('search');
     $output .= '<label class="accesshide" for="search" >'.
-            get_string('search', 'scriptingforum').'</label>';
+            get_string('search', 'sforum').'</label>';
     $output .= '<input id="search" name="search" type="text" size="18" value="'.s($search, true).'" />';
-    $output .= '<label class="accesshide" for="searchscriptingforums" >'.
-            get_string('searchscriptingforums', 'scriptingforum').'</label>';
-    $output .= '<input id="searchscriptingforums" value="'.
-            get_string('searchscriptingforums', 'scriptingforum').'" type="submit" />';
+    $output .= '<label class="accesshide" for="searchsforums" >'.
+            get_string('searchsforums', 'sforum').'</label>';
+    $output .= '<input id="searchsforums" value="'.
+            get_string('searchsforums', 'sforum').'" type="submit" />';
     $output .= '<input name="id" type="hidden" value="'.$course->id.'" />';
     $output .= '</fieldset>';
     $output .= '</form>';
@@ -3960,7 +3960,7 @@ function scriptingforum_search_form($course, $search='') {
  * @global object
  * @global object
  */
-function scriptingforum_set_return() {
+function sforum_set_return() {
     global $CFG, $SESSION;
 
     if (! isset($SESSION->fromdiscussion)) {
@@ -3978,7 +3978,7 @@ function scriptingforum_set_return() {
  * @param string|\moodle_url $default
  * @return string
  */
-function scriptingforum_go_back_to($default) {
+function sforum_go_back_to($default) {
     global $SESSION;
 
     if (!empty($SESSION->fromdiscussion)) {
@@ -3991,44 +3991,44 @@ function scriptingforum_go_back_to($default) {
 }
 
 /**
- * Given a discussion object that is being moved to $scriptingforumto,
+ * Given a discussion object that is being moved to $sforumto,
  * this function checks all posts in that discussion
  * for attachments, and if any are found, these are
- * moved to the new scriptingforum directory.
+ * moved to the new sforum directory.
  *
  * @global object
  * @param object $discussion
- * @param int $scriptingforumfrom source scriptingforum id
- * @param int $scriptingforumto target scriptingforum id
+ * @param int $sforumfrom source sforum id
+ * @param int $sforumto target sforum id
  * @return bool success
  */
-function scriptingforum_move_attachments($discussion, $scriptingforumfrom, $scriptingforumto) {
+function sforum_move_attachments($discussion, $sforumfrom, $sforumto) {
     global $DB;
 
     $fs = get_file_storage();
 
-    $newcm = get_coursemodule_from_instance('scriptingforum', $scriptingforumto);
-    $oldcm = get_coursemodule_from_instance('scriptingforum', $scriptingforumfrom);
+    $newcm = get_coursemodule_from_instance('sforum', $sforumto);
+    $oldcm = get_coursemodule_from_instance('sforum', $sforumfrom);
 
     $newcontext = context_module::instance($newcm->id);
     $oldcontext = context_module::instance($oldcm->id);
 
     // loop through all posts, better not use attachment flag ;-)
-    if ($posts = $DB->get_records('scriptingforum_posts',
+    if ($posts = $DB->get_records('sforum_posts',
             array('discussion'=>$discussion->id), '', 'id, attachment')) {
         foreach ($posts as $post) {
             $fs->move_area_files_to_new_context($oldcontext->id,
-                    $newcontext->id, 'mod_scriptingforum', 'post', $post->id);
+                    $newcontext->id, 'mod_sforum', 'post', $post->id);
             $attachmentsmoved = $fs->move_area_files_to_new_context($oldcontext->id,
-                    $newcontext->id, 'mod_scriptingforum', 'attachment', $post->id);
+                    $newcontext->id, 'mod_sforum', 'attachment', $post->id);
             if ($attachmentsmoved > 0 && $post->attachment != '1') {
                 // Weird - let's fix it
                 $post->attachment = '1';
-                $DB->update_record('scriptingforum_posts', $post);
+                $DB->update_record('sforum_posts', $post);
             } else if ($attachmentsmoved == 0 && $post->attachment != '') {
                 // Weird - let's fix it
                 $post->attachment = '';
-                $DB->update_record('scriptingforum_posts', $post);
+                $DB->update_record('sforum_posts', $post);
             }
         }
     }
@@ -4047,7 +4047,7 @@ function scriptingforum_move_attachments($discussion, $scriptingforumfrom, $scri
  * @param string $type html/text/separateimages
  * @return mixed string or array of (html text withouth images and image HTML)
  */
-function scriptingforum_print_attachments($post, $cm, $type) {
+function sforum_print_attachments($post, $cm, $type) {
     global $CFG, $DB, $USER, $OUTPUT;
 
     if (empty($post->attachment)) {
@@ -4061,7 +4061,7 @@ function scriptingforum_print_attachments($post, $cm, $type) {
     if (!$context = context_module::instance($cm->id)) {
         return $type !== 'separateimages' ? '' : array('', '');
     }
-    $strattachment = get_string('attachment', 'scriptingforum');
+    $strattachment = get_string('attachment', 'sforum');
 
     $fs = get_file_storage();
 
@@ -4069,15 +4069,15 @@ function scriptingforum_print_attachments($post, $cm, $type) {
     $output = '';
 
     $canexport = !empty($CFG->enableportfolios) &&
-        (has_capability('mod/scriptingforum:exportpost', $context) ||
-        ($post->userid == $USER->id && has_capability('mod/scriptingforum:exportownpost', $context)));
+        (has_capability('mod/sforum:exportpost', $context) ||
+        ($post->userid == $USER->id && has_capability('mod/sforum:exportownpost', $context)));
     if ($canexport) {
         require_once($CFG->libdir.'/portfoliolib.php');
     }
 
     // We retrieve all files according to the time that they were created.  In the case that several files were uploaded
     // at the sametime (e.g. in the case of drag/drop upload) we revert to using the filename.
-    $files = $fs->get_area_files($context->id, 'mod_scriptingforum', 'attachment', $post->id, "filename", false);
+    $files = $fs->get_area_files($context->id, 'mod_sforum', 'attachment', $post->id, "filename", false);
     if ($files) {
         if ($canexport) {
             $button = new portfolio_add_button();
@@ -4088,15 +4088,15 @@ function scriptingforum_print_attachments($post, $cm, $type) {
             $iconimage = $OUTPUT->pix_icon(file_file_icon($file),
                     get_mimetype_description($file), 'moodle', array('class' => 'icon'));
             $path = file_encode_url($CFG->wwwroot.'/pluginfile.php',
-                    '/'.$context->id.'/mod_scriptingforum/attachment/'.$post->id.'/'.$filename);
+                    '/'.$context->id.'/mod_sforum/attachment/'.$post->id.'/'.$filename);
 
             if ($type == 'html') {
                 $output .= "<a href=\"$path\">$iconimage</a> ";
                 $output .= "<a href=\"$path\">".s($filename)."</a>";
                 if ($canexport) {
-                    $button->set_callback_options('scriptingforum_portfolio_caller',
+                    $button->set_callback_options('sforum_portfolio_caller',
                             array('postid' => $post->id, 'attachment' => $file->get_id()),
-                            'mod_scriptingforum');
+                            'mod_sforum');
                     $button->set_format_by_file($file);
                     $output .= $button->to_html(PORTFOLIO_ADD_ICON_LINK);
                 }
@@ -4110,9 +4110,9 @@ function scriptingforum_print_attachments($post, $cm, $type) {
                     // Image attachments don't get printed as links
                     $imagereturn .= "<br /><img src=\"$path\" alt=\"\" />";
                     if ($canexport) {
-                        $button->set_callback_options('scriptingforum_portfolio_caller',
+                        $button->set_callback_options('sforum_portfolio_caller',
                                 array('postid' => $post->id, 'attachment' => $file->get_id()),
-                                'mod_scriptingforum');
+                                'mod_sforum');
                         $button->set_format_by_file($file);
                         $imagereturn .= $button->to_html(PORTFOLIO_ADD_ICON_LINK);
                     }
@@ -4121,9 +4121,9 @@ function scriptingforum_print_attachments($post, $cm, $type) {
                     $output .= format_text("<a href=\"$path\">".s($filename)."</a>",
                             FORMAT_HTML, array('context'=>$context));
                     if ($canexport) {
-                        $button->set_callback_options('scriptingforum_portfolio_caller',
+                        $button->set_callback_options('sforum_portfolio_caller',
                                 array('postid' => $post->id, 'attachment' => $file->get_id()),
-                                'mod_scriptingforum');
+                                'mod_sforum');
                         $button->set_format_by_file($file);
                         $output .= $button->to_html(PORTFOLIO_ADD_ICON_LINK);
                     }
@@ -4137,7 +4137,7 @@ function scriptingforum_print_attachments($post, $cm, $type) {
                     'file' => $file,
                     'cmid' => $cm->id,
                     'course' => $cm->course,
-                    'scriptingforum' => $cm->instance));
+                    'sforum' => $cm->instance));
                 $output .= '<br />';
             }
         }
@@ -4158,24 +4158,24 @@ function scriptingforum_print_attachments($post, $cm, $type) {
 /**
  * Lists all browsable file areas
  *
- * @package  mod_scriptingforum
+ * @package  mod_sforum
  * @category files
  * @param stdClass $course course object
  * @param stdClass $cm course module object
  * @param stdClass $context context object
  * @return array
  */
-function scriptingforum_get_file_areas($course, $cm, $context) {
+function sforum_get_file_areas($course, $cm, $context) {
     return array(
-        'attachment' => get_string('areaattachment', 'mod_scriptingforum'),
-        'post' => get_string('areapost', 'mod_scriptingforum'),
+        'attachment' => get_string('areaattachment', 'mod_sforum'),
+        'post' => get_string('areapost', 'mod_sforum'),
     );
 }
 
 /**
- * File browsing support for scriptingforum module.
+ * File browsing support for sforum module.
  *
- * @package  mod_scriptingforum
+ * @package  mod_sforum
  * @category files
  * @param stdClass $browser file browser object
  * @param stdClass $areas file areas
@@ -4188,7 +4188,7 @@ function scriptingforum_get_file_areas($course, $cm, $context) {
  * @param string $filename file name
  * @return file_info instance or null if not found
  */
-function scriptingforum_get_file_info($browser,
+function sforum_get_file_info($browser,
         $areas, $course, $cm, $context, $filearea, $itemid, $filepath, $filename) {
     global $CFG, $DB, $USER;
 
@@ -4201,21 +4201,21 @@ function scriptingforum_get_file_info($browser,
         return null;
     }
 
-    // Note that scriptingforum_user_can_see_post() additionally allows access for parent roles
-    // and it explicitly checks qanda scriptingforum type, too. One day, when we stop requiring
+    // Note that sforum_user_can_see_post() additionally allows access for parent roles
+    // and it explicitly checks qanda sforum type, too. One day, when we stop requiring
     // course:managefiles, we will need to extend this.
-    if (!has_capability('mod/scriptingforum:viewdiscussion', $context)) {
+    if (!has_capability('mod/sforum:viewdiscussion', $context)) {
         return null;
     }
 
     if (is_null($itemid)) {
-        require_once($CFG->dirroot.'/mod/scriptingforum/locallib.php');
-        return new scriptingforum_file_info_container($browser,
+        require_once($CFG->dirroot.'/mod/sforum/locallib.php');
+        return new sforum_file_info_container($browser,
                 $course, $cm, $context, $areas, $filearea);
     }
 
     static $cached = array();
-    // $cached will store last retrieved post, discussion and scriptingforum.
+    // $cached will store last retrieved post, discussion and sforum.
     // To make sure that the cache is cleared between unit tests
     // we check if this is the same session
     if (!isset($cached['sesskey']) || $cached['sesskey'] != sesskey()) {
@@ -4224,7 +4224,7 @@ function scriptingforum_get_file_info($browser,
 
     if (isset($cached['post']) && $cached['post']->id == $itemid) {
         $post = $cached['post'];
-    } else if ($post = $DB->get_record('scriptingforum_posts', array('id' => $itemid))) {
+    } else if ($post = $DB->get_record('sforum_posts', array('id' => $itemid))) {
         $cached['post'] = $post;
     } else {
         return null;
@@ -4232,17 +4232,17 @@ function scriptingforum_get_file_info($browser,
 
     if (isset($cached['discussion']) && $cached['discussion']->id == $post->discussion) {
         $discussion = $cached['discussion'];
-    } else if ($discussion = $DB->get_record('scriptingforum_discussions',
+    } else if ($discussion = $DB->get_record('sforum_discussions',
             array('id' => $post->discussion))) {
         $cached['discussion'] = $discussion;
     } else {
         return null;
     }
 
-    if (isset($cached['scriptingforum']) && $cached['scriptingforum']->id == $cm->instance) {
-        $scriptingforum = $cached['scriptingforum'];
-    } else if ($scriptingforum = $DB->get_record('scriptingforum', array('id' => $cm->instance))) {
-        $cached['scriptingforum'] = $scriptingforum;
+    if (isset($cached['sforum']) && $cached['sforum']->id == $cm->instance) {
+        $sforum = $cached['sforum'];
+    } else if ($sforum = $DB->get_record('sforum', array('id' => $cm->instance))) {
+        $cached['sforum'] = $sforum;
     } else {
         return null;
     }
@@ -4251,7 +4251,7 @@ function scriptingforum_get_file_info($browser,
     $filepath = is_null($filepath) ? '/' : $filepath;
     $filename = is_null($filename) ? '.' : $filename;
     if (!($storedfile = $fs->get_file($context->id,
-            'mod_scriptingforum', $filearea, $itemid, $filepath, $filename))) {
+            'mod_sforum', $filearea, $itemid, $filepath, $filename))) {
         return null;
     }
 
@@ -4270,7 +4270,7 @@ function scriptingforum_get_file_info($browser,
     }
 
     // Make sure we're allowed to see it...
-    if (!scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, NULL, $cm)) {
+    if (!sforum_user_can_see_post($sforum, $discussion, $post, NULL, $cm)) {
         return null;
     }
 
@@ -4279,9 +4279,9 @@ function scriptingforum_get_file_info($browser,
 }
 
 /**
- * Serves the scriptingforum attachments. Implements needed access control ;-)
+ * Serves the sforum attachments. Implements needed access control ;-)
  *
- * @package  mod_scriptingforum
+ * @package  mod_sforum
  * @category files
  * @param stdClass $course course object
  * @param stdClass $cm course module object
@@ -4292,7 +4292,7 @@ function scriptingforum_get_file_info($browser,
  * @param array $options additional options affecting the file serving
  * @return bool false if file not found, does not return if found - justsend the file
  */
-function scriptingforum_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options=array()) {
+function sforum_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options=array()) {
     global $CFG, $DB;
 
     if ($context->contextlevel != CONTEXT_MODULE) {
@@ -4301,7 +4301,7 @@ function scriptingforum_pluginfile($course, $cm, $context, $filearea, $args, $fo
 
     require_course_login($course, true, $cm);
 
-    $areas = scriptingforum_get_file_areas($course, $cm, $context);
+    $areas = sforum_get_file_areas($course, $cm, $context);
 
     // filearea must contain a real area
     if (!isset($areas[$filearea])) {
@@ -4310,21 +4310,21 @@ function scriptingforum_pluginfile($course, $cm, $context, $filearea, $args, $fo
 
     $postid = (int)array_shift($args);
 
-    if (!$post = $DB->get_record('scriptingforum_posts', array('id'=>$postid))) {
+    if (!$post = $DB->get_record('sforum_posts', array('id'=>$postid))) {
         return false;
     }
 
-    if (!$discussion = $DB->get_record('scriptingforum_discussions', array('id'=>$post->discussion))) {
+    if (!$discussion = $DB->get_record('sforum_discussions', array('id'=>$post->discussion))) {
         return false;
     }
 
-    if (!$scriptingforum = $DB->get_record('scriptingforum', array('id'=>$cm->instance))) {
+    if (!$sforum = $DB->get_record('sforum', array('id'=>$cm->instance))) {
         return false;
     }
 
     $fs = get_file_storage();
     $relativepath = implode('/', $args);
-    $fullpath = "/$context->id/mod_scriptingforum/$filearea/$postid/$relativepath";
+    $fullpath = "/$context->id/mod_sforum/$filearea/$postid/$relativepath";
     if (!$file = $fs->get_file_by_hash(sha1($fullpath)) or $file->is_directory()) {
         return false;
     }
@@ -4340,7 +4340,7 @@ function scriptingforum_pluginfile($course, $cm, $context, $filearea, $args, $fo
     }
 
     // Make sure we're allowed to see it...
-    if (!scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, NULL, $cm)) {
+    if (!sforum_user_can_see_post($sforum, $discussion, $post, NULL, $cm)) {
         return false;
     }
 
@@ -4352,14 +4352,14 @@ function scriptingforum_pluginfile($course, $cm, $context, $filearea, $args, $fo
  * If successful, this function returns the name of the file
  *
  * @global object
- * @param object $post is a full post record, including course and scriptingforum
- * @param object $scriptingforum
+ * @param object $post is a full post record, including course and sforum
+ * @param object $sforum
  * @param object $cm
  * @param mixed $mform
  * @param string $unused
  * @return bool
  */
-function scriptingforum_add_attachment($post, $scriptingforum, $cm, $mform=null, $unused=null) {
+function sforum_add_attachment($post, $sforum, $cm, $mform=null, $unused=null) {
     global $DB;
 
     if (empty($mform)) {
@@ -4374,10 +4374,10 @@ function scriptingforum_add_attachment($post, $scriptingforum, $cm, $mform=null,
 
     $info = file_get_draft_area_info($post->attachments);
     $present = ($info['filecount']>0) ? '1' : '';
-    file_save_draft_area_files($post->attachments, $context->id, 'mod_scriptingforum', 'attachment', $post->id,
-            mod_scriptingforum_post_form::attachment_options($scriptingforum));
+    file_save_draft_area_files($post->attachments, $context->id, 'mod_sforum', 'attachment', $post->id,
+            mod_sforum_post_form::attachment_options($sforum));
 
-    $DB->set_field('scriptingforum_posts', 'attachment', $present, array('id'=>$post->id));
+    $DB->set_field('sforum_posts', 'attachment', $present, array('id'=>$post->id));
 
     return true;
 }
@@ -4393,12 +4393,12 @@ function scriptingforum_add_attachment($post, $scriptingforum, $cm, $mform=null,
  * @param string $unused formerly $message, renamed in 2.8 as it was unused.
  * @return int
  */
-function scriptingforum_add_new_post($post, $mform, $unused = null) {
+function sforum_add_new_post($post, $mform, $unused = null) {
     global $USER, $CFG, $DB;
 
-    $discussion = $DB->get_record('scriptingforum_discussions', array('id' => $post->discussion));
-    $scriptingforum      = $DB->get_record('scriptingforum', array('id' => $discussion->forum));
-    $cm         = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id);
+    $discussion = $DB->get_record('sforum_discussions', array('id' => $post->discussion));
+    $sforum      = $DB->get_record('sforum', array('id' => $discussion->forum));
+    $cm         = get_coursemodule_from_instance('sforum', $sforum->id);
     $context    = context_module::instance($cm->id);
 
     $post->created    = $post->modified = time();
@@ -4412,26 +4412,26 @@ function scriptingforum_add_new_post($post, $mform, $unused = null) {
         $post->mailnow    = 0;
     }
 
-    $post->id = $DB->insert_record("scriptingforum_posts", $post);
-    $post->message = file_save_draft_area_files($post->itemid, $context->id, 'mod_scriptingforum', 'post', $post->id,
-            mod_scriptingforum_post_form::editor_options($context, null), $post->message);
-    $DB->set_field('scriptingforum_posts', 'message', $post->message, array('id'=>$post->id));
-    scriptingforum_add_attachment($post, $scriptingforum, $cm, $mform);
+    $post->id = $DB->insert_record("sforum_posts", $post);
+    $post->message = file_save_draft_area_files($post->itemid, $context->id, 'mod_sforum', 'post', $post->id,
+            mod_sforum_post_form::editor_options($context, null), $post->message);
+    $DB->set_field('sforum_posts', 'message', $post->message, array('id'=>$post->id));
+    sforum_add_attachment($post, $sforum, $cm, $mform);
 
     // Update discussion modified date
-    $DB->set_field("scriptingforum_discussions",
+    $DB->set_field("sforum_discussions",
             "timemodified", $post->modified, array("id" => $post->discussion));
-    $DB->set_field("scriptingforum_discussions",
+    $DB->set_field("sforum_discussions",
             "usermodified", $post->userid, array("id" => $post->discussion));
 
-    if (scriptingforum_tp_can_track_scriptingforums($scriptingforum) &&
-        scriptingforum_tp_is_tracked($scriptingforum)) {
-         scriptingforum_tp_mark_post_read($post->userid,
+    if (sforum_tp_can_track_sforums($sforum) &&
+        sforum_tp_is_tracked($sforum)) {
+         sforum_tp_mark_post_read($post->userid,
                         $post, $post->forum);
     }
 
     // Let Moodle know that assessable content is uploaded (eg for plagiarism detection)
-    scriptingforum_trigger_content_uploaded_event($post, $cm, 'scriptingforum_add_new_post');
+    sforum_trigger_content_uploaded_event($post, $cm, 'sforum_add_new_post');
 
     return $post->id;
 }
@@ -4447,17 +4447,17 @@ function scriptingforum_add_new_post($post, $mform, $unused = null) {
  * @param string $message
  * @return bool
  */
-function scriptingforum_update_post($post, $mform, &$message) {
+function sforum_update_post($post, $mform, &$message) {
     global $USER, $CFG, $DB;
 
-    $discussion      = $DB->get_record('scriptingforum_discussions', array('id' => $post->discussion));
-    $scriptingforum = $DB->get_record('scriptingforum', array('id' => $discussion->forum));
-    $cm              = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id);
+    $discussion      = $DB->get_record('sforum_discussions', array('id' => $post->discussion));
+    $sforum = $DB->get_record('sforum', array('id' => $discussion->forum));
+    $cm              = get_coursemodule_from_instance('sforum', $sforum->id);
     $context         = context_module::instance($cm->id);
 
     $post->modified = time();
 
-    $DB->update_record('scriptingforum_posts', $post);
+    $DB->update_record('sforum_posts', $post);
 
     $discussion->timemodified = $post->modified; // last modified tracking
     $discussion->usermodified = $post->userid;   // last modified tracking
@@ -4472,21 +4472,21 @@ function scriptingforum_update_post($post, $mform, &$message) {
         }
     }
     $post->message = file_save_draft_area_files($post->itemid,
-            $context->id, 'mod_scriptingforum', 'post', $post->id,
-            mod_scriptingforum_post_form::editor_options($context, $post->id), $post->message);
-    $DB->set_field('scriptingforum_posts', 'message', $post->message, array('id'=>$post->id));
+            $context->id, 'mod_sforum', 'post', $post->id,
+            mod_sforum_post_form::editor_options($context, $post->id), $post->message);
+    $DB->set_field('sforum_posts', 'message', $post->message, array('id'=>$post->id));
 
-    $DB->update_record('scriptingforum_discussions', $discussion);
+    $DB->update_record('sforum_discussions', $discussion);
 
-    scriptingforum_add_attachment($post, $scriptingforum, $cm, $mform, $message);
+    sforum_add_attachment($post, $sforum, $cm, $mform, $message);
 
-    if (scriptingforum_tp_can_track_scriptingforums($scriptingforum) &&
-        scriptingforum_tp_is_tracked($scriptingforum)) {
-        scriptingforum_tp_mark_post_read($post->userid, $post, $post->scriptingforum);
+    if (sforum_tp_can_track_sforums($sforum) &&
+        sforum_tp_is_tracked($sforum)) {
+        sforum_tp_mark_post_read($post->userid, $post, $post->sforum);
     }
 
     // Let Moodle know that assessable content is uploaded (eg for plagiarism detection)
-    scriptingforum_trigger_content_uploaded_event($post, $cm, 'scriptingforum_update_post');
+    sforum_trigger_content_uploaded_event($post, $cm, 'sforum_update_post');
 
     return true;
 }
@@ -4501,7 +4501,7 @@ function scriptingforum_update_post($post, $mform, &$message) {
  * @param int $userid
  * @return object
  */
-function scriptingforum_add_discussion($discussion, $mform=null, $unused=null, $userid=null) {
+function sforum_add_discussion($discussion, $mform=null, $unused=null, $userid=null) {
     global $USER, $CFG, $DB;
 
     $timenow = isset($discussion->timenow) ? $discussion->timenow : time();
@@ -4513,8 +4513,8 @@ function scriptingforum_add_discussion($discussion, $mform=null, $unused=null, $
     // The first post is stored as a real post, and linked
     // to from the discuss entry.
 
-    $scriptingforum = $DB->get_record('scriptingforum', array('id'=>$discussion->scriptingforum));
-    $cm   = get_coursemodule_from_instance('scriptingforum', $scriptingforum->id);
+    $sforum = $DB->get_record('sforum', array('id'=>$discussion->sforum));
+    $cm   = get_coursemodule_from_instance('sforum', $sforum->id);
 
     $post = new stdClass();
     $post->discussion    = 0;
@@ -4528,20 +4528,20 @@ function scriptingforum_add_discussion($discussion, $mform=null, $unused=null, $
     $post->messageformat = $discussion->messageformat;
     $post->messagetrust  = $discussion->messagetrust;
     $post->attachments   = isset($discussion->attachments) ? $discussion->attachments : null;
-    $post->forum         = $scriptingforum->id;     // speedup
-    $post->course        = $scriptingforum->course; // speedup
+    $post->forum         = $sforum->id;     // speedup
+    $post->course        = $sforum->course; // speedup
     $post->mailnow       = $discussion->mailnow;
 
-    $post->id = $DB->insert_record("scriptingforum_posts", $post);
+    $post->id = $DB->insert_record("sforum_posts", $post);
 
     // TODO: Fix the calling code so that there always is a $cm when this function is called
     if (!empty($cm->id) && !empty($discussion->itemid)) {
         // In "single simple discussions" this may not exist yet
         $context = context_module::instance($cm->id);
         $text = file_save_draft_area_files($discussion->itemid,
-                $context->id, 'mod_scriptingforum', 'post', $post->id,
-                mod_scriptingforum_post_form::editor_options($context, null), $post->message);
-        $DB->set_field('scriptingforum_posts', 'message', $text, array('id'=>$post->id));
+                $context->id, 'mod_sforum', 'post', $post->id,
+                mod_sforum_post_form::editor_options($context, null), $post->message);
+        $DB->set_field('sforum_posts', 'message', $text, array('id'=>$post->id));
     }
 
     // Now do the main entry for the discussion, linking to this first post
@@ -4552,23 +4552,23 @@ function scriptingforum_add_discussion($discussion, $mform=null, $unused=null, $
     $discussion->userid       = $userid;
     $discussion->assessed     = 0;
 
-    $post->discussion = $DB->insert_record("scriptingforum_discussions", $discussion);
+    $post->discussion = $DB->insert_record("sforum_discussions", $discussion);
 
     // Finally, set the pointer on the post.
-    $DB->set_field("scriptingforum_posts", "discussion", $post->discussion, array("id"=>$post->id));
+    $DB->set_field("sforum_posts", "discussion", $post->discussion, array("id"=>$post->id));
 
     if (!empty($cm->id)) {
-        scriptingforum_add_attachment($post, $scriptingforum, $cm, $mform, $unused);
+        sforum_add_attachment($post, $sforum, $cm, $mform, $unused);
     }
 
-    if (scriptingforum_tp_can_track_scriptingforums($scriptingforum) &&
-        scriptingforum_tp_is_tracked($scriptingforum)) {
-       scriptingforum_tp_mark_post_read($post->userid, $post, $post->forum);
+    if (sforum_tp_can_track_sforums($sforum) &&
+        sforum_tp_is_tracked($sforum)) {
+       sforum_tp_mark_post_read($post->userid, $post, $post->forum);
     }
 
     // Let Moodle know that assessable content is uploaded (eg for plagiarism detection)
     if (!empty($cm->id)) {
-        scriptingforum_trigger_content_uploaded_event($post, $cm, 'scriptingforum_add_discussion');
+        sforum_trigger_content_uploaded_event($post, $cm, 'sforum_add_discussion');
     }
 
     return $post->discussion;
@@ -4580,34 +4580,34 @@ function scriptingforum_add_discussion($discussion, $mform=null, $unused=null, $
  *
  * @global object
  * @param object $discussion Discussion to delete
- * @param bool $fulldelete True when deleting entire scriptingforum
+ * @param bool $fulldelete True when deleting entire sforum
  * @param object $course Course
  * @param object $cm Course-module
- * @param object $scriptingforum Forum
+ * @param object $sforum Forum
  * @return bool
  */
-function scriptingforum_delete_discussion($discussion, $fulldelete, $course, $cm, $scriptingforum) {
+function sforum_delete_discussion($discussion, $fulldelete, $course, $cm, $sforum) {
     global $DB, $CFG;
     require_once($CFG->libdir.'/completionlib.php');
 
     $result = true;
 
-    if ($posts = $DB->get_records("scriptingforum_posts", array("discussion" => $discussion->id))) {
+    if ($posts = $DB->get_records("sforum_posts", array("discussion" => $discussion->id))) {
         foreach ($posts as $post) {
             $post->course = $discussion->course;
             $post->forum  = $discussion->forum;
-            if (!scriptingforum_delete_post($post,
-                'ignore', $course, $cm, $scriptingforum, $fulldelete)) {
+            if (!sforum_delete_post($post,
+                'ignore', $course, $cm, $sforum, $fulldelete)) {
                $result = false;
             }
         }
     }
 
-    scriptingforum_tp_delete_read_records(-1, -1, $discussion->id);
+    sforum_tp_delete_read_records(-1, -1, $discussion->id);
 
     // Discussion subscriptions must be removed before discussions because of key constraints.
-    $DB->delete_records('scriptingforum_discussion_subs', array('discussion' => $discussion->id));
-    if (!$DB->delete_records("scriptingforum_discussions", array("id" => $discussion->id))) {
+    $DB->delete_records('sforum_discussion_subs', array('discussion' => $discussion->id));
+    if (!$DB->delete_records("sforum_discussions", array("id" => $discussion->id))) {
         $result = false;
     }
 
@@ -4616,8 +4616,8 @@ function scriptingforum_delete_discussion($discussion, $fulldelete, $course, $cm
     if (!$fulldelete) {
         $completion = new completion_info($course);
         if ($completion->is_enabled($cm) == COMPLETION_TRACKING_AUTOMATIC &&
-           ($scriptingforum->completiondiscussions ||
-           $scriptingforum->completionreplies || $scriptingforum->completionposts)) {
+           ($sforum->completiondiscussions ||
+           $sforum->completionreplies || $sforum->completionposts)) {
             $completion->update_state($cm, COMPLETION_INCOMPLETE, $discussion->userid);
         }
     }
@@ -4627,7 +4627,7 @@ function scriptingforum_delete_discussion($discussion, $fulldelete, $course, $cm
 
 
 /**
- * Deletes a single scriptingforum post.
+ * Deletes a single sforum post.
  *
  * @global object
  * @param object $post Forum post object
@@ -4638,23 +4638,23 @@ function scriptingforum_delete_discussion($discussion, $fulldelete, $course, $cm
  *   in a disussion).
  * @param object $course Course
  * @param object $cm Course-module
- * @param object $scriptingforum Forum
+ * @param object $sforum Forum
  * @param bool $skipcompletion True to skip updating completion state if it
- *   would otherwise be updated, i.e. when deleting entire scriptingforum anyway.
+ *   would otherwise be updated, i.e. when deleting entire sforum anyway.
  * @return bool
  */
-function scriptingforum_delete_post($post, $children, $course, $cm, $scriptingforum, $skipcompletion=false) {
+function sforum_delete_post($post, $children, $course, $cm, $sforum, $skipcompletion=false) {
     global $DB, $CFG, $USER;
     require_once($CFG->libdir.'/completionlib.php');
 
     $context = context_module::instance($cm->id);
 
     if ($children !== 'ignore' &&
-        ($childposts = $DB->get_records('scriptingforum_posts', array('parent'=>$post->id)))) {
+        ($childposts = $DB->get_records('sforum_posts', array('parent'=>$post->id)))) {
        if ($children) {
            foreach ($childposts as $childpost) {
-               scriptingforum_delete_post($childpost,
-                   true, $course, $cm, $scriptingforum, $skipcompletion);
+               sforum_delete_post($childpost,
+                   true, $course, $cm, $sforum, $skipcompletion);
            }
        } else {
            return false;
@@ -4665,7 +4665,7 @@ function scriptingforum_delete_post($post, $children, $course, $cm, $scriptingfo
     require_once($CFG->dirroot.'/rating/lib.php');
     $delopt = new stdClass;
     $delopt->contextid = $context->id;
-    $delopt->component = 'mod_scriptingforum';
+    $delopt->component = 'mod_sforum';
     $delopt->ratingarea = 'post';
     $delopt->itemid = $post->id;
     $rm = new rating_manager();
@@ -4673,20 +4673,20 @@ function scriptingforum_delete_post($post, $children, $course, $cm, $scriptingfo
 
     // Delete attachments.
     $fs = get_file_storage();
-    $fs->delete_area_files($context->id, 'mod_scriptingforum', 'attachment', $post->id);
-    $fs->delete_area_files($context->id, 'mod_scriptingforum', 'post', $post->id);
+    $fs->delete_area_files($context->id, 'mod_sforum', 'attachment', $post->id);
+    $fs->delete_area_files($context->id, 'mod_sforum', 'post', $post->id);
 
     // Delete cached RSS feeds.
     if (!empty($CFG->enablerssfeeds)) {
-        require_once($CFG->dirroot.'/mod/scriptingforum/rsslib.php');
-        scriptingforum_rss_delete_file($scriptingforum);
+        require_once($CFG->dirroot.'/mod/sforum/rsslib.php');
+        sforum_rss_delete_file($sforum);
     }
 
-    if ($DB->delete_records("scriptingforum_posts", array("id" => $post->id))) {
+    if ($DB->delete_records("sforum_posts", array("id" => $post->id))) {
 
-        scriptingforum_tp_delete_read_records(-1, $post->id);
+        sforum_tp_delete_read_records(-1, $post->id);
         // Just in case we are deleting the last post
-        scriptingforum_discussion_update_last_post($post->discussion);
+        sforum_discussion_update_last_post($post->discussion);
 
         // Update completion state if we are tracking completion based on number of posts
         // But don't bother when deleting whole thing
@@ -4694,8 +4694,8 @@ function scriptingforum_delete_post($post, $children, $course, $cm, $scriptingfo
         if (!$skipcompletion) {
             $completion = new completion_info($course);
             if ($completion->is_enabled($cm) == COMPLETION_TRACKING_AUTOMATIC &&
-                ($scriptingforum->completiondiscussions ||
-                 $scriptingforum->completionreplies || $scriptingforum->completionposts)) {
+                ($sforum->completiondiscussions ||
+                 $sforum->completionreplies || $sforum->completionposts)) {
                 $completion->update_state($cm, COMPLETION_INCOMPLETE, $post->userid);
             }
         }
@@ -4705,15 +4705,15 @@ function scriptingforum_delete_post($post, $children, $course, $cm, $scriptingfo
             'objectid' => $post->id,
             'other' => array(
                 'discussionid' => $post->discussion,
-                'scriptingforumid' => $scriptingforum->id,
-                'scriptingforumtype' => $scriptingforum->type,
+                'sforumid' => $sforum->id,
+                'sforumtype' => $sforum->type,
             )
         );
         if ($post->userid !== $USER->id) {
             $params['relateduserid'] = $post->userid;
         }
-        $event = \mod_scriptingforum\event\post_deleted::create($params);
-        $event->add_record_snapshot('scriptingforum_posts', $post);
+        $event = \mod_sforum\event\post_deleted::create($params);
+        $event->add_record_snapshot('sforum_posts', $post);
         $event->trigger();
 
         return true;
@@ -4728,11 +4728,11 @@ function scriptingforum_delete_post($post, $children, $course, $cm, $scriptingfo
  * @param string $name
  * @return bool
 */
-function scriptingforum_trigger_content_uploaded_event($post, $cm, $name) {
+function sforum_trigger_content_uploaded_event($post, $cm, $name) {
     $context = context_module::instance($cm->id);
     $fs = get_file_storage();
     $files = $fs->get_area_files($context->id,
-             'mod_scriptingforum', 'attachment', $post->id, "timemodified", false);
+             'mod_sforum', 'attachment', $post->id, "timemodified", false);
     $params = array(
         'context' => $context,
         'objectid' => $post->id,
@@ -4743,7 +4743,7 @@ function scriptingforum_trigger_content_uploaded_event($post, $cm, $name) {
             'triggeredfrom' => $name,
         )
     );
-    $event = \mod_scriptingforum\event\assessable_uploaded::create($params);
+    $event = \mod_sforum\event\assessable_uploaded::create($params);
     $event->trigger();
     return true;
 }
@@ -4754,19 +4754,19 @@ function scriptingforum_trigger_content_uploaded_event($post, $cm, $name) {
  * @param bool $children
  * @return int
  */
-function scriptingforum_count_replies($post, $children=true) {
+function sforum_count_replies($post, $children=true) {
     global $DB;
     $count = 0;
 
     if ($children) {
-        if ($childposts = $DB->get_records('scriptingforum_posts', array('parent' => $post->id))) {
+        if ($childposts = $DB->get_records('sforum_posts', array('parent' => $post->id))) {
            foreach ($childposts as $childpost) {
                $count ++;                   // For this child
-               $count += scriptingforum_count_replies($childpost, true);
+               $count += sforum_count_replies($childpost, true);
            }
         }
     } else {
-        $count += $DB->count_records('scriptingforum_posts', array('parent' => $post->id));
+        $count += $DB->count_records('sforum_posts', array('parent' => $post->id));
     }
 
     return $count;
@@ -4777,21 +4777,21 @@ function scriptingforum_count_replies($post, $children=true) {
  * Returns some text which describes what happened.
  *
  * @param object $fromform The submitted form
- * @param stdClass $scriptingforum The scriptingforum record
- * @param stdClass $discussion The scriptingforum discussion record
+ * @param stdClass $sforum The sforum record
+ * @param stdClass $discussion The sforum discussion record
  * @return string
  */
-function scriptingforum_post_subscription($fromform, $scriptingforum, $discussion) {
+function sforum_post_subscription($fromform, $sforum, $discussion) {
     global $USER;
 
-    if (\mod_scriptingforum\subscriptions::is_forcesubscribed($scriptingforum)) {
+    if (\mod_sforum\subscriptions::is_forcesubscribed($sforum)) {
         return "";
-    } else if (\mod_scriptingforum\subscriptions::subscription_disabled($scriptingforum)) {
-        $subscribed = \mod_scriptingforum\subscriptions::is_subscribed($USER->id, $scriptingforum);
+    } else if (\mod_sforum\subscriptions::subscription_disabled($sforum)) {
+        $subscribed = \mod_sforum\subscriptions::is_subscribed($USER->id, $sforum);
         if ($subscribed && !has_capability('moodle/course:manageactivities',
-                context_course::instance($scriptingforum->course), $USER->id)) {
-            // This user should not be subscribed to the scriptingforum.
-            \mod_scriptingforum\subscriptions::unsubscribe_user($USER->id, $scriptingforum);
+                context_course::instance($sforum->course), $USER->id)) {
+            // This user should not be subscribed to the sforum.
+            \mod_sforum\subscriptions::unsubscribe_user($USER->id, $sforum);
         }
         return "";
     }
@@ -4799,15 +4799,15 @@ function scriptingforum_post_subscription($fromform, $scriptingforum, $discussio
     $info = new stdClass();
     $info->name  = fullname($USER);
     $info->discussion = format_string($discussion->name);
-    $info->scriptingforum = format_string($scriptingforum->name);
+    $info->sforum = format_string($sforum->name);
 
     if (isset($fromform->discussionsubscribe) && $fromform->discussionsubscribe) {
-        if ($result = \mod_scriptingforum\subscriptions::subscribe_user_to_discussion($USER->id, $discussion)) {
-            return html_writer::tag('p', get_string('discussionnowsubscribed', 'scriptingforum', $info));
+        if ($result = \mod_sforum\subscriptions::subscribe_user_to_discussion($USER->id, $discussion)) {
+            return html_writer::tag('p', get_string('discussionnowsubscribed', 'sforum', $info));
         }
     } else {
-        if ($result = \mod_scriptingforum\subscriptions::unsubscribe_user_from_discussion($USER->id, $discussion)) {
-            return html_writer::tag('p', get_string('discussionnownotsubscribed', 'scriptingforum', $info));
+        if ($result = \mod_sforum\subscriptions::unsubscribe_user_from_discussion($USER->id, $discussion)) {
+            return html_writer::tag('p', get_string('discussionnownotsubscribed', 'sforum', $info));
         }
     }
 
@@ -4815,11 +4815,11 @@ function scriptingforum_post_subscription($fromform, $scriptingforum, $discussio
 }
 
 /**
- * Generate and return the subscribe or unsubscribe link for a scriptingforum.
- * Fields used are $scriptingforum->id and $scriptingforum->forcesubscribe.
+ * Generate and return the subscribe or unsubscribe link for a sforum.
+ * Fields used are $sforum->id and $sforum->forcesubscribe.
  *
- * @param object $scriptingforum the scriptingforum. 
- * @param object $context the context object for this scriptingforum.
+ * @param object $sforum the sforum. 
+ * @param object $context the context object for this sforum.
  * @param array $messages text used for the link in its various states
  *      (subscribed, unsubscribed, forcesubscribed or cantsubscribe).
  *      Any strings not passed in are taken from the $defaultmessages array
@@ -4827,24 +4827,24 @@ function scriptingforum_post_subscription($fromform, $scriptingforum, $discussio
  * @param bool $cantaccessagroup
  * @param bool $fakelink
  * @param bool $backtoindex
- * @param array $subscribed_scriptingforums
+ * @param array $subscribed_sforums
  * @return string
  */
-function scriptingforum_get_subscribe_link($scriptingforum, $context, $messages = array(), $cantaccessagroup = false, $fakelink=true, $backtoindex=false, $subscribed_scriptingforums=null) {
+function sforum_get_subscribe_link($sforum, $context, $messages = array(), $cantaccessagroup = false, $fakelink=true, $backtoindex=false, $subscribed_sforums=null) {
     global $CFG, $USER, $PAGE, $OUTPUT;
     $defaultmessages = array(
-        'subscribed' => get_string('unsubscribe', 'scriptingforum'),
-        'unsubscribed' => get_string('subscribe', 'scriptingforum'),
+        'subscribed' => get_string('unsubscribe', 'sforum'),
+        'unsubscribed' => get_string('subscribe', 'sforum'),
         'cantaccessgroup' => get_string('no'),
-        'forcesubscribed' => get_string('everyoneissubscribed', 'scriptingforum'),
-        'cantsubscribe' => get_string('disallowsubscribe','scriptingforum')
+        'forcesubscribed' => get_string('everyoneissubscribed', 'sforum'),
+        'cantsubscribe' => get_string('disallowsubscribe','sforum')
     );
     $messages = $messages + $defaultmessages;
 
-    if (\mod_scriptingforum\subscriptions::is_forcesubscribed($scriptingforum)) {
+    if (\mod_sforum\subscriptions::is_forcesubscribed($sforum)) {
         return $messages['forcesubscribed'];
-    } else if (\mod_scriptingforum\subscriptions::subscription_disabled($scriptingforum) &&
-            !has_capability('mod/scriptingforum:managesubscriptions', $context)) {
+    } else if (\mod_sforum\subscriptions::subscription_disabled($sforum) &&
+            !has_capability('mod/sforum:managesubscriptions', $context)) {
         return $messages['cantsubscribe'];
     } else if ($cantaccessagroup) {
         return $messages['cantaccessgroup'];
@@ -4853,13 +4853,13 @@ function scriptingforum_get_subscribe_link($scriptingforum, $context, $messages 
             return '';
         }
 
-        $subscribed = \mod_scriptingforum\subscriptions::is_subscribed($USER->id, $scriptingforum);
+        $subscribed = \mod_sforum\subscriptions::is_subscribed($USER->id, $sforum);
         if ($subscribed) {
             $linktext = $messages['subscribed'];
-            $linktitle = get_string('subscribestop', 'scriptingforum');
+            $linktitle = get_string('subscribestop', 'sforum');
         } else {
             $linktext = $messages['unsubscribed'];
-            $linktitle = get_string('subscribestart', 'scriptingforum');
+            $linktitle = get_string('subscribestart', 'sforum');
         }
 
         $options = array();
@@ -4872,14 +4872,14 @@ function scriptingforum_get_subscribe_link($scriptingforum, $context, $messages 
         $link = '';
 
         if ($fakelink) {
-            $PAGE->requires->js('/mod/scriptingforum/scriptingforum.js');
-            $PAGE->requires->js_function_call('scriptingforum_produce_subscribe_link',
-                    array($scriptingforum->id, $backtoindexlink, $linktext, $linktitle));
+            $PAGE->requires->js('/mod/sforum/sforum.js');
+            $PAGE->requires->js_function_call('sforum_produce_subscribe_link',
+                    array($sforum->id, $backtoindexlink, $linktext, $linktitle));
             $link = "<noscript>";
         }
-        $options['id'] = $scriptingforum->id;
+        $options['id'] = $sforum->id;
         $options['sesskey'] = sesskey();
-        $url = new moodle_url('/mod/scriptingforum/subscribe.php', $options);
+        $url = new moodle_url('/mod/sforum/subscribe.php', $options);
         $link .= $OUTPUT->single_button($url, $linktext, 'get', array('title'=>$linktitle));
         if ($fakelink) {
             $link .= '</noscript>';
@@ -4892,19 +4892,19 @@ function scriptingforum_get_subscribe_link($scriptingforum, $context, $messages 
 /**
  * Returns true if user created new discussion already.
  *
- * @param int $scriptingforumid  The scriptingforum to check for postings
+ * @param int $sforumid  The sforum to check for postings
  * @param int $userid   The user to check for postings
  * @param int $groupid  The group to restrict the check to
  * @return bool
  */
-function scriptingforum_user_has_posted_discussion($scriptingforumid, $userid, $groupid = null) {
+function sforum_user_has_posted_discussion($sforumid, $userid, $groupid = null) {
     global $CFG, $DB;
 
     $sql = "SELECT 'x'
-              FROM {scriptingforum_discussions} d, {scriptingforum_posts} p
+              FROM {sforum_discussions} d, {sforum_posts} p
              WHERE d.forum = ? AND p.discussion = d.id AND p.parent = 0 AND p.userid = ?";
 
-    $params = [$scriptingforumid, $userid];
+    $params = [$sforumid, $userid];
 
     if ($groupid) {
         $sql .= " AND d.groupid = ?";
@@ -4917,45 +4917,45 @@ function scriptingforum_user_has_posted_discussion($scriptingforumid, $userid, $
 /**
  * @global object
  * @global object
- * @param int $scriptingforumid
+ * @param int $sforumid
  * @param int $userid
  * @return array
  */
-function scriptingforum_discussions_user_has_posted_in($scriptingforumid, $userid) {
+function sforum_discussions_user_has_posted_in($sforumid, $userid) {
     global $CFG, $DB;
 
     $haspostedsql = "SELECT d.id AS id,
                             d.*
-                       FROM {scriptingforum_posts} p,
-                            {scriptingforum_discussions} d
+                       FROM {sforum_posts} p,
+                            {sforum_discussions} d
                       WHERE p.discussion = d.id
                         AND d.forum = ?
                         AND p.userid = ?";
 
-    return $DB->get_records_sql($haspostedsql, array($scriptingforumid, $userid));
+    return $DB->get_records_sql($haspostedsql, array($sforumid, $userid));
 }
 
 /**
  * @global object
  * @global object
- * @param int $scriptingforumid
+ * @param int $sforumid
  * @param int $did
  * @param int $userid
  * @return bool
  */
-function scriptingforum_user_has_posted($scriptingforumid, $did, $userid) {
+function sforum_user_has_posted($sforumid, $did, $userid) {
     global $DB;
 
     if (empty($did)) {
-        // posted in any scriptingforum discussion?
+        // posted in any sforum discussion?
         $sql = "SELECT 'x'
-                  FROM {scriptingforum_posts} p
-                  JOIN {scriptingforum_discussions} d ON d.id = p.discussion
-                 WHERE p.userid = :userid AND d.forum = :scriptingforumid";
+                  FROM {sforum_posts} p
+                  JOIN {sforum_discussions} d ON d.id = p.discussion
+                 WHERE p.userid = :userid AND d.forum = :sforumid";
         return $DB->record_exists_sql($sql,
-                array('scriptingforumid'=>$scriptingforumid,'userid'=>$userid));
+                array('sforumid'=>$sforumid,'userid'=>$userid));
     } else {
-        return $DB->record_exists('scriptingforum_posts',
+        return $DB->record_exists('sforum_posts',
                 array('discussion'=>$did,'userid'=>$userid));
     }
 }
@@ -4967,10 +4967,10 @@ function scriptingforum_user_has_posted($scriptingforumid, $did, $userid) {
  * @param int $userid User id
  * @return int|bool post creation time stamp or return false
  */
-function scriptingforum_get_user_posted_time($did, $userid) {
+function sforum_get_user_posted_time($did, $userid) {
     global $DB;
 
-    $posttime = $DB->get_field('scriptingforum_posts',
+    $posttime = $DB->get_field('sforum_posts',
             'MIN(created)', array('userid'=>$userid, 'discussion'=>$did));
     if (empty($posttime)) {
         return false;
@@ -4980,15 +4980,15 @@ function scriptingforum_get_user_posted_time($did, $userid) {
 
 /**
  * @global object
- * @param object $scriptingforum
+ * @param object $sforum
  * @param object $currentgroup
  * @param int $unused
  * @param object $cm
  * @param object $context
  * @return bool
  */
-function scriptingforum_user_can_post_discussion($scriptingforum, $currentgroup=null, $unused=-1, $cm=NULL, $context=NULL) {
-// $scriptingforum is an object
+function sforum_user_can_post_discussion($sforum, $currentgroup=null, $unused=-1, $cm=NULL, $context=NULL) {
+// $sforum is an object
     global $USER;
 
     // shortcut - guest and not-logged-in users can not post
@@ -4998,8 +4998,8 @@ function scriptingforum_user_can_post_discussion($scriptingforum, $currentgroup=
 
     if (!$cm) {
         debugging('missing cm', DEBUG_DEVELOPER);
-        if (!$cm = get_coursemodule_from_instance('scriptingforum',
-                $scriptingforum->id, $scriptingforum->course)) {
+        if (!$cm = get_coursemodule_from_instance('sforum',
+                $sforum->id, $sforum->course)) {
             print_error('invalidcoursemodule');
         }
     }
@@ -5014,24 +5014,24 @@ function scriptingforum_user_can_post_discussion($scriptingforum, $currentgroup=
 
     $groupmode = groups_get_activity_groupmode($cm);
 
-    if ($scriptingforum->type == 'news') {
-        $capname = 'mod/scriptingforum:addnews';
-    } else if ($scriptingforum->type == 'qanda') {
-        $capname = 'mod/scriptingforum:addquestion';
+    if ($sforum->type == 'news') {
+        $capname = 'mod/sforum:addnews';
+    } else if ($sforum->type == 'qanda') {
+        $capname = 'mod/sforum:addquestion';
     } else {
-        $capname = 'mod/scriptingforum:startdiscussion';
+        $capname = 'mod/sforum:startdiscussion';
     }
 
     if (!has_capability($capname, $context)) {
         return false;
     }
 
-    if ($scriptingforum->type == 'single') {
+    if ($sforum->type == 'single') {
         return false;
     }
 
-    if ($scriptingforum->type == 'eachuser') {
-        if (scriptingforum_user_has_posted_discussion($scriptingforum->id, $USER->id, $currentgroup)) {
+    if ($sforum->type == 'eachuser') {
+        if (sforum_user_has_posted_discussion($sforum->id, $USER->id, $currentgroup)) {
             return false;
         }
     }
@@ -5050,8 +5050,8 @@ function scriptingforum_user_can_post_discussion($scriptingforum, $currentgroup=
 }
 
 /**
- * This function checks whether the user can reply to posts in a scriptingforum
- * discussion. Use scriptingforum_user_can_post_discussion() to check whether the user
+ * This function checks whether the user can reply to posts in a sforum
+ * discussion. Use sforum_user_can_post_discussion() to check whether the user
  * can start discussions.
  *
  * @global object
@@ -5059,7 +5059,7 @@ function scriptingforum_user_can_post_discussion($scriptingforum, $currentgroup=
  * @uses DEBUG_DEVELOPER
  * @uses CONTEXT_MODULE
  * @uses VISIBLEGROUPS
- * @param object $scriptingforum scriptingforum object
+ * @param object $sforum sforum object
  * @param object $discussion
  * @param object $user
  * @param object $cm
@@ -5067,7 +5067,7 @@ function scriptingforum_user_can_post_discussion($scriptingforum, $currentgroup=
  * @param object $context
  * @return bool
  */
-function scriptingforum_user_can_post($scriptingforum,
+function sforum_user_can_post($sforum,
         $discussion, $user=NULL, $cm=NULL, $course=NULL, $context=NULL) {
     global $USER, $DB;
     if (empty($user)) {
@@ -5086,15 +5086,15 @@ function scriptingforum_user_can_post($scriptingforum,
 
     if (!$cm) {
         debugging('missing cm', DEBUG_DEVELOPER);
-        if (!$cm = get_coursemodule_from_instance('scriptingforum',
-                $scriptingforum->id, $scriptingforum->course)) {
+        if (!$cm = get_coursemodule_from_instance('sforum',
+                $sforum->id, $sforum->course)) {
             print_error('invalidcoursemodule');
         }
     }
 
     if (!$course) {
         debugging('missing course', DEBUG_DEVELOPER);
-        if (!$course = $DB->get_record('course', array('id' => $scriptingforum->course))) {
+        if (!$course = $DB->get_record('course', array('id' => $sforum->course))) {
             print_error('invalidcourseid');
         }
     }
@@ -5108,10 +5108,10 @@ function scriptingforum_user_can_post($scriptingforum,
         return false;
     }
 
-    if ($scriptingforum->type == 'news') {
-        $capname = 'mod/scriptingforum:replynews';
+    if ($sforum->type == 'news') {
+        $capname = 'mod/sforum:replynews';
     } else {
-        $capname = 'mod/scriptingforum:replypost';
+        $capname = 'mod/sforum:replypost';
     }
 
     if (!has_capability($capname, $context, $user->id)) {
@@ -5151,15 +5151,15 @@ function scriptingforum_user_can_post($scriptingforum,
 * @param object $context
 * @return boolean returns true if they can view post, false otherwise
 */
-function scriptingforum_user_can_see_timed_discussion($discussion, $user, $context) {
+function sforum_user_can_see_timed_discussion($discussion, $user, $context) {
     global $CFG;
 
     // Check that the user can view a discussion that is normally hidden due to access times.
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
+    if (!empty($CFG->sforum_enabletimedposts)) {
         $time = time();
         if (($discussion->timestart != 0 && $discussion->timestart > $time)
             || ($discussion->timeend != 0 && $discussion->timeend < $time)) {
-            if (!has_capability('mod/scriptingforum:viewhiddentimedposts', $context, $user->id)) {
+            if (!has_capability('mod/sforum:viewhiddentimedposts', $context, $user->id)) {
                 return false;
             }
         }
@@ -5176,7 +5176,7 @@ function scriptingforum_user_can_see_timed_discussion($discussion, $user, $conte
 * @param object $context
 * @return boolean returns true if they can view post, false otherwise
 */
-function scriptingforum_user_can_see_group_discussion($discussion, $cm, $context) {
+function sforum_user_can_see_group_discussion($discussion, $cm, $context) {
 
     // If it's a grouped discussion, make sure the user is a member.
     if ($discussion->groupid > 0) {
@@ -5193,13 +5193,13 @@ function scriptingforum_user_can_see_group_discussion($discussion, $cm, $context
  * @global object
  * @global object
  * @uses DEBUG_DEVELOPER
- * @param object $scriptingforum
+ * @param object $sforum
  * @param object $discussion
  * @param object $context
  * @param object $user
  * @return bool
  */
-function scriptingforum_user_can_see_discussion($scriptingforum, $discussion, $context, $user=NULL) {
+function sforum_user_can_see_discussion($sforum, $discussion, $context, $user=NULL) {
     global $USER, $DB;
 
     if (empty($user) || empty($user->id)) {
@@ -5207,32 +5207,32 @@ function scriptingforum_user_can_see_discussion($scriptingforum, $discussion, $c
     }
 
     // retrieve objects (yuk)
-    if (is_numeric($scriptingforum)) {
-        debugging('missing full scriptingforum', DEBUG_DEVELOPER);
-        if (!$scriptingforum = $DB->get_record('scriptingforum',array('id'=>$scriptingforum))) {
+    if (is_numeric($sforum)) {
+        debugging('missing full sforum', DEBUG_DEVELOPER);
+        if (!$sforum = $DB->get_record('sforum',array('id'=>$sforum))) {
             return false;
         }
     }
     if (is_numeric($discussion)) {
         debugging('missing full discussion', DEBUG_DEVELOPER);
-        if (!$discussion = $DB->get_record('scriptingforum_discussions',array('id'=>$discussion))) {
+        if (!$discussion = $DB->get_record('sforum_discussions',array('id'=>$discussion))) {
             return false;
         }
     }
-    if (!$cm = get_coursemodule_from_instance('scriptingforum',
-            $scriptingforum->id, $scriptingforum->course)) {
+    if (!$cm = get_coursemodule_from_instance('sforum',
+            $sforum->id, $sforum->course)) {
         print_error('invalidcoursemodule');
     }
 
-    if (!has_capability('mod/scriptingforum:viewdiscussion', $context)) {
+    if (!has_capability('mod/sforum:viewdiscussion', $context)) {
         return false;
     }
 
-    if (!scriptingforum_user_can_see_timed_discussion($discussion, $user, $context)) {
+    if (!sforum_user_can_see_timed_discussion($discussion, $user, $context)) {
         return false;
     }
 
-    if (!scriptingforum_user_can_see_group_discussion($discussion, $cm, $context)) {
+    if (!sforum_user_can_see_group_discussion($discussion, $cm, $context)) {
         return false;
     }
 
@@ -5242,36 +5242,36 @@ function scriptingforum_user_can_see_discussion($scriptingforum, $discussion, $c
 /**
  * @global object
  * @global object
- * @param object $scriptingforum
+ * @param object $sforum
  * @param object $discussion
  * @param object $post
  * @param object $user
  * @param object $cm
  * @return bool
  */
-function scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, $user=NULL, $cm=NULL) {
+function sforum_user_can_see_post($sforum, $discussion, $post, $user=NULL, $cm=NULL) {
     global $CFG, $USER, $DB;
 
     // Context used throughout function.
     $modcontext = context_module::instance($cm->id);
 
     // retrieve objects (yuk)
-    if (is_numeric($scriptingforum)) {
-        debugging('missing full scriptingforum', DEBUG_DEVELOPER);
-        if (!$scriptingforum = $DB->get_record('scriptingforum',array('id'=>$scriptingforum))) {
+    if (is_numeric($sforum)) {
+        debugging('missing full sforum', DEBUG_DEVELOPER);
+        if (!$sforum = $DB->get_record('sforum',array('id'=>$sforum))) {
             return false;
         }
     }
 
     if (is_numeric($discussion)) {
         debugging('missing full discussion', DEBUG_DEVELOPER);
-        if (!$discussion = $DB->get_record('scriptingforum_discussions',array('id'=>$discussion))) {
+        if (!$discussion = $DB->get_record('sforum_discussions',array('id'=>$discussion))) {
             return false;
         }
     }
     if (is_numeric($post)) {
         debugging('missing full post', DEBUG_DEVELOPER);
-        if (!$post = $DB->get_record('scriptingforum_posts',array('id'=>$post))) {
+        if (!$post = $DB->get_record('sforum_posts',array('id'=>$post))) {
             return false;
         }
     }
@@ -5282,8 +5282,8 @@ function scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, $
 
     if (!$cm) {
         debugging('missing cm', DEBUG_DEVELOPER);
-        if (!$cm = get_coursemodule_from_instance('scriptingforum',
-                $scriptingforum->id, $scriptingforum->course)) {
+        if (!$cm = get_coursemodule_from_instance('sforum',
+                $sforum->id, $sforum->course)) {
             print_error('invalidcoursemodule');
         }
     }
@@ -5292,8 +5292,8 @@ function scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, $
         $user = $USER;
     }
 
-    $canviewdiscussion = !empty($cm->cache->caps['mod/scriptingforum:viewdiscussion']) ||
-            has_capability('mod/scriptingforum:viewdiscussion', $modcontext, $user->id);
+    $canviewdiscussion = !empty($cm->cache->caps['mod/sforum:viewdiscussion']) ||
+            has_capability('mod/sforum:viewdiscussion', $modcontext, $user->id);
     if (!$canviewdiscussion &&
         !has_all_capabilities(array('moodle/user:viewdetails',
                 'moodle/user:readuserposts'), context_user::instance($post->userid))) {
@@ -5310,22 +5310,22 @@ function scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, $
         }
     }
 
-    if (!scriptingforum_user_can_see_timed_discussion($discussion, $user, $modcontext)) {
+    if (!sforum_user_can_see_timed_discussion($discussion, $user, $modcontext)) {
         return false;
     }
 
-    if (!scriptingforum_user_can_see_group_discussion($discussion, $cm, $modcontext)) {
+    if (!sforum_user_can_see_group_discussion($discussion, $cm, $modcontext)) {
         return false;
     }
 
-    if ($scriptingforum->type == 'qanda') {
-        $firstpost = scriptingforum_get_firstpost_from_discussion($discussion->id);
-        $userfirstpost = scriptingforum_get_user_posted_time($discussion->id, $user->id);
+    if ($sforum->type == 'qanda') {
+        $firstpost = sforum_get_firstpost_from_discussion($discussion->id);
+        $userfirstpost = sforum_get_user_posted_time($discussion->id, $user->id);
 
         return (($userfirstpost !== false && (time() - $userfirstpost >= $CFG->maxeditingtime)) ||
                 $firstpost->id == $post->id ||
                 $post->userid == $user->id || $firstpost->userid == $user->id ||
-                has_capability('mod/scriptingforum:viewqandawithoutposting', $modcontext, $user->id));
+                has_capability('mod/sforum:viewqandawithoutposting', $modcontext, $user->id));
     }
     return true;
 }
@@ -5333,37 +5333,37 @@ function scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, $
 
 /**
  * TODO
- * Prints the discussion view screen for a scriptingforum.
+ * Prints the discussion view screen for a sforum.
  *
  * @global object
  * @global object
  * @param object $course The current course object.
- * @param object $scriptingforum Forum to be printed.
+ * @param object $sforum Forum to be printed.
  * @param int $maxdiscussions .
  * @param string $displayformat The display format to use (optional).
  * @param string $sort Sort arguments for database query (optional).
- * @param int $groupmode Group mode of the scriptingforum (optional).
+ * @param int $groupmode Group mode of the sforum (optional).
  * @param void $unused (originally current group)
  * @param int $page Page mode, page to display (optional).
  * @param int $perpage The maximum number of discussions per page(optional)
  * @param boolean $subscriptionstatus Whether the user is currently subscribed to the discussion in some fashion.
  *
  */
-function scriptingforum_print_latest_discussions($course,
-        $scriptingforum, $maxdiscussions = -1, $displayformat = 'plain', $sort = '',
+function sforum_print_latest_discussions($course,
+        $sforum, $maxdiscussions = -1, $displayformat = 'plain', $sort = '',
         $currentgroup = -1, $groupmode = -1, $page = -1, $perpage = 100, $cm = null) {
     global $CFG, $USER, $OUTPUT;
 
     if (!$cm) {
-        if (!$cm = get_coursemodule_from_instance('scriptingforum',
-                    $scriptingforum->id, $scriptingforum->course)) {
+        if (!$cm = get_coursemodule_from_instance('sforum',
+                    $sforum->id, $sforum->course)) {
             print_error('invalidcoursemodule');
         }
     }
     $context = context_module::instance($cm->id);
 
     if (empty($sort)) {
-        $sort = scriptingforum_get_default_sort_order();
+        $sort = sforum_get_default_sort_order();
     }
 
     $olddiscussionlink = false;
@@ -5406,9 +5406,9 @@ function scriptingforum_print_latest_discussions($course,
     // button for it. We do not show the button if we are showing site news
     // and the current user is a guest.
 
-    $canstart = scriptingforum_user_can_post_discussion($scriptingforum,
+    $canstart = sforum_user_can_post_discussion($sforum,
             $currentgroup, $groupmode, $cm, $context);
-    if (!$canstart and $scriptingforum->type !== 'news') {
+    if (!$canstart and $sforum->type !== 'news') {
         if (isguestuser() or !isloggedin()) {
             $canstart = true;
         }
@@ -5423,20 +5423,20 @@ function scriptingforum_print_latest_discussions($course,
     }
 
     if ($canstart) {
-        echo '<div class="singlebutton scriptingforumaddnew">';
-        echo "<form id=\"newdiscussionform\" method=\"get\" action=\"$CFG->wwwroot/mod/scriptingforum/post.php\">";
+        echo '<div class="singlebutton sforumaddnew">';
+        echo "<form id=\"newdiscussionform\" method=\"get\" action=\"$CFG->wwwroot/mod/sforum/post.php\">";
         echo '<div>';
-        echo "<input type=\"hidden\" name=\"scriptingforum\" value=\"$scriptingforum->id\" />";
-        switch ($scriptingforum->type) {
+        echo "<input type=\"hidden\" name=\"sforum\" value=\"$sforum->id\" />";
+        switch ($sforum->type) {
             case 'news':
             case 'blog':
-                $buttonadd = get_string('addanewtopic', 'scriptingforum');
+                $buttonadd = get_string('addanewtopic', 'sforum');
                 break;
             case 'qanda':
-                $buttonadd = get_string('addanewquestion', 'scriptingforum');
+                $buttonadd = get_string('addanewquestion', 'sforum');
                 break;
             default:
-                $buttonadd = get_string('addanewdiscussion', 'scriptingforum');
+                $buttonadd = get_string('addanewdiscussion', 'sforum');
                 break;
         }
         echo '<input type="submit" value="'.$buttonadd.'" />';
@@ -5444,33 +5444,33 @@ function scriptingforum_print_latest_discussions($course,
         echo '</form>';
         echo "</div>\n";
 
-    } else if (isguestuser() or !isloggedin() or $scriptingforum->type == 'news' or
-        $scriptingforum->type == 'qanda' and
-            !has_capability('mod/scriptingforum:addquestion', $context) or
-        $scriptingforum->type != 'qanda' and
-            !has_capability('mod/scriptingforum:startdiscussion', $context)) {
+    } else if (isguestuser() or !isloggedin() or $sforum->type == 'news' or
+        $sforum->type == 'qanda' and
+            !has_capability('mod/sforum:addquestion', $context) or
+        $sforum->type != 'qanda' and
+            !has_capability('mod/sforum:startdiscussion', $context)) {
         // no button and no info
     } else if ($groupmode and !has_capability('moodle/site:accessallgroups', $context)) {
         // inform users why they can not post new discussion
         if (!$currentgroup) {
-            echo $OUTPUT->notification(get_string('cannotadddiscussionall', 'scriptingforum'));
+            echo $OUTPUT->notification(get_string('cannotadddiscussionall', 'sforum'));
         } else if (!groups_is_member($currentgroup)) {
-            echo $OUTPUT->notification(get_string('cannotadddiscussion', 'scriptingforum'));
+            echo $OUTPUT->notification(get_string('cannotadddiscussion', 'sforum'));
         }
     }
 
     // Get all the recent discussions we're allowed to see
     $getuserlastmodified = ($displayformat == 'header');
 
-    if (! $discussions = scriptingforum_get_discussions($cm,
+    if (! $discussions = sforum_get_discussions($cm,
             $sort, $fullpost, null, $maxdiscussions, $getuserlastmodified, $page, $perpage)) {
-        echo '<div class="scriptingforumnodiscuss">';
-        if ($scriptingforum->type == 'news') {
-            echo '('.get_string('nonews', 'scriptingforum').')';
-        } else if ($scriptingforum->type == 'qanda') {
-            echo '('.get_string('noquestions','scriptingforum').')';
+        echo '<div class="sforumnodiscuss">';
+        if ($sforum->type == 'news') {
+            echo '('.get_string('nonews', 'sforum').')';
+        } else if ($sforum->type == 'qanda') {
+            echo '('.get_string('noquestions','sforum').')';
         } else {
-            echo '('.get_string('nodiscussions', 'scriptingforum').')';
+            echo '('.get_string('nodiscussions', 'sforum').')';
         }
         echo "</div>\n";
         return;
@@ -5479,78 +5479,78 @@ function scriptingforum_print_latest_discussions($course,
     // If we want paging
     if ($page != -1) {
         ///Get the number of discussions found
-        $numdiscussions = scriptingforum_get_discussions_count($cm);
+        $numdiscussions = sforum_get_discussions_count($cm);
 
         ///Show the paging bar
-        echo $OUTPUT->paging_bar($numdiscussions, $page, $perpage, "view.php?f=$scriptingforum->id");
+        echo $OUTPUT->paging_bar($numdiscussions, $page, $perpage, "view.php?f=$sforum->id");
         if ($numdiscussions > 1000) {
-            // saves some memory on sites with very large scriptingforums
-            $replies = scriptingforum_count_discussion_replies($scriptingforum->id,
+            // saves some memory on sites with very large sforums
+            $replies = sforum_count_discussion_replies($sforum->id,
                         $sort, $maxdiscussions, $page, $perpage);
         } else {
-            $replies = scriptingforum_count_discussion_replies($scriptingforum->id);
+            $replies = sforum_count_discussion_replies($sforum->id);
         }
 
     } else {
-        $replies = scriptingforum_count_discussion_replies($scriptingforum->id);
+        $replies = sforum_count_discussion_replies($sforum->id);
         if ($maxdiscussions > 0 and $maxdiscussions <= count($discussions)) {
             $olddiscussionlink = true;
         }
     }
 
     $canviewparticipants = has_capability('moodle/course:viewparticipants',$context);
-    $canviewhiddentimedposts = has_capability('mod/scriptingforum:viewhiddentimedposts', $context);
+    $canviewhiddentimedposts = has_capability('mod/sforum:viewhiddentimedposts', $context);
 
     $strdatestring = get_string('strftimerecentfull');
 
-    // Check if the scriptingforum is tracked.
-    if ($cantrack = scriptingforum_tp_can_track_scriptingforums($scriptingforum)) {
-        $scriptingforumtracked = scriptingforum_tp_is_tracked($scriptingforum);
+    // Check if the sforum is tracked.
+    if ($cantrack = sforum_tp_can_track_sforums($sforum)) {
+        $sforumtracked = sforum_tp_is_tracked($sforum);
     } else {
-        $scriptingforumtracked = false;
+        $sforumtracked = false;
     }
 
-    if ($scriptingforumtracked) {
-        $unreads = scriptingforum_get_discussions_unread($cm);
+    if ($sforumtracked) {
+        $unreads = sforum_get_discussions_unread($cm);
     } else {
         $unreads = array();
     }
 
     if ($displayformat == 'header') {
-        echo '<table cellspacing="0" class="scriptingforumheaderlist">';
+        echo '<table cellspacing="0" class="sforumheaderlist">';
         echo '<thead>';
         echo '<tr>';
         echo '<th class="header topic" scope="col">'.
-                get_string('discussion', 'scriptingforum').'</th>';
+                get_string('discussion', 'sforum').'</th>';
         echo '<th class="header author" colspan="2" scope="col">'.
-                get_string('startedby', 'scriptingforum').'</th>';
+                get_string('startedby', 'sforum').'</th>';
         if ($groupmode > 0) {
             echo '<th class="header group" scope="col">'.get_string('group').'</th>';
         }
-        if (has_capability('mod/scriptingforum:viewdiscussion', $context)) {
+        if (has_capability('mod/sforum:viewdiscussion', $context)) {
             echo '<th class="header replies" scope="col">'.
-                    get_string('replies', 'scriptingforum').'</th>';
-            // If the scriptingforum can be tracked, display the unread column.
+                    get_string('replies', 'sforum').'</th>';
+            // If the sforum can be tracked, display the unread column.
             if ($cantrack) {
-                echo '<th class="header replies" scope="col">'.get_string('unread', 'scriptingforum');
-                if ($scriptingforumtracked) {
-                    echo '<a title="'.get_string('markallread', 'scriptingforum').
-                         '" href="'.$CFG->wwwroot.'/mod/scriptingforum/markposts.php?f='.
-                         $scriptingforum->id.'&amp;mark=read&amp;returnpage=view.php&amp;sesskey='.
+                echo '<th class="header replies" scope="col">'.get_string('unread', 'sforum');
+                if ($sforumtracked) {
+                    echo '<a title="'.get_string('markallread', 'sforum').
+                         '" href="'.$CFG->wwwroot.'/mod/sforum/markposts.php?f='.
+                         $sforum->id.'&amp;mark=read&amp;returnpage=view.php&amp;sesskey='.
                          sesskey() . '">' .
                          '<img src="'.$OUTPUT->pix_url('t/markasread') .
-                         '" class="iconsmall" alt="'.get_string('markallread', 'scriptingforum').
+                         '" class="iconsmall" alt="'.get_string('markallread', 'sforum').
                          '" /></a>';
                 }
                 echo '</th>';
             }
         }
-        echo '<th class="header lastpost" scope="col">'.get_string('lastpost', 'scriptingforum').'</th>';
+        echo '<th class="header lastpost" scope="col">'.get_string('lastpost', 'sforum').'</th>';
         if ((!is_guest($context, $USER) && isloggedin()) &&
-                has_capability('mod/scriptingforum:viewdiscussion', $context)) {
-            if (\mod_scriptingforum\subscriptions::is_subscribable($scriptingforum)) {
+                has_capability('mod/sforum:viewdiscussion', $context)) {
+            if (\mod_sforum\subscriptions::is_subscribable($sforum)) {
                 echo '<th class="header discussionsubscription" scope="col">';
-                echo scriptingforum_get_discussion_subscription_icon_preloaders();
+                echo sforum_get_discussion_subscription_icon_preloaders();
                 echo '</th>';
             }
         }
@@ -5560,9 +5560,9 @@ function scriptingforum_print_latest_discussions($course,
     }
 
     foreach ($discussions as $discussion) {
-        if ($scriptingforum->type == 'qanda' &&
-                    !has_capability('mod/scriptingforum:viewqandawithoutposting', $context) &&
-            !scriptingforum_user_has_posted($scriptingforum->id, $discussion->discussion, $USER->id)) {
+        if ($sforum->type == 'qanda' &&
+                    !has_capability('mod/sforum:viewqandawithoutposting', $context) &&
+            !sforum_user_has_posted($sforum->id, $discussion->discussion, $USER->id)) {
             $canviewparticipants = false;
         }
 
@@ -5575,7 +5575,7 @@ function scriptingforum_print_latest_discussions($course,
 
         // SPECIAL CASE: The front page can display a news item post to non-logged in users.
         // All posts are read in this case.
-        if (!$scriptingforumtracked) {
+        if (!$sforumtracked) {
             $discussion->unread = '-';
         } else if (empty($USER)) {
             $discussion->unread = 0;
@@ -5606,8 +5606,8 @@ function scriptingforum_print_latest_discussions($course,
                 } else {
                     $group = -1;
                 }
-                scriptingforum_print_discussion_header($discussion,
-                        $scriptingforum, $group, $strdatestring, $cantrack, $scriptingforumtracked,
+                sforum_print_discussion_header($discussion,
+                        $sforum, $group, $strdatestring, $cantrack, $sforumtracked,
                     $canviewparticipants, $context, $canviewhiddentimedposts);
             break;
             default:
@@ -5617,15 +5617,15 @@ function scriptingforum_print_latest_discussions($course,
                     $link = true;
                 } else {
                     $modcontext = context_module::instance($cm->id);
-                    $link = scriptingforum_user_can_see_discussion($scriptingforum,
+                    $link = sforum_user_can_see_discussion($sforum,
                             $discussion, $modcontext, $USER);
                 }
 
-                $discussion->scriptingforum = $scriptingforum->id;
+                $discussion->sforum = $sforum->id;
 
-                scriptingforum_print_post($discussion,
-                        $discussion, $scriptingforum, $cm, $course, $ownpost, 0, $link, false,
-                        '', null, true, $scriptingforumtracked);
+                sforum_print_post($discussion,
+                        $discussion, $sforum, $cm, $course, $ownpost, 0, $link, false,
+                        '', null, true, $sforumtracked);
             break;
         }
     }
@@ -5636,26 +5636,26 @@ function scriptingforum_print_latest_discussions($course,
     }
 
     if ($olddiscussionlink) {
-        if ($scriptingforum->type == 'news') {
-            $strolder = get_string('oldertopics', 'scriptingforum');
+        if ($sforum->type == 'news') {
+            $strolder = get_string('oldertopics', 'sforum');
         } else {
-            $strolder = get_string('olderdiscussions', 'scriptingforum');
+            $strolder = get_string('olderdiscussions', 'sforum');
         }
-        echo '<div class="scriptingforumolddiscuss">';
-        echo '<a href="'.$CFG->wwwroot.'/mod/scriptingforum/view.php?f='.
-                $scriptingforum->id.'&amp;showall=1">';
+        echo '<div class="sforumolddiscuss">';
+        echo '<a href="'.$CFG->wwwroot.'/mod/sforum/view.php?f='.
+                $sforum->id.'&amp;showall=1">';
         echo $strolder.'</a> ...</div>';
     }
 
     if ($page != -1) { ///Show the paging bar
-        echo $OUTPUT->paging_bar($numdiscussions, $page, $perpage, "view.php?f=$scriptingforum->id");
+        echo $OUTPUT->paging_bar($numdiscussions, $page, $perpage, "view.php?f=$sforum->id");
     }
 }
 
 
 /**
  * TODO
- * Prints a scriptingforum discussion
+ * Prints a sforum discussion
  *
  * @uses CONTEXT_MODULE
  * @uses SCRIPTING_FORUM_MODE_FLATNEWEST
@@ -5664,14 +5664,14 @@ function scriptingforum_print_latest_discussions($course,
  * @uses SCRIPTING_FORUM_MODE_NESTED
  * @param stdClass $course
  * @param stdClass $cm
- * @param stdClass $scriptingforum
+ * @param stdClass $sforum
  * @param stdClass $discussion
  * @param stdClass $post
  * @param int $mode
  * @param mixed $canreply
  * @param bool $canrate
  */
-function scriptingforum_print_discussion($course, $cm, $scriptingforum,
+function sforum_print_discussion($course, $cm, $sforum,
         $discussion, $post, $mode, $canreply=NULL, $canrate=false) {
     global $USER, $CFG;
 
@@ -5681,13 +5681,13 @@ function scriptingforum_print_discussion($course, $cm, $scriptingforum,
 
     $modcontext = context_module::instance($cm->id);
     if ($canreply === NULL) {
-        $reply = scriptingforum_user_can_post($scriptingforum,
+        $reply = sforum_user_can_post($sforum,
                     $discussion, $USER, $cm, $course, $modcontext);
     } else {
         $reply = $canreply;
     }
 
-    // $cm holds general cache for scriptingforum functions
+    // $cm holds general cache for sforum functions
     $cm->cache = new stdClass;
     $cm->cache->groups      = groups_get_all_groups($course->id, 0, $cm->groupingid);
     $cm->cache->usersgroups = array();
@@ -5701,8 +5701,8 @@ function scriptingforum_print_discussion($course, $cm, $scriptingforum,
         $sort = "p.created ASC";
     }
 
-    $scriptingforumtracked = scriptingforum_tp_is_tracked($scriptingforum);
-    $posts = scriptingforum_get_all_discussion_posts($discussion->id, $sort, $scriptingforumtracked);
+    $sforumtracked = sforum_tp_is_tracked($sforum);
+    $posts = sforum_get_all_discussion_posts($discussion->id, $sort, $sforumtracked);
     $post = $posts[$post->id];
 
     foreach ($posts as $pid=>$p) {
@@ -5722,55 +5722,55 @@ function scriptingforum_print_discussion($course, $cm, $scriptingforum,
     }
 
     //load ratings
-    if ($scriptingforum->assessed != RATING_AGGREGATE_NONE) {
+    if ($sforum->assessed != RATING_AGGREGATE_NONE) {
         $ratingoptions = new stdClass;
         $ratingoptions->context = $modcontext;
-        $ratingoptions->component = 'mod_scriptingforum';
+        $ratingoptions->component = 'mod_sforum';
         $ratingoptions->ratingarea = 'post';
         $ratingoptions->items = $posts;
-        $ratingoptions->aggregate = $scriptingforum->assessed;//the aggregation method
-        $ratingoptions->scaleid = $scriptingforum->scale;
+        $ratingoptions->aggregate = $sforum->assessed;//the aggregation method
+        $ratingoptions->scaleid = $sforum->scale;
         $ratingoptions->userid = $USER->id;
-        if ($scriptingforum->type == 'single' or !$discussion->id) {
-            $ratingoptions->returnurl = "$CFG->wwwroot/mod/scriptingforum/view.php?id=$cm->id";
+        if ($sforum->type == 'single' or !$discussion->id) {
+            $ratingoptions->returnurl = "$CFG->wwwroot/mod/sforum/view.php?id=$cm->id";
         } else {
-            $ratingoptions->returnurl = "$CFG->wwwroot/mod/scriptingforum/discuss.php?d=$discussion->id";
+            $ratingoptions->returnurl = "$CFG->wwwroot/mod/sforum/discuss.php?d=$discussion->id";
         }
-        $ratingoptions->assesstimestart = $scriptingforum->assesstimestart;
-        $ratingoptions->assesstimefinish = $scriptingforum->assesstimefinish;
+        $ratingoptions->assesstimestart = $sforum->assesstimestart;
+        $ratingoptions->assesstimefinish = $sforum->assesstimefinish;
 
         $rm = new rating_manager();
         $posts = $rm->get_ratings($ratingoptions);
     }
 
 
-    $post->scriptingforum = $scriptingforum->id;   // Add the scriptingforum id to the post object, later used by scriptingforum_print_post
-    $post->scriptingforumtype = $scriptingforum->type;
+    $post->sforum = $sforum->id;   // Add the sforum id to the post object, later used by sforum_print_post
+    $post->sforumtype = $sforum->type;
 
     $post->subject = format_string($post->subject);
 
     $postread = !empty($post->postread);
 
-    scriptingforum_print_post($post, $discussion, $scriptingforum,
+    sforum_print_post($post, $discussion, $sforum,
             $cm, $course, $ownpost, $reply, false,
-            '', '', $postread, true, $scriptingforumtracked);
+            '', '', $postread, true, $sforumtracked);
 
     switch ($mode) {
         case SCRIPTING_FORUM_MODE_FLATOLDEST :
         case SCRIPTING_FORUM_MODE_FLATNEWEST :
         default:
-            scriptingforum_print_posts_flat($course, $cm, $scriptingforum,
-                        $discussion, $post, $mode, $reply, $scriptingforumtracked, $posts);
+            sforum_print_posts_flat($course, $cm, $sforum,
+                        $discussion, $post, $mode, $reply, $sforumtracked, $posts);
             break;
 
         case SCRIPTING_FORUM_MODE_THREADED :
-            scriptingforum_print_posts_threaded($course, $cm,
-                        $scriptingforum, $discussion, $post, 0, $reply, $scriptingforumtracked, $posts);
+            sforum_print_posts_threaded($course, $cm,
+                        $sforum, $discussion, $post, 0, $reply, $sforumtracked, $posts);
             break;
 
         case SCRIPTING_FORUM_MODE_NESTED :
-            scriptingforum_print_posts_nested($course, $cm,
-                        $scriptingforum, $discussion, $post, $reply, $scriptingforumtracked, $posts);
+            sforum_print_posts_nested($course, $cm,
+                        $sforum, $discussion, $post, $reply, $sforumtracked, $posts);
             break;
     }
 }
@@ -5782,17 +5782,17 @@ function scriptingforum_print_discussion($course, $cm, $scriptingforum,
  * @uses SCRIPTING_FORUM_MODE_FLATNEWEST
  * @param object $course
  * @param object $cm
- * @param object $scriptingforum
+ * @param object $sforum
  * @param object $discussion
  * @param object $post
  * @param object $mode
  * @param bool $reply
- * @param bool $scriptingforumtracked
+ * @param bool $sforumtracked
  * @param array $posts
  * @return void
  */
-function scriptingforum_print_posts_flat($course, &$cm, $scriptingforum,
-        $discussion, $post, $mode, $reply, $scriptingforumtracked, $posts) {
+function sforum_print_posts_flat($course, &$cm, $sforum,
+        $discussion, $post, $mode, $reply, $sforumtracked, $posts) {
     global $USER, $CFG;
 
     $link  = false;
@@ -5812,9 +5812,9 @@ function scriptingforum_print_posts_flat($course, &$cm, $scriptingforum,
 
         $postread = !empty($post->postread);
 
-        scriptingforum_print_post($post, $discussion, $scriptingforum,
+        sforum_print_post($post, $discussion, $sforum,
                 $cm, $course, $ownpost, $reply, $link,
-                '', '', $postread, true, $scriptingforumtracked);
+                '', '', $postread, true, $sforumtracked);
     }
 }
 
@@ -5826,8 +5826,8 @@ function scriptingforum_print_posts_flat($course, &$cm, $scriptingforum,
  * @uses CONTEXT_MODULE
  * @return void
  */
-function scriptingforum_print_posts_threaded($course, &$cm, $scriptingforum,
-        $discussion, $parent, $depth, $reply, $scriptingforumtracked, $posts) {
+function sforum_print_posts_threaded($course, &$cm, $sforum,
+        $discussion, $parent, $depth, $reply, $sforumtracked, $posts) {
     global $USER, $CFG;
 
     $link  = false;
@@ -5847,11 +5847,11 @@ function scriptingforum_print_posts_threaded($course, &$cm, $scriptingforum,
 
                 $postread = !empty($post->postread);
 
-                scriptingforum_print_post($post, $discussion, $scriptingforum,
+                sforum_print_post($post, $discussion, $sforum,
                         $cm, $course, $ownpost, $reply, $link,
-                        '', '', $postread, true, $scriptingforumtracked);
+                        '', '', $postread, true, $sforumtracked);
             } else {
-                if (!scriptingforum_user_can_see_post($scriptingforum, $discussion, $post, NULL, $cm)) {
+                if (!sforum_user_can_see_post($sforum, $discussion, $post, NULL, $cm)) {
                     echo "</div>\n";
                     continue;
                 }
@@ -5859,24 +5859,24 @@ function scriptingforum_print_posts_threaded($course, &$cm, $scriptingforum,
                 $by->name = fullname($post, $canviewfullnames);
                 $by->date = userdate($post->modified);
 
-                if ($scriptingforumtracked) {
+                if ($sforumtracked) {
                     if (!empty($post->postread)) {
-                        $style = '<span class="scriptingforumthread read">';
+                        $style = '<span class="sforumthread read">';
                     } else {
-                        $style = '<span class="scriptingforumthread unread">';
+                        $style = '<span class="sforumthread unread">';
                     }
                 } else {
-                    $style = '<span class="scriptingforumthread">';
+                    $style = '<span class="sforumthread">';
                 }
                 echo $style."<a name=\"$post->id\"></a>".
                         "<a href=\"discuss.php?d=$post->discussion&amp;parent=$post->id\">".
                         format_string($post->subject,true)."</a> ";
-                print_string("bynameondate", "scriptingforum", $by);
+                print_string("bynameondate", "sforum", $by);
                 echo "</span>";
             }
 
-            scriptingforum_print_posts_threaded($course, $cm, $scriptingforum,
-                    $discussion, $post, $depth-1, $reply, $scriptingforumtracked, $posts);
+            sforum_print_posts_threaded($course, $cm, $sforum,
+                    $discussion, $post, $depth-1, $reply, $sforumtracked, $posts);
             echo "</div>\n";
         }
     }
@@ -5888,8 +5888,8 @@ function scriptingforum_print_posts_threaded($course, &$cm, $scriptingforum,
  * @global object
  * @return void
  */
-function scriptingforum_print_posts_nested($course, &$cm,
-        $scriptingforum, $discussion, $parent, $reply, $scriptingforumtracked, $posts) {
+function sforum_print_posts_nested($course, &$cm,
+        $sforum, $discussion, $parent, $reply, $sforumtracked, $posts) {
     global $USER, $CFG;
 
     $link  = false;
@@ -5909,18 +5909,18 @@ function scriptingforum_print_posts_nested($course, &$cm,
             $post->subject = format_string($post->subject);
             $postread = !empty($post->postread);
 
-            scriptingforum_print_post($post, $discussion, $scriptingforum,
+            sforum_print_post($post, $discussion, $sforum,
                     $cm, $course, $ownpost, $reply, $link,
-                    '', '', $postread, true, $scriptingforumtracked);
-            scriptingforum_print_posts_nested($course, $cm, $scriptingforum,
-                    $discussion, $post, $reply, $scriptingforumtracked, $posts);
+                    '', '', $postread, true, $sforumtracked);
+            sforum_print_posts_nested($course, $cm, $sforum,
+                    $discussion, $post, $reply, $sforumtracked, $posts);
             echo "</div>\n";
         }
     }
 }
 
 /**
- * Returns all scriptingforum posts since a given time in specified scriptingforum.
+ * Returns all sforum posts since a given time in specified sforum.
  *
  * @todo Document this functions args
  * @global object
@@ -5928,7 +5928,7 @@ function scriptingforum_print_posts_nested($course, &$cm,
  * @global object
  * @global object
  */
-function scriptingforum_get_recent_mod_activity(&$activities, &$index, $timestart,
+function sforum_get_recent_mod_activity(&$activities, &$index, $timestart,
         $courseid, $cmid, $userid=0, $groupid=0)  {
     global $CFG, $COURSE, $USER, $DB;
 
@@ -5958,12 +5958,12 @@ function scriptingforum_get_recent_mod_activity(&$activities, &$index, $timestar
     }
 
     $allnames = get_all_user_name_fields(true, 'u');
-    if (!$posts = $DB->get_records_sql("SELECT p.*, f.type AS scriptingforumtype, d.forum, d.groupid,
+    if (!$posts = $DB->get_records_sql("SELECT p.*, f.type AS sforumtype, d.forum, d.groupid,
                                               d.timestart, d.timeend, d.userid AS duserid,
                                               $allnames, u.email, u.picture, u.imagealt, u.email
-                                         FROM {scriptingforum_posts} p
-                                              JOIN {scriptingforum_discussions} d ON d.id = p.discussion
-                                              JOIN {scriptingforum} f             ON f.id = d.forum
+                                         FROM {sforum_posts} p
+                                              JOIN {sforum_discussions} d ON d.id = p.discussion
+                                              JOIN {sforum} f             ON f.id = d.forum
                                               JOIN {user} u              ON u.id = p.userid
                                         WHERE p.created > ? AND f.id = ?
                                               $userselect $groupselect
@@ -5973,13 +5973,13 @@ function scriptingforum_get_recent_mod_activity(&$activities, &$index, $timestar
 
     $groupmode       = groups_get_activity_groupmode($cm, $course);
     $cm_context      = context_module::instance($cm->id);
-    $viewhiddentimed = has_capability('mod/scriptingforum:viewhiddentimedposts', $cm_context);
+    $viewhiddentimed = has_capability('mod/sforum:viewhiddentimedposts', $cm_context);
     $accessallgroups = has_capability('moodle/site:accessallgroups', $cm_context);
 
     $printposts = array();
     foreach ($posts as $post) {
 
-        if (!empty($CFG->scriptingforum_enabletimedposts) and $USER->id != $post->duserid
+        if (!empty($CFG->sforum_enabletimedposts) and $USER->id != $post->duserid
                 and (($post->timestart > 0 and $post->timestart > time()) or
                 ($post->timeend > 0 and $post->timeend < time()))) {
             if (!$viewhiddentimed) {
@@ -6015,7 +6015,7 @@ function scriptingforum_get_recent_mod_activity(&$activities, &$index, $timestar
     foreach ($printposts as $post) {
         $tmpactivity = new stdClass();
 
-        $tmpactivity->type         = 'scriptingforum';
+        $tmpactivity->type         = 'sforum';
         $tmpactivity->cmid         = $cm->id;
         $tmpactivity->name         = $aname;
         $tmpactivity->sectionnum   = $cm->sectionnum;
@@ -6044,7 +6044,7 @@ function scriptingforum_get_recent_mod_activity(&$activities, &$index, $timestar
  * @todo Document this function
  * @global object
  */
-function scriptingforum_print_recent_mod_activity($activity,
+function sforum_print_recent_mod_activity($activity,
         $courseid, $detail, $modnames, $viewfullnames) {
     global $CFG, $OUTPUT;
 
@@ -6054,7 +6054,7 @@ function scriptingforum_print_recent_mod_activity($activity,
         $class = 'discussion';
     }
 
-    echo '<table border="0" cellpadding="3" cellspacing="0" class="scriptingforum-recent">';
+    echo '<table border="0" cellpadding="3" cellspacing="0" class="sforum-recent">';
 
     echo "<tr><td class=\"userpicture\" valign=\"top\">";
     echo $OUTPUT->user_picture($activity->user, array('courseid'=>$courseid));
@@ -6072,7 +6072,7 @@ function scriptingforum_print_recent_mod_activity($activity,
         echo "<img src=\"" . $OUTPUT->pix_url('icon', $activity->type) . "\" ".
              "class=\"icon\" alt=\"{$aname}\" />";
     }
-    echo "<a href=\"$CFG->wwwroot/mod/scriptingforum/discuss.php?d={$activity->content->discussion}"
+    echo "<a href=\"$CFG->wwwroot/mod/sforum/discuss.php?d={$activity->content->discussion}"
          ."#p{$activity->content->id}\">{$activity->content->subject}</a>";
     echo '</div>';
 
@@ -6095,12 +6095,12 @@ function scriptingforum_print_recent_mod_activity($activity,
  * @param int $discussionid
  * @return bool
  */
-function scriptingforum_change_discussionid($postid, $discussionid) {
+function sforum_change_discussionid($postid, $discussionid) {
     global $DB;
-    $DB->set_field('scriptingforum_posts', 'discussion', $discussionid, array('id' => $postid));
-    if ($posts = $DB->get_records('scriptingforum_posts', array('parent' => $postid))) {
+    $DB->set_field('sforum_posts', 'discussion', $discussionid, array('id' => $postid));
+    if ($posts = $DB->get_records('sforum_posts', array('parent' => $postid))) {
         foreach ($posts as $post) {
-            scriptingforum_change_discussionid($post->id, $discussionid);
+            sforum_change_discussionid($post->id, $discussionid);
         }
     }
     return true;
@@ -6112,10 +6112,10 @@ function scriptingforum_change_discussionid($postid, $discussionid) {
  * @global object
  * @global object
  * @param int $courseid
- * @param int $scriptingforumid
+ * @param int $sforumid
  * @return string
  */
-function scriptingforum_update_subscriptions_button($courseid, $scriptingforumid) {
+function sforum_update_subscriptions_button($courseid, $sforumid) {
     global $CFG, $USER;
 
     if (!empty($USER->subscriptionsediting)) {
@@ -6126,8 +6126,8 @@ function scriptingforum_update_subscriptions_button($courseid, $scriptingforumid
         $edit = "on";
     }
 
-    return "<form method=\"get\" action=\"$CFG->wwwroot/mod/scriptingforum/subscribers.php\">".
-           "<input type=\"hidden\" name=\"id\" value=\"$scriptingforumid\" />".
+    return "<form method=\"get\" action=\"$CFG->wwwroot/mod/sforum/subscribers.php\">".
+           "<input type=\"hidden\" name=\"id\" value=\"$sforumid\" />".
            "<input type=\"hidden\" name=\"edit\" value=\"$edit\" />".
            "<input type=\"submit\" value=\"$string\" /></form>";
 }
@@ -6143,24 +6143,24 @@ function scriptingforum_update_subscriptions_button($courseid, $scriptingforumid
  * @param array $postids array of post ids
  * @return boolean success
  */
-function scriptingforum_tp_mark_posts_read($user, $postids) {
+function sforum_tp_mark_posts_read($user, $postids) {
     global $CFG, $DB;
 
-    if (!scriptingforum_tp_can_track_scriptingforums(false, $user)) {
+    if (!sforum_tp_can_track_sforums(false, $user)) {
         return true;
     }
 
     $status = true;
 
     $now = time();
-    $cutoffdate = $now - ($CFG->scriptingforum_oldpostdays * 24 * 3600);
+    $cutoffdate = $now - ($CFG->sforum_oldpostdays * 24 * 3600);
 
     if (empty($postids)) {
         return true;
 
     } else if (count($postids) > 200) {
         while ($part = array_splice($postids, 0, 200)) {
-            $status = scriptingforum_tp_mark_posts_read($user, $part) && $status;
+            $status = sforum_tp_mark_posts_read($user, $part) && $status;
         }
         return $status;
     }
@@ -6177,7 +6177,7 @@ function scriptingforum_tp_mark_posts_read($user, $postids) {
     );
     $params = array_merge($postidparams, $insertparams);
 
-    if ($CFG->scriptingforum_allowforcedreadtracking) {
+    if ($CFG->sforum_allowforcedreadtracking) {
         $trackingsql = "AND (f.trackingtype = ".SCRIPTING_FORUM_TRACKING_FORCED."
                         OR (f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OPTIONAL." AND tf.id IS NULL))";
     } else {
@@ -6187,14 +6187,14 @@ function scriptingforum_tp_mark_posts_read($user, $postids) {
     }
 
     // First insert any new entries.
-    $sql = "INSERT INTO {scriptingforum_read} (userid, postid, discussionid, scriptingforumid, firstread, lastread)
+    $sql = "INSERT INTO {sforum_read} (userid, postid, discussionid, sforumid, firstread, lastread)
 
             SELECT :userid1, p.id, p.discussion, d.forum, :firstread, :lastread
-                FROM {scriptingforum_posts} p
-                    JOIN {scriptingforum_discussions} d       ON d.id = p.discussion
-                    JOIN {scriptingforum} f                   ON f.id = d.forum
-                    LEFT JOIN {scriptingforum_track_prefs} tf ON (tf.userid = :userid2 AND tf.forumid = f.id)
-                    LEFT JOIN {scriptingforum_read} fr        ON (
+                FROM {sforum_posts} p
+                    JOIN {sforum_discussions} d       ON d.id = p.discussion
+                    JOIN {sforum} f                   ON f.id = d.forum
+                    LEFT JOIN {sforum_track_prefs} tf ON (tf.userid = :userid2 AND tf.forumid = f.id)
+                    LEFT JOIN {sforum_read} fr        ON (
                             fr.userid = :userid3
                         AND fr.postid = p.id
                         AND fr.discussionid = d.id
@@ -6213,7 +6213,7 @@ function scriptingforum_tp_mark_posts_read($user, $postids) {
         'lastread' => $now,
     );
     $params = array_merge($postidparams, $updateparams);
-    $status = $DB->set_field_select('scriptingforum_read', 'lastread', $now, '
+    $status = $DB->set_field_select('sforum_read', 'lastread', $now, '
                 userid      =  :userid
             AND lastread    <> :lastread
             AND postid      ' . $usql,
@@ -6229,23 +6229,23 @@ function scriptingforum_tp_mark_posts_read($user, $postids) {
  * @param int $userid
  * @param int $postid
  */
-function scriptingforum_tp_add_read_record($userid, $postid) {
+function sforum_tp_add_read_record($userid, $postid) {
     global $CFG, $DB;
 
     $now = time();
-    $cutoffdate = $now - ($CFG->scriptingforum_oldpostdays * 24 * 3600);
+    $cutoffdate = $now - ($CFG->sforum_oldpostdays * 24 * 3600);
 
-    if (!$DB->record_exists('scriptingforum_read', array('userid' => $userid, 'postid' => $postid))) {
-        $sql = "INSERT INTO {scriptingforum_read} (userid, postid, discussionid, scriptingforumid, firstread, lastread)
+    if (!$DB->record_exists('sforum_read', array('userid' => $userid, 'postid' => $postid))) {
+        $sql = "INSERT INTO {sforum_read} (userid, postid, discussionid, sforumid, firstread, lastread)
 
                 SELECT ?, p.id, p.discussion, d.forum, ?, ?
-                  FROM {scriptingforum_posts} p
-                       JOIN {scriptingforum_discussions} d ON d.id = p.discussion
+                  FROM {sforum_posts} p
+                       JOIN {sforum_discussions} d ON d.id = p.discussion
                  WHERE p.id = ? AND p.modified >= ?";
         return $DB->execute($sql, array($userid, $now, $now, $postid, $cutoffdate));
 
     } else {
-        $sql = "UPDATE {scriptingforum_read}
+        $sql = "UPDATE {sforum_read}
                    SET lastread = ?
                  WHERE userid = ? AND postid = ?";
         return $DB->execute($sql, array($now, $userid, $userid));
@@ -6257,31 +6257,31 @@ function scriptingforum_tp_add_read_record($userid, $postid) {
  *
  * @return bool
  */
-function scriptingforum_tp_mark_post_read($userid, $post, $scriptingforumid) {
-    if (!scriptingforum_tp_is_post_old($post)) {
-        return scriptingforum_tp_add_read_record($userid, $post->id);
+function sforum_tp_mark_post_read($userid, $post, $sforumid) {
+    if (!sforum_tp_is_post_old($post)) {
+        return sforum_tp_add_read_record($userid, $post->id);
     } else {
         return true;
     }
 }
 
 /**
- * Marks a whole scriptingforum as read, for a given user
+ * Marks a whole sforum as read, for a given user
  *
  * @global object
  * @global object
  * @param object $user
- * @param int $scriptingforumid
+ * @param int $sforumid
  * @param int|bool $groupid
  * @return bool
  */
-function scriptingforum_tp_mark_scriptingforum_read($user, $scriptingforumid, $groupid=false) {
+function sforum_tp_mark_sforum_read($user, $sforumid, $groupid=false) {
     global $CFG, $DB;
 
-    $cutoffdate = time() - ($CFG->scriptingforum_oldpostdays*24*60*60);
+    $cutoffdate = time() - ($CFG->sforum_oldpostdays*24*60*60);
 
     $groupsel = "";
-    $params = array($user->id, $scriptingforumid, $cutoffdate);
+    $params = array($user->id, $sforumid, $cutoffdate);
 
     if ($groupid !== false) {
         $groupsel = " AND (d.groupid = ? OR d.groupid = -1)";
@@ -6289,16 +6289,16 @@ function scriptingforum_tp_mark_scriptingforum_read($user, $scriptingforumid, $g
     }
 
     $sql = "SELECT p.id
-              FROM {scriptingforum_posts} p
-                   LEFT JOIN {scriptingforum_discussions} d ON d.id = p.discussion
-                   LEFT JOIN {scriptingforum_read} r        ON (r.postid = p.id AND r.userid = ?)
+              FROM {sforum_posts} p
+                   LEFT JOIN {sforum_discussions} d ON d.id = p.discussion
+                   LEFT JOIN {sforum_read} r        ON (r.postid = p.id AND r.userid = ?)
              WHERE d.forum = ?
                    AND p.modified >= ? AND r.id is NULL
                    $groupsel";
 
     if ($posts = $DB->get_records_sql($sql, $params)) {
         $postids = array_keys($posts);
-        return scriptingforum_tp_mark_posts_read($user, $postids);
+        return sforum_tp_mark_posts_read($user, $postids);
     }
 
     return true;
@@ -6313,20 +6313,20 @@ function scriptingforum_tp_mark_scriptingforum_read($user, $scriptingforumid, $g
  * @param int $discussionid
  * @return bool
  */
-function scriptingforum_tp_mark_discussion_read($user, $discussionid) {
+function sforum_tp_mark_discussion_read($user, $discussionid) {
     global $CFG, $DB;
 
-    $cutoffdate = time() - ($CFG->scriptingforum_oldpostdays*24*60*60);
+    $cutoffdate = time() - ($CFG->sforum_oldpostdays*24*60*60);
 
     $sql = "SELECT p.id
-              FROM {scriptingforum_posts} p
-                   LEFT JOIN {scriptingforum_read} r ON (r.postid = p.id AND r.userid = ?)
+              FROM {sforum_posts} p
+                   LEFT JOIN {sforum_read} r ON (r.postid = p.id AND r.userid = ?)
              WHERE p.discussion = ?
                    AND p.modified >= ? AND r.id is NULL";
 
     if ($posts = $DB->get_records_sql($sql, array($user->id, $discussionid, $cutoffdate))) {
         $postids = array_keys($posts);
-        return scriptingforum_tp_mark_posts_read($user, $postids);
+        return sforum_tp_mark_posts_read($user, $postids);
     }
 
     return true;
@@ -6337,10 +6337,10 @@ function scriptingforum_tp_mark_discussion_read($user, $discussionid) {
  * @param int $userid
  * @param object $post
  */
-function scriptingforum_tp_is_post_read($userid, $post) {
+function sforum_tp_is_post_read($userid, $post) {
     global $DB;
-    return (scriptingforum_tp_is_post_old($post) ||
-            $DB->record_exists('scriptingforum_read',
+    return (sforum_tp_is_post_old($post) ||
+            $DB->record_exists('sforum_read',
                     array('userid' => $userid, 'postid' => $post->id)));
 }
 
@@ -6349,13 +6349,13 @@ function scriptingforum_tp_is_post_read($userid, $post) {
  * @param object $post
  * @param int $time Defautls to time()
  */
-function scriptingforum_tp_is_post_old($post, $time=null) {
+function sforum_tp_is_post_old($post, $time=null) {
     global $CFG;
 
     if (is_null($time)) {
         $time = time();
     }
-    return ($post->modified < ($time - ($CFG->scriptingforum_oldpostdays * 24 * 3600)));
+    return ($post->modified < ($time - ($CFG->sforum_oldpostdays * 24 * 3600)));
 }
 
 /**
@@ -6368,14 +6368,14 @@ function scriptingforum_tp_is_post_old($post, $time=null) {
  * @param int $courseid
  * @return array
  */
-function scriptingforum_tp_get_course_unread_posts($userid, $courseid) {
+function sforum_tp_get_course_unread_posts($userid, $courseid) {
     global $CFG, $DB;
 
     $now = round(time(), -2); // DB cache friendliness.
-    $cutoffdate = $now - ($CFG->scriptingforum_oldpostdays * 24 * 60 * 60);
+    $cutoffdate = $now - ($CFG->sforum_oldpostdays * 24 * 60 * 60);
     $params = array($userid, $userid, $courseid, $cutoffdate, $userid);
 
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
+    if (!empty($CFG->sforum_enabletimedposts)) {
         $timedsql = "AND d.timestart < ? AND (d.timeend = 0 OR d.timeend > ?)";
         $params[] = $now;
         $params[] = $now;
@@ -6383,23 +6383,23 @@ function scriptingforum_tp_get_course_unread_posts($userid, $courseid) {
         $timedsql = "";
     }
 
-    if ($CFG->scriptingforum_allowforcedreadtracking) {
+    if ($CFG->sforum_allowforcedreadtracking) {
         $trackingsql = "AND (f.trackingtype = ".SCRIPTING_FORUM_TRACKING_FORCED."
                             OR (f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OPTIONAL." AND tf.id IS NULL
-                                AND (SELECT trackscriptingforums FROM {user} WHERE id = ?) = 1))";
+                                AND (SELECT tracksforums FROM {user} WHERE id = ?) = 1))";
     } else {
         $trackingsql = "AND ((f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OPTIONAL." OR f.trackingtype = ".SCRIPTING_FORUM_TRACKING_FORCED.")
                             AND tf.id IS NULL
-                            AND (SELECT trackscriptingforums FROM {user} WHERE id = ?) = 1)";
+                            AND (SELECT tracksforums FROM {user} WHERE id = ?) = 1)";
     }
 
     $sql = "SELECT f.id, COUNT(p.id) AS unread
-              FROM {scriptingforum_posts} p
-                   JOIN {scriptingforum_discussions} d       ON d.id = p.discussion
-                   JOIN {scriptingforum} f                   ON f.id = d.forum
+              FROM {sforum_posts} p
+                   JOIN {sforum_discussions} d       ON d.id = p.discussion
+                   JOIN {sforum} f                   ON f.id = d.forum
                    JOIN {course} c                  ON c.id = f.course
-                   LEFT JOIN {scriptingforum_read} r         ON (r.postid = p.id AND r.userid = ?)
-                   LEFT JOIN {scriptingforum_track_prefs} tf ON (tf.userid = ? AND tf.forumid = f.id)
+                   LEFT JOIN {sforum_read} r         ON (r.postid = p.id AND r.userid = ?)
+                   LEFT JOIN {sforum_track_prefs} tf ON (tf.userid = ? AND tf.forumid = f.id)
              WHERE f.course = ?
                    AND p.modified >= ? AND r.id is NULL
                    $trackingsql
@@ -6414,7 +6414,7 @@ function scriptingforum_tp_get_course_unread_posts($userid, $courseid) {
 }
 
 /**
- * Returns the count of records for the provided user and scriptingforum and [optionally] group.
+ * Returns the count of records for the provided user and sforum and [optionally] group.
  *
  * @global object
  * @global object
@@ -6423,23 +6423,23 @@ function scriptingforum_tp_get_course_unread_posts($userid, $courseid) {
  * @param object $course
  * @return int
  */
-function scriptingforum_tp_count_scriptingforum_unread_posts($cm, $course) {
+function sforum_tp_count_sforum_unread_posts($cm, $course) {
     global $CFG, $USER, $DB;
 
     static $readcache = array();
 
-    $scriptingforumid = $cm->instance;
+    $sforumid = $cm->instance;
 
     if (!isset($readcache[$course->id])) {
         $readcache[$course->id] = array();
-        if ($counts = scriptingforum_tp_get_course_unread_posts($USER->id, $course->id)) {
+        if ($counts = sforum_tp_get_course_unread_posts($USER->id, $course->id)) {
             foreach ($counts as $count) {
                 $readcache[$course->id][$count->id] = $count->unread;
             }
         }
     }
 
-    if (empty($readcache[$course->id][$scriptingforumid])) {
+    if (empty($readcache[$course->id][$sforumid])) {
         // no need to check group mode ;-)
         return 0;
     }
@@ -6447,11 +6447,11 @@ function scriptingforum_tp_count_scriptingforum_unread_posts($cm, $course) {
     $groupmode = groups_get_activity_groupmode($cm, $course);
 
     if ($groupmode != SEPARATEGROUPS) {
-        return $readcache[$course->id][$scriptingforumid];
+        return $readcache[$course->id][$sforumid];
     }
 
     if (has_capability('moodle/site:accessallgroups', context_module::instance($cm->id))) {
-        return $readcache[$course->id][$scriptingforumid];
+        return $readcache[$course->id][$sforumid];
     }
 
     require_once($CFG->dirroot.'/course/lib.php');
@@ -6466,10 +6466,10 @@ function scriptingforum_tp_count_scriptingforum_unread_posts($cm, $course) {
     list ($groups_sql, $groups_params) = $DB->get_in_or_equal($mygroups);
 
     $now = round(time(), -2); // db cache friendliness
-    $cutoffdate = $now - ($CFG->scriptingforum_oldpostdays*24*60*60);
-    $params = array($USER->id, $scriptingforumid, $cutoffdate);
+    $cutoffdate = $now - ($CFG->sforum_oldpostdays*24*60*60);
+    $params = array($USER->id, $sforumid, $cutoffdate);
 
-    if (!empty($CFG->scriptingforum_enabletimedposts)) {
+    if (!empty($CFG->sforum_enabletimedposts)) {
         $timedsql = "AND d.timestart < ? AND (d.timeend = 0 OR d.timeend > ?)";
         $params[] = $now;
         $params[] = $now;
@@ -6480,9 +6480,9 @@ function scriptingforum_tp_count_scriptingforum_unread_posts($cm, $course) {
     $params = array_merge($params, $groups_params);
 
     $sql = "SELECT COUNT(p.id)
-              FROM {scriptingforum_posts} p
-                   JOIN {scriptingforum_discussions} d ON p.discussion = d.id
-                   LEFT JOIN {scriptingforum_read} r   ON (r.postid = p.id AND r.userid = ?)
+              FROM {sforum_posts} p
+                   JOIN {sforum_discussions} d ON p.discussion = d.id
+                   LEFT JOIN {sforum_read} r   ON (r.postid = p.id AND r.userid = ?)
              WHERE d.forum = ?
                    AND p.modified >= ? AND r.id is NULL
                    $timedsql
@@ -6498,11 +6498,11 @@ function scriptingforum_tp_count_scriptingforum_unread_posts($cm, $course) {
  * @param int $userid
  * @param int $postid
  * @param int $discussionid
- * @param int $scriptingforumid
+ * @param int $sforumid
  * @return bool
  */
-function scriptingforum_tp_delete_read_records($userid=-1, $postid=-1,
-        $discussionid=-1, $scriptingforumid=-1) {
+function sforum_tp_delete_read_records($userid=-1, $postid=-1,
+        $discussionid=-1, $sforumid=-1) {
     global $DB;
     $params = array();
 
@@ -6522,52 +6522,52 @@ function scriptingforum_tp_delete_read_records($userid=-1, $postid=-1,
         $select .= 'discussionid = ?';
         $params[] = $discussionid;
     }
-    if ($scriptingforumid > -1) {
+    if ($sforumid > -1) {
         if ($select != '') $select .= ' AND ';
-        $select .= 'scriptingforumid = ?';
-        $params[] = $scriptingforumid;
+        $select .= 'sforumid = ?';
+        $params[] = $sforumid;
     }
     if ($select == '') {
         return false;
     }
     else {
-        return $DB->delete_records_select('scriptingforum_read', $select, $params);
+        return $DB->delete_records_select('sforum_read', $select, $params);
     }
 }
 /**
- * Get a list of scriptingforums not tracked by the user.
+ * Get a list of sforums not tracked by the user.
  *
  * @global object
  * @global object
  * @param int $userid The id of the user to use.
  * @param int $courseid The id of the course being checked.
- * @return mixed An array indexed by scriptingforum id, or false.
+ * @return mixed An array indexed by sforum id, or false.
  */
-function scriptingforum_tp_get_untracked_scriptingforums($userid, $courseid) {
+function sforum_tp_get_untracked_sforums($userid, $courseid) {
     global $CFG, $DB;
 
-    if ($CFG->scriptingforum_allowforcedreadtracking) {
+    if ($CFG->sforum_allowforcedreadtracking) {
         $trackingsql = "AND (f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OFF."
                             OR (f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OPTIONAL." AND (ft.id IS NOT NULL
-                                OR (SELECT trackscriptingforums FROM {user} WHERE id = ?) = 0)))";
+                                OR (SELECT tracksforums FROM {user} WHERE id = ?) = 0)))";
     } else {
         $trackingsql = "AND (f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OFF."
                             OR ((f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OPTIONAL." OR f.trackingtype = ".SCRIPTING_FORUM_TRACKING_FORCED.")
                                 AND (ft.id IS NOT NULL
-                                    OR (SELECT trackscriptingforums FROM {user} WHERE id = ?) = 0)))";
+                                    OR (SELECT tracksforums FROM {user} WHERE id = ?) = 0)))";
     }
 
     $sql = "SELECT f.id
-              FROM {scriptingforum} f
-                   LEFT JOIN {scriptingforum_track_prefs} ft ON (ft.scriptingforumid = f.id AND ft.userid = ?)
+              FROM {sforum} f
+                   LEFT JOIN {sforum_track_prefs} ft ON (ft.sforumid = f.id AND ft.userid = ?)
              WHERE f.course = ?
                    $trackingsql";
 
-    if ($scriptingforums = $DB->get_records_sql($sql, array($userid, $courseid, $userid))) {
-        foreach ($scriptingforums as $scriptingforum) {
-            $scriptingforums[$scriptingforum->id] = $scriptingforum;
+    if ($sforums = $DB->get_records_sql($sql, array($userid, $courseid, $userid))) {
+        foreach ($sforums as $sforum) {
+            $sforums[$sforum->id] = $sforum;
         }
-        return $scriptingforums;
+        return $sforums;
 
     } else {
         return array();
@@ -6575,23 +6575,23 @@ function scriptingforum_tp_get_untracked_scriptingforums($userid, $courseid) {
 }
 
 /**
- * Determine if a user can track scriptingforums and optionally a particular scriptingforum.
- * Checks the site settings, the user settings and the scriptingforum settings (if
+ * Determine if a user can track sforums and optionally a particular sforum.
+ * Checks the site settings, the user settings and the sforum settings (if
  * requested).
  *
  * @global object
  * @global object
  * @global object
- * @param mixed $scriptingforum The scriptingforum object to test, or the int id (optional).
+ * @param mixed $sforum The sforum object to test, or the int id (optional).
  * @param mixed $userid The user object to check for (optional).
  * @return boolean
  */
-function scriptingforum_tp_can_track_scriptingforums($scriptingforum=false, $user=false) {
+function sforum_tp_can_track_sforums($sforum=false, $user=false) {
     global $USER, $CFG, $DB;
 
     // if possible, avoid expensive
     // queries
-    if (empty($CFG->scriptingforum_trackreadposts)) {
+    if (empty($CFG->sforum_trackreadposts)) {
         return false;
     }
 
@@ -6603,50 +6603,50 @@ function scriptingforum_tp_can_track_scriptingforums($scriptingforum=false, $use
         return false;
     }
 
-    if ($scriptingforum === false) {
-        if ($CFG->scriptingforum_allowforcedreadtracking) {
-            // Since we can force tracking, assume yes without a specific scriptingforum.
+    if ($sforum === false) {
+        if ($CFG->sforum_allowforcedreadtracking) {
+            // Since we can force tracking, assume yes without a specific sforum.
             return true;
         } else {
-            return (bool)$user->trackscriptingforums;
+            return (bool)$user->tracksforums;
         }
     }
 
     // Work toward always passing an object...
-    if (is_numeric($scriptingforum)) {
-        debugging('Better use proper scriptingforum object.', DEBUG_DEVELOPER);
-        $scriptingforum = $DB->get_record('scriptingforum',
-                array('id' => $scriptingforum), '', 'id,trackingtype');
+    if (is_numeric($sforum)) {
+        debugging('Better use proper sforum object.', DEBUG_DEVELOPER);
+        $sforum = $DB->get_record('sforum',
+                array('id' => $sforum), '', 'id,trackingtype');
     }
 
-    $scriptingforumallows = ($scriptingforum->trackingtype == SCRIPTING_FORUM_TRACKING_OPTIONAL);
-    $scriptingforumforced = ($scriptingforum->trackingtype == SCRIPTING_FORUM_TRACKING_FORCED);
+    $sforumallows = ($sforum->trackingtype == SCRIPTING_FORUM_TRACKING_OPTIONAL);
+    $sforumforced = ($sforum->trackingtype == SCRIPTING_FORUM_TRACKING_FORCED);
 
-    if ($CFG->scriptingforum_allowforcedreadtracking) {
-        // If we allow forcing, then forced scriptingforums takes procidence over user setting.
-        return ($scriptingforumforced ||
-                ($scriptingforumallows  &&
-                (!empty($user->trackscriptingforums) &&
-                (bool)$user->trackscriptingforums)));
+    if ($CFG->sforum_allowforcedreadtracking) {
+        // If we allow forcing, then forced sforums takes procidence over user setting.
+        return ($sforumforced ||
+                ($sforumallows  &&
+                (!empty($user->tracksforums) &&
+                (bool)$user->tracksforums)));
     } else {
         // If we don't allow forcing, user setting trumps.
-            return ($scriptingforumforced || $scriptingforumallows) &&
-                    !empty($user->trackscriptingforums);
+            return ($sforumforced || $sforumallows) &&
+                    !empty($user->tracksforums);
     }
 }
 
 /**
- * Tells whether a specific scriptingforum is tracked by the user. A user can optionally
+ * Tells whether a specific sforum is tracked by the user. A user can optionally
  * be specified. If not specified, the current user is assumed.
  *
  * @global object
  * @global object
  * @global object
- * @param mixed $scriptingforum If int, the id of the scriptingforum being checked; if object, the scriptingforum object
+ * @param mixed $sforum If int, the id of the sforum being checked; if object, the sforum object
  * @param int $userid The id of the user being checked (optional).
  * @return boolean
  */
-function scriptingforum_tp_is_tracked($scriptingforum, $user=false) {
+function sforum_tp_is_tracked($sforum, $user=false) {
     global $USER, $CFG, $DB;
 
     if ($user === false) {
@@ -6658,88 +6658,88 @@ function scriptingforum_tp_is_tracked($scriptingforum, $user=false) {
     }
 
     // Work toward always passing an object...
-    if (is_numeric($scriptingforum)) {
-        debugging('Better use proper scriptingforum object.', DEBUG_DEVELOPER);
-        $scriptingforum = $DB->get_record('scriptingforum', array('id' => $scriptingforum));
+    if (is_numeric($sforum)) {
+        debugging('Better use proper sforum object.', DEBUG_DEVELOPER);
+        $sforum = $DB->get_record('sforum', array('id' => $sforum));
     }
 
-    if (!scriptingforum_tp_can_track_scriptingforums($scriptingforum, $user)) {
+    if (!sforum_tp_can_track_sforums($sforum, $user)) {
         return false;
     }
 
-    $scriptingforumallows = ($scriptingforum->trackingtype == SCRIPTING_FORUM_TRACKING_OPTIONAL);
-    $scriptingforumforced = ($scriptingforum->trackingtype == SCRIPTING_FORUM_TRACKING_FORCED);
-    $userpref = $DB->get_record('scriptingforum_track_prefs',
-            array('userid' => $user->id, 'scriptingforumid' => $scriptingforum->id));
+    $sforumallows = ($sforum->trackingtype == SCRIPTING_FORUM_TRACKING_OPTIONAL);
+    $sforumforced = ($sforum->trackingtype == SCRIPTING_FORUM_TRACKING_FORCED);
+    $userpref = $DB->get_record('sforum_track_prefs',
+            array('userid' => $user->id, 'sforumid' => $sforum->id));
 
-    if ($CFG->scriptingforum_allowforcedreadtracking) {
-        return $scriptingforumforced || ($scriptingforumallows && $userpref === false);
+    if ($CFG->sforum_allowforcedreadtracking) {
+        return $sforumforced || ($sforumallows && $userpref === false);
     } else {
-        return  ($scriptingforumallows || $scriptingforumforced) && $userpref === false;
+        return  ($sforumallows || $sforumforced) && $userpref === false;
     }
 }
 
 /**
  * @global object
  * @global object
- * @param int $scriptingforumid
+ * @param int $sforumid
  * @param int $userid
  */
-function scriptingforum_tp_start_tracking($scriptingforumid, $userid=false) {
+function sforum_tp_start_tracking($sforumid, $userid=false) {
     global $USER, $DB;
 
     if ($userid === false) {
         $userid = $USER->id;
     }
 
-    return $DB->delete_records('scriptingforum_track_prefs',
-            array('userid' => $userid, 'scriptingforumid' => $scriptingforumid));
+    return $DB->delete_records('sforum_track_prefs',
+            array('userid' => $userid, 'sforumid' => $sforumid));
 }
 
 /**
  * @global object
  * @global object
- * @param int $scriptingforumid
+ * @param int $sforumid
  * @param int $userid
  */
-function scriptingforum_tp_stop_tracking($scriptingforumid, $userid=false) {
+function sforum_tp_stop_tracking($sforumid, $userid=false) {
     global $USER, $DB;
 
     if ($userid === false) {
         $userid = $USER->id;
     }
 
-    if (!$DB->record_exists('scriptingforum_track_prefs',
-            array('userid' => $userid, 'scriptingforumid' => $scriptingforumid))) {
+    if (!$DB->record_exists('sforum_track_prefs',
+            array('userid' => $userid, 'sforumid' => $sforumid))) {
         $track_prefs = new stdClass();
         $track_prefs->userid = $userid;
-        $track_prefs->scriptingforumid = $scriptingforumid;
-        $DB->insert_record('scriptingforum_track_prefs', $track_prefs);
+        $track_prefs->sforumid = $sforumid;
+        $DB->insert_record('sforum_track_prefs', $track_prefs);
     }
 
-    return scriptingforum_tp_delete_read_records($userid, -1, -1, $scriptingforumid);
+    return sforum_tp_delete_read_records($userid, -1, -1, $sforumid);
 }
 
 
 /**
- * Clean old records from the scriptingforum_read table.
+ * Clean old records from the sforum_read table.
  * @global object
  * @global object
  * @return void
  */
-function scriptingforum_tp_clean_read_records() {
+function sforum_tp_clean_read_records() {
     global $CFG, $DB;
 
-    if (!isset($CFG->scriptingforum_oldpostdays)) {
+    if (!isset($CFG->sforum_oldpostdays)) {
         return;
     }
-    // Look for records older than the cutoffdate that are still in the scriptingforum_read table.
-    $cutoffdate = time() - ($CFG->scriptingforum_oldpostdays*24*60*60);
+    // Look for records older than the cutoffdate that are still in the sforum_read table.
+    $cutoffdate = time() - ($CFG->sforum_oldpostdays*24*60*60);
 
     //first get the oldest tracking present - we need tis to speedup the next delete query
     $sql = "SELECT MIN(fp.modified) AS first
-              FROM {scriptingforum_posts} fp
-                   JOIN {scriptingforum_read} fr ON fr.postid=fp.id";
+              FROM {sforum_posts} fp
+                   JOIN {sforum_read} fr ON fr.postid=fp.id";
     if (!$first = $DB->get_field_sql($sql)) {
         // nothing to delete;
         return;
@@ -6747,9 +6747,9 @@ function scriptingforum_tp_clean_read_records() {
 
     // now delete old tracking info
     $sql = "DELETE
-              FROM {scriptingforum_read}
+              FROM {sforum_read}
              WHERE postid IN (SELECT fp.id
-                                FROM {scriptingforum_posts} fp
+                                FROM {sforum_posts} fp
                                WHERE fp.modified >= ? AND fp.modified < ?)";
     $DB->execute($sql, array($first, $cutoffdate));
 }
@@ -6762,17 +6762,17 @@ function scriptingforum_tp_clean_read_records() {
  * @param into $discussionid
  * @return bool|int
  **/
-function scriptingforum_discussion_update_last_post($discussionid) {
+function sforum_discussion_update_last_post($discussionid) {
     global $CFG, $DB;
 
     // Check the given discussion exists
-    if (!$DB->record_exists('scriptingforum_discussions', array('id' => $discussionid))) {
+    if (!$DB->record_exists('sforum_discussions', array('id' => $discussionid))) {
         return false;
     }
 
     // Use SQL to find the last post for this discussion
     $sql = "SELECT id, userid, modified
-              FROM {scriptingforum_posts}
+              FROM {sforum_posts}
              WHERE discussion=?
              ORDER BY modified DESC";
 
@@ -6783,7 +6783,7 @@ function scriptingforum_discussion_update_last_post($discussionid) {
         $discussionobject->id           = $discussionid;
         $discussionobject->usermodified = $lastpost->userid;
         $discussionobject->timemodified = $lastpost->modified;
-        $DB->update_record('scriptingforum_discussions', $discussionobject);
+        $DB->update_record('sforum_discussions', $discussionobject);
         return $lastpost->id;
     }
 
@@ -6803,9 +6803,9 @@ function scriptingforum_discussion_update_last_post($discussionid) {
  *
  * @return array
  */
-function scriptingforum_get_view_actions() {
-    return array('view discussion', 'search', 'scriptingforum',
-           'scriptingforums', 'subscribers', 'view scriptingforum');
+function sforum_get_view_actions() {
+    return array('view discussion', 'search', 'sforum',
+           'sforums', 'subscribers', 'view sforum');
 }
 
 /**
@@ -6818,7 +6818,7 @@ function scriptingforum_get_view_actions() {
  *
  * @return array
  */
-function scriptingforum_get_post_actions() {
+function sforum_get_post_actions() {
     return array('add discussion','add post','delete discussion',
                 'delete post','move discussion','prune post','update post');
 }
@@ -6827,71 +6827,71 @@ function scriptingforum_get_post_actions() {
  * Returns a warning object if a user has reached the number of posts equal to
  * the warning/blocking setting, or false if there is no warning to show.
  *
- * @param int|stdClass $scriptingforum the scriptingforum id or the scriptingforum object
+ * @param int|stdClass $sforum the sforum id or the sforum object
  * @param stdClass $cm the course module
  * @return stdClass|bool returns an object with the warning information, else
  *         returns false if no warning is required.
  */
-function scriptingforum_check_throttling($scriptingforum, $cm = null) {
+function sforum_check_throttling($sforum, $cm = null) {
     global $CFG, $DB, $USER;
 
-    if (is_numeric($scriptingforum)) {
-        $scriptingforum = $DB->get_record('scriptingforum',
-                           array('id' => $scriptingforum), '*', MUST_EXIST);
+    if (is_numeric($sforum)) {
+        $sforum = $DB->get_record('sforum',
+                           array('id' => $sforum), '*', MUST_EXIST);
     }
 
-    if (!is_object($scriptingforum)) {
+    if (!is_object($sforum)) {
         return false; // This is broken.
     }
 
     if (!$cm) {
-        $cm = get_coursemodule_from_instance('scriptingforum',
-              $scriptingforum->id, $scriptingforum->course, false, MUST_EXIST);
+        $cm = get_coursemodule_from_instance('sforum',
+              $sforum->id, $sforum->course, false, MUST_EXIST);
     }
 
-    if (empty($scriptingforum->blockafter)) {
+    if (empty($sforum->blockafter)) {
         return false;
     }
 
-    if (empty($scriptingforum->blockperiod)) {
+    if (empty($sforum->blockperiod)) {
         return false;
     }
 
     $modcontext = context_module::instance($cm->id);
-    if (has_capability('mod/scriptingforum:postwithoutthrottling', $modcontext)) {
+    if (has_capability('mod/sforum:postwithoutthrottling', $modcontext)) {
         return false;
     }
 
     // Get the number of posts in the last period we care about.
     $timenow = time();
-    $timeafter = $timenow - $scriptingforum->blockperiod;
-    $numposts = $DB->count_records_sql('SELECT COUNT(p.id) FROM {scriptingforum_posts} p
-                                        JOIN {scriptingforum_discussions} d
+    $timeafter = $timenow - $sforum->blockperiod;
+    $numposts = $DB->count_records_sql('SELECT COUNT(p.id) FROM {sforum_posts} p
+                                        JOIN {sforum_discussions} d
                                         ON p.discussion = d.id WHERE d.forum = ?
                                         AND p.userid = ? AND p.created > ?',
-                                        array($scriptingforum->id, $USER->id, $timeafter));
+                                        array($sforum->id, $USER->id, $timeafter));
 
     $a = new stdClass();
-    $a->blockafter = $scriptingforum->blockafter;
+    $a->blockafter = $sforum->blockafter;
     $a->numposts = $numposts;
-    $a->blockperiod = get_string('secondstotime'.$scriptingforum->blockperiod);
+    $a->blockperiod = get_string('secondstotime'.$sforum->blockperiod);
 
-    if ($scriptingforum->blockafter <= $numposts) {
+    if ($sforum->blockafter <= $numposts) {
         $warning = new stdClass();
         $warning->canpost = false;
-        $warning->errorcode = 'scriptingforumblockingtoomanyposts';
+        $warning->errorcode = 'sforumblockingtoomanyposts';
         $warning->module = 'error';
         $warning->additional = $a;
-        $warning->link = $CFG->wwwroot . '/mod/scriptingforum/view.php?f=' . $scriptingforum->id;
+        $warning->link = $CFG->wwwroot . '/mod/sforum/view.php?f=' . $sforum->id;
 
         return $warning;
     }
 
-    if ($scriptingforum->warnafter <= $numposts) {
+    if ($sforum->warnafter <= $numposts) {
         $warning = new stdClass();
         $warning->canpost = true;
-        $warning->errorcode = 'scriptingforumblockingalmosttoomanyposts';
-        $warning->module = 'scriptingforum';
+        $warning->errorcode = 'sforumblockingalmosttoomanyposts';
+        $warning->module = 'sforum';
         $warning->additional = $a;
         $warning->link = null;
 
@@ -6906,9 +6906,9 @@ function scriptingforum_check_throttling($scriptingforum, $cm = null) {
  *
  * @since Moodle 2.5
  * @param stdClass $thresholdwarning the warning information returned
- *        from the function scriptingforum_check_throttling.
+ *        from the function sforum_check_throttling.
  */
-function scriptingforum_check_blocking_threshold($thresholdwarning) {
+function sforum_check_blocking_threshold($thresholdwarning) {
     if (!empty($thresholdwarning) && !$thresholdwarning->canpost) {
         print_error($thresholdwarning->errorcode,
                     $thresholdwarning->module,
@@ -6926,7 +6926,7 @@ function scriptingforum_check_blocking_threshold($thresholdwarning) {
  * @param int $courseid
  * @param string $type optional
  */
-function scriptingforum_reset_gradebook($courseid, $type='') {
+function sforum_reset_gradebook($courseid, $type='') {
     global $CFG, $DB;
 
     $wheresql = '';
@@ -6937,20 +6937,20 @@ function scriptingforum_reset_gradebook($courseid, $type='') {
     }
 
     $sql = "SELECT f.*, cm.idnumber as cmidnumber, f.course as courseid
-              FROM {scriptingforum} f, {course_modules} cm, {modules} m
-              WHERE m.name='scriptingforum' AND m.id=cm.module AND
+              FROM {sforum} f, {course_modules} cm, {modules} m
+              WHERE m.name='sforum' AND m.id=cm.module AND
                 cm.instance=f.id AND f.course=? $wheresql";
 
-    if ($scriptingforums = $DB->get_records_sql($sql, $params)) {
-        foreach ($scriptingforums as $scriptingforum) {
-            scriptingforum_grade_item_update($scriptingforum, 'reset');
+    if ($sforums = $DB->get_records_sql($sql, $params)) {
+        foreach ($sforums as $sforum) {
+            sforum_grade_item_update($sforum, 'reset');
         }
     }
 }
 
 /**
  * This function is used by the reset_course_userdata function in moodlelib.
- * This function will remove all posts from the specified scriptingforum
+ * This function will remove all posts from the specified sforum
  * and clean up any related data.
  *
  * @global object
@@ -6958,31 +6958,31 @@ function scriptingforum_reset_gradebook($courseid, $type='') {
  * @param $data the data submitted from the reset course.
  * @return array status array
  */
-function scriptingforum_reset_userdata($data) {
+function sforum_reset_userdata($data) {
     global $CFG, $DB;
     require_once($CFG->dirroot.'/rating/lib.php');
 
-    $componentstr = get_string('modulenameplural', 'scriptingforum');
+    $componentstr = get_string('modulenameplural', 'sforum');
     $status = array();
 
     $params = array($data->courseid);
 
     $removeposts = false;
     $typesql     = "";
-    if (!empty($data->reset_scriptingforum_all)) {
+    if (!empty($data->reset_sforum_all)) {
         $removeposts = true;
-        $typesstr    = get_string('resetscriptingforumsall', 'scriptingforum');
+        $typesstr    = get_string('resetsforumsall', 'sforum');
         $types       = array();
-    } else if (!empty($data->reset_scriptingforum_types)){
+    } else if (!empty($data->reset_sforum_types)){
         $removeposts = true;
         $types       = array();
         $sqltypes    = array();
-        $scriptingforum_types_all = scriptingforum_get_scriptingforum_types_all();
-        foreach ($data->reset_scriptingforum_types as $type) {
-            if (!array_key_exists($type, $scriptingforum_types_all)) {
+        $sforum_types_all = sforum_get_sforum_types_all();
+        foreach ($data->reset_sforum_types as $type) {
+            if (!array_key_exists($type, $sforum_types_all)) {
                 continue;
             }
-            $types[] = $scriptingforum_types_all[$type];
+            $types[] = $sforum_types_all[$type];
             $sqltypes[] = $type;
         }
         if (!empty($sqltypes)) {
@@ -6990,28 +6990,28 @@ function scriptingforum_reset_userdata($data) {
             $typesql = " AND f.type " . $typesql;
             $params = array_merge($params, $typeparams);
         }
-        $typesstr = get_string('resetscriptingforums', 'scriptingforum').': '.implode(', ', $types);
+        $typesstr = get_string('resetsforums', 'sforum').': '.implode(', ', $types);
     }
     $alldiscussionssql = "SELECT fd.id
-                            FROM {scriptingforum_discussions} fd, {scriptingforum} f
+                            FROM {sforum_discussions} fd, {sforum} f
                            WHERE f.course=? AND f.id=fd.forum";
 
-    $allscriptingforumssql      = "SELECT f.id
-                            FROM {scriptingforum} f
+    $allsforumssql      = "SELECT f.id
+                            FROM {sforum} f
                            WHERE f.course=?";
 
     $allpostssql       = "SELECT fp.id
-                            FROM {scriptingforum_posts} fp, {scriptingforum_discussions} fd, {scriptingforum} f
+                            FROM {sforum_posts} fp, {sforum_discussions} fd, {sforum} f
                            WHERE f.course=? AND f.id=fd.forum AND fd.id=fp.discussion";
 
-    $scriptingforumssql = $scriptingforums = $rm = null;
+    $sforumssql = $sforums = $rm = null;
 
-    if( $removeposts || !empty($data->reset_scriptingforum_ratings) ) {
-        $scriptingforumssql = "$allscriptingforumssql $typesql";
-        $scriptingforums = $scriptingforums = $DB->get_records_sql($scriptingforumssql, $params);
+    if( $removeposts || !empty($data->reset_sforum_ratings) ) {
+        $sforumssql = "$allsforumssql $typesql";
+        $sforums = $sforums = $DB->get_records_sql($sforumssql, $params);
         $rm = new rating_manager();
         $ratingdeloptions = new stdClass;
-        $ratingdeloptions->component = 'mod_scriptingforum';
+        $ratingdeloptions->component = 'mod_sforum';
         $ratingdeloptions->ratingarea = 'post';
     }
 
@@ -7021,14 +7021,14 @@ function scriptingforum_reset_userdata($data) {
 
         // now get rid of all attachments
         $fs = get_file_storage();
-        if ($scriptingforums) {
-            foreach ($scriptingforums as $scriptingforumid=>$unused) {
-                if (!$cm = get_coursemodule_from_instance('scriptingforum', $scriptingforumid)) {
+        if ($sforums) {
+            foreach ($sforums as $sforumid=>$unused) {
+                if (!$cm = get_coursemodule_from_instance('sforum', $sforumid)) {
                     continue;
                 }
                 $context = context_module::instance($cm->id);
-                $fs->delete_area_files($context->id, 'mod_scriptingforum', 'attachment');
-                $fs->delete_area_files($context->id, 'mod_scriptingforum', 'post');
+                $fs->delete_area_files($context->id, 'mod_sforum', 'attachment');
+                $fs->delete_area_files($context->id, 'mod_sforum', 'post');
 
                 //remove ratings
                 $ratingdeloptions->contextid = $context->id;
@@ -7037,35 +7037,35 @@ function scriptingforum_reset_userdata($data) {
         }
 
         // first delete all read flags
-        $DB->delete_records_select('scriptingforum_read',
-                "scriptingforumid IN ($scriptingforumssql)", $params);
+        $DB->delete_records_select('sforum_read',
+                "sforumid IN ($sforumssql)", $params);
 
         // remove tracking prefs
-        $DB->delete_records_select('scriptingforum_track_prefs',
-                "scriptingforumid IN ($scriptingforumssql)", $params);
+        $DB->delete_records_select('sforum_track_prefs',
+                "sforumid IN ($sforumssql)", $params);
 
         // remove posts from queue
-        $DB->delete_records_select('scriptingforum_queue',
+        $DB->delete_records_select('sforum_queue',
                 "discussionid IN ($discussionssql)", $params);
 
-        // all posts - initial posts must be kept in single simple discussion scriptingforums
-        $DB->delete_records_select('scriptingforum_posts',
+        // all posts - initial posts must be kept in single simple discussion sforums
+        $DB->delete_records_select('sforum_posts',
                 "discussion IN ($discussionssql) AND parent <> 0", $params); // first all children
-        $DB->delete_records_select('scriptingforum_posts',
+        $DB->delete_records_select('sforum_posts',
                 "discussion IN ($discussionssql AND f.type <> 'single') AND parent = 0",
                 $params); // now the initial posts for non single simple
 
-        // finally all discussions except single simple scriptingforums
-        $DB->delete_records_select('scriptingforum_discussions',
-                "scriptingforum IN ($scriptingforumssql AND f.type <> 'single')", $params);
+        // finally all discussions except single simple sforums
+        $DB->delete_records_select('sforum_discussions',
+                "sforum IN ($sforumssql AND f.type <> 'single')", $params);
 
         // remove all grades from gradebook
         if (empty($data->reset_gradebook_grades)) {
             if (empty($types)) {
-                scriptingforum_reset_gradebook($data->courseid);
+                sforum_reset_gradebook($data->courseid);
             } else {
                 foreach ($types as $type) {
-                    scriptingforum_reset_gradebook($data->courseid, $type);
+                    sforum_reset_gradebook($data->courseid, $type);
                 }
             }
         }
@@ -7073,11 +7073,11 @@ function scriptingforum_reset_userdata($data) {
         $status[] = array('component'=>$componentstr, 'item'=>$typesstr, 'error'=>false);
     }
 
-    // remove all ratings in this course's scriptingforums
-    if (!empty($data->reset_scriptingforum_ratings)) {
-        if ($scriptingforums) {
-            foreach ($scriptingforums as $scriptingforumid=>$unused) {
-                if (!$cm = get_coursemodule_from_instance('scriptingforum', $scriptingforumid)) {
+    // remove all ratings in this course's sforums
+    if (!empty($data->reset_sforum_ratings)) {
+        if ($sforums) {
+            foreach ($sforums as $sforumid=>$unused) {
+                if (!$cm = get_coursemodule_from_instance('sforum', $sforumid)) {
                     continue;
                 }
                 $context = context_module::instance($cm->id);
@@ -7090,35 +7090,35 @@ function scriptingforum_reset_userdata($data) {
 
         // remove all grades from gradebook
         if (empty($data->reset_gradebook_grades)) {
-            scriptingforum_reset_gradebook($data->courseid);
+            sforum_reset_gradebook($data->courseid);
         }
     }
 
     // remove all digest settings unconditionally - even for users still enrolled in course.
-    if (!empty($data->reset_scriptingforum_digests)) {
-        $DB->delete_records_select('scriptingforum_digests', "scriptingforum IN ($allscriptingforumssql)", $params);
-        $status[] = array('component' => $componentstr, 'item' => get_string('resetdigests', 'scriptingforum'), 'error' => false);
+    if (!empty($data->reset_sforum_digests)) {
+        $DB->delete_records_select('sforum_digests', "sforum IN ($allsforumssql)", $params);
+        $status[] = array('component' => $componentstr, 'item' => get_string('resetdigests', 'sforum'), 'error' => false);
     }
 
     // remove all subscriptions unconditionally - even for users still enrolled in course
-    if (!empty($data->reset_scriptingforum_subscriptions)) {
-        $DB->delete_records_select('scriptingforum_subscriptions', "scriptingforum IN ($allscriptingforumssql)", $params);
-        $DB->delete_records_select('scriptingforum_discussion_subs', "scriptingforum IN ($allscriptingforumssql)", $params);
+    if (!empty($data->reset_sforum_subscriptions)) {
+        $DB->delete_records_select('sforum_subscriptions', "sforum IN ($allsforumssql)", $params);
+        $DB->delete_records_select('sforum_discussion_subs', "sforum IN ($allsforumssql)", $params);
         $status[] = array('component' => $componentstr,
-                'item' => get_string('resetsubscriptions', 'scriptingforum'), 'error' => false);
+                'item' => get_string('resetsubscriptions', 'sforum'), 'error' => false);
     }
 
     // remove all tracking prefs unconditionally - even for users still enrolled in course
-    if (!empty($data->reset_scriptingforum_track_prefs)) {
-       $DB->delete_records_select('scriptingforum_track_prefs',
-                    "scriptingforumid IN ($allscriptingforumssql)", $params);
+    if (!empty($data->reset_sforum_track_prefs)) {
+       $DB->delete_records_select('sforum_track_prefs',
+                    "sforumid IN ($allsforumssql)", $params);
        $status[] = array('component'=>$componentstr,
-                    'item'=>get_string('resettrackprefs','scriptingforum'), 'error'=>false);
+                    'item'=>get_string('resettrackprefs','sforum'), 'error'=>false);
     }
 
     /// updating dates - shift may be negative too
     if ($data->timeshift) {
-        shift_course_mod_dates('scriptingforum', array('assesstimestart', 'assesstimefinish'), $data->timeshift, $data->courseid);
+        shift_course_mod_dates('sforum', array('assesstimestart', 'assesstimefinish'), $data->timeshift, $data->courseid);
         $status[] = array('component'=>$componentstr, 'item'=>get_string('datechanged'), 'error'=>false);
     }
 
@@ -7130,86 +7130,86 @@ function scriptingforum_reset_userdata($data) {
  *
  * @param $mform form passed by reference
  */
-function scriptingforum_reset_course_form_definition(&$mform) {
-    $mform->addElement('header', 'scriptingforumheader',
-                get_string('modulenameplural', 'scriptingforum'));
+function sforum_reset_course_form_definition(&$mform) {
+    $mform->addElement('header', 'sforumheader',
+                get_string('modulenameplural', 'sforum'));
 
-    $mform->addElement('checkbox', 'reset_scriptingforum_all',
-            get_string('resetscriptingforumsall','scriptingforum'));
+    $mform->addElement('checkbox', 'reset_sforum_all',
+            get_string('resetsforumsall','sforum'));
 
-    $mform->addElement('select', 'reset_scriptingforum_types',
-            get_string('resetscriptingforums', 'scriptingforum'),
-            scriptingforum_get_scriptingforum_types_all(), array('multiple' => 'multiple'));
-    $mform->setAdvanced('reset_scriptingforum_types');
-    $mform->disabledIf('reset_scriptingforum_types', 'reset_scriptingforum_all', 'checked');
+    $mform->addElement('select', 'reset_sforum_types',
+            get_string('resetsforums', 'sforum'),
+            sforum_get_sforum_types_all(), array('multiple' => 'multiple'));
+    $mform->setAdvanced('reset_sforum_types');
+    $mform->disabledIf('reset_sforum_types', 'reset_sforum_all', 'checked');
 
-    $mform->addElement('checkbox', 'reset_scriptingforum_digests',
-            get_string('resetdigests','scriptingforum'));
-    $mform->setAdvanced('reset_scriptingforum_digests');
+    $mform->addElement('checkbox', 'reset_sforum_digests',
+            get_string('resetdigests','sforum'));
+    $mform->setAdvanced('reset_sforum_digests');
 
-    $mform->addElement('checkbox', 'reset_scriptingforum_subscriptions',
-            get_string('resetsubscriptions','scriptingforum'));
-    $mform->setAdvanced('reset_scriptingforum_subscriptions');
+    $mform->addElement('checkbox', 'reset_sforum_subscriptions',
+            get_string('resetsubscriptions','sforum'));
+    $mform->setAdvanced('reset_sforum_subscriptions');
 
-    $mform->addElement('checkbox', 'reset_scriptingforum_track_prefs',
-            get_string('resettrackprefs','scriptingforum'));
-    $mform->setAdvanced('reset_scriptingforum_track_prefs');
-    $mform->disabledIf('reset_scriptingforum_track_prefs', 'reset_scriptingforum_all', 'checked');
+    $mform->addElement('checkbox', 'reset_sforum_track_prefs',
+            get_string('resettrackprefs','sforum'));
+    $mform->setAdvanced('reset_sforum_track_prefs');
+    $mform->disabledIf('reset_sforum_track_prefs', 'reset_sforum_all', 'checked');
 
-    $mform->addElement('checkbox', 'reset_scriptingforum_ratings', get_string('deleteallratings'));
-    $mform->disabledIf('reset_scriptingforum_ratings', 'reset_scriptingforum_all', 'checked');
+    $mform->addElement('checkbox', 'reset_sforum_ratings', get_string('deleteallratings'));
+    $mform->disabledIf('reset_sforum_ratings', 'reset_sforum_all', 'checked');
 }
 
 /**
  * Course reset form defaults.
  * @return array
  */
-function scriptingforum_reset_course_form_defaults($course) {
-    return array('reset_scriptingforum_all'=>1,
-            'reset_scriptingforum_digests' => 0,
-            'reset_scriptingforum_subscriptions'=>0,
-            'reset_scriptingforum_track_prefs'=>0,
-            'reset_scriptingforum_ratings'=>1);
+function sforum_reset_course_form_defaults($course) {
+    return array('reset_sforum_all'=>1,
+            'reset_sforum_digests' => 0,
+            'reset_sforum_subscriptions'=>0,
+            'reset_sforum_track_prefs'=>0,
+            'reset_sforum_ratings'=>1);
 }
 
 /**
- * Returns array of scriptingforum layout modes
+ * Returns array of sforum layout modes
  *
  * @return array
  */
-function scriptingforum_get_layout_modes() {
-    return array (SCRIPTING_FORUM_MODE_FLATOLDEST => get_string('modeflatoldestfirst', 'scriptingforum'),
-                  SCRIPTING_FORUM_MODE_FLATNEWEST => get_string('modeflatnewestfirst', 'scriptingforum'),
-                  SCRIPTING_FORUM_MODE_THREADED   => get_string('modethreaded', 'scriptingforum'),
-                  SCRIPTING_FORUM_MODE_NESTED     => get_string('modenested', 'scriptingforum'));
+function sforum_get_layout_modes() {
+    return array (SCRIPTING_FORUM_MODE_FLATOLDEST => get_string('modeflatoldestfirst', 'sforum'),
+                  SCRIPTING_FORUM_MODE_FLATNEWEST => get_string('modeflatnewestfirst', 'sforum'),
+                  SCRIPTING_FORUM_MODE_THREADED   => get_string('modethreaded', 'sforum'),
+                  SCRIPTING_FORUM_MODE_NESTED     => get_string('modenested', 'sforum'));
 }
 
 /**
- * Returns array of scriptingforum types chooseable on the scriptingforum editing form
+ * Returns array of sforum types chooseable on the sforum editing form
  *
  * @return array
  */
-function scriptingforum_get_scriptingforum_types() {
-    return array ('general'  => get_string('generalscriptingforum', 'scriptingforum'),
-                  'eachuser' => get_string('eachuserscriptingforum', 'scriptingforum'),
-                  'single'   => get_string('singlescriptingforum', 'scriptingforum'),
-                  'qanda'    => get_string('qandascriptingforum', 'scriptingforum'),
-                  'blog'     => get_string('blogscriptingforum', 'scriptingforum'));
+function sforum_get_sforum_types() {
+    return array ('general'  => get_string('generalsforum', 'sforum'),
+                  'eachuser' => get_string('eachusersforum', 'sforum'),
+                  'single'   => get_string('singlesforum', 'sforum'),
+                  'qanda'    => get_string('qandasforum', 'sforum'),
+                  'blog'     => get_string('blogsforum', 'sforum'));
 }
 
 /**
- * Returns array of all scriptingforum layout modes
+ * Returns array of all sforum layout modes
  *
  * @return array
  */
-function scriptingforum_get_scriptingforum_types_all() {
-    return array ('news'     => get_string('namenews','scriptingforum'),
-                  'social'   => get_string('namesocial','scriptingforum'),
-                  'general'  => get_string('generalscriptingforum', 'scriptingforum'),
-                  'eachuser' => get_string('eachuserscriptingforum', 'scriptingforum'),
-                  'single'   => get_string('singlescriptingforum', 'scriptingforum'),
-                  'qanda'    => get_string('qandascriptingforum', 'scriptingforum'),
-                  'blog'     => get_string('blogscriptingforum', 'scriptingforum'));
+function sforum_get_sforum_types_all() {
+    return array ('news'     => get_string('namenews','sforum'),
+                  'social'   => get_string('namesocial','sforum'),
+                  'general'  => get_string('generalsforum', 'sforum'),
+                  'eachuser' => get_string('eachusersforum', 'sforum'),
+                  'single'   => get_string('singlesforum', 'sforum'),
+                  'qanda'    => get_string('qandasforum', 'sforum'),
+                  'blog'     => get_string('blogsforum', 'sforum'));
 }
 
 /**
@@ -7217,7 +7217,7 @@ function scriptingforum_get_scriptingforum_types_all() {
  *
  * @return array
  */
-function scriptingforum_get_extra_capabilities() {
+function sforum_get_extra_capabilities() {
         return array('moodle/site:accessallgroups',
                 'moodle/site:viewfullnames',
                 'moodle/site:trustcontent',
@@ -7229,13 +7229,13 @@ function scriptingforum_get_extra_capabilities() {
  * Adds module specific settings to the settings block
  *
  * @param settings_navigation $settings The settings navigation object
- * @param navigation_node $scriptingforumnode The node to add module settings to
+ * @param navigation_node $sforumnode The node to add module settings to
  */
-function scriptingforum_extend_settings_navigation(settings_navigation $settingsnav,
-        navigation_node $scriptingforumnode) {
+function sforum_extend_settings_navigation(settings_navigation $settingsnav,
+        navigation_node $sforumnode) {
     global $USER, $PAGE, $CFG, $DB, $OUTPUT;
 
-    $scriptingforumobject = $DB->get_record("scriptingforum",
+    $sforumobject = $DB->get_record("sforum",
             array("id" => $PAGE->cm->instance));
     if (empty($PAGE->cm->context)) {
         $PAGE->cm->context = context_module::instance($PAGE->cm->instance);
@@ -7250,34 +7250,34 @@ function scriptingforum_extend_settings_navigation(settings_navigation $settings
     $enrolled = is_enrolled($PAGE->cm->context, $USER, '', false);
     $activeenrolled = is_enrolled($PAGE->cm->context, $USER, '', true);
 
-    $canmanage  = has_capability('mod/scriptingforum:managesubscriptions', $PAGE->cm->context);
-    $subscriptionmode = \mod_scriptingforum\subscriptions::get_subscription_mode($scriptingforumobject);
+    $canmanage  = has_capability('mod/sforum:managesubscriptions', $PAGE->cm->context);
+    $subscriptionmode = \mod_sforum\subscriptions::get_subscription_mode($sforumobject);
     $cansubscribe = $activeenrolled &&
-            !\mod_scriptingforum\subscriptions::is_forcesubscribed($scriptingforumobject) &&
-            (!\mod_scriptingforum\subscriptions::subscription_disabled($scriptingforumobject) ||
+            !\mod_sforum\subscriptions::is_forcesubscribed($sforumobject) &&
+            (!\mod_sforum\subscriptions::subscription_disabled($sforumobject) ||
             $canmanage);
 
     if ($canmanage) {
-        $mode = $scriptingforumnode->add(get_string('subscriptionmode', 'scriptingforum'),
+        $mode = $sforumnode->add(get_string('subscriptionmode', 'sforum'),
                     null, navigation_node::TYPE_CONTAINER);
 
-        $allowchoice = $mode->add(get_string('subscriptionoptional', 'scriptingforum'),
-                new moodle_url('/mod/scriptingforum/subscribe.php',
-                array('id'=>$scriptingforumobject->id,
+        $allowchoice = $mode->add(get_string('subscriptionoptional', 'sforum'),
+                new moodle_url('/mod/sforum/subscribe.php',
+                array('id'=>$sforumobject->id,
                 'mode'=>SCRIPTING_FORUM_CHOOSESUBSCRIBE,
                 'sesskey'=>sesskey())), navigation_node::TYPE_SETTING);
-        $forceforever = $mode->add(get_string("subscriptionforced", "scriptingforum"),
-                new moodle_url('/mod/scriptingforum/subscribe.php',
-                array('id'=>$scriptingforumobject->id,
+        $forceforever = $mode->add(get_string("subscriptionforced", "sforum"),
+                new moodle_url('/mod/sforum/subscribe.php',
+                array('id'=>$sforumobject->id,
                 'mode'=>SCRIPTING_FORUM_FORCESUBSCRIBE,
                 'sesskey'=>sesskey())), navigation_node::TYPE_SETTING);
-        $forceinitially = $mode->add(get_string("subscriptionauto", "scriptingforum"),
-                new moodle_url('/mod/scriptingforum/subscribe.php',
-                array('id'=>$scriptingforumobject->id,
+        $forceinitially = $mode->add(get_string("subscriptionauto", "sforum"),
+                new moodle_url('/mod/sforum/subscribe.php',
+                array('id'=>$sforumobject->id,
                 'mode'=>SCRIPTING_FORUM_INITIALSUBSCRIBE,
                 'sesskey'=>sesskey())), navigation_node::TYPE_SETTING);
         $disallowchoice = $mode->add(get_string('subscriptiondisabled',
-                'scriptingforum'), new moodle_url('/mod/scriptingforum/subscribe.php',
+                'sforum'), new moodle_url('/mod/sforum/subscribe.php',
                 array('id'=>$scripting/_forumobject->id,
                 'mode'=>SCRIPTING_FORUM_DISALLOWSUBSCRIBE, 'sesskey'=>sesskey())),
                 navigation_node::TYPE_SETTING);
@@ -7305,67 +7305,67 @@ function scriptingforum_extend_settings_navigation(settings_navigation $settings
 
         switch ($subscriptionmode) {
             case SCRIPTING_FORUM_CHOOSESUBSCRIBE : // 0
-                $notenode = $scriptingforumnode->add(get_string('subscriptionoptional', 'scriptingforum'));
+                $notenode = $sforumnode->add(get_string('subscriptionoptional', 'sforum'));
                 break;
             case SCRIPTING_FORUM_FORCESUBSCRIBE : // 1
-                $notenode = $scriptingforumnode->add(get_string('subscriptionforced', 'scriptingforum'));
+                $notenode = $sforumnode->add(get_string('subscriptionforced', 'sforum'));
                 break;
             case SCRIPTING_FORUM_INITIALSUBSCRIBE : // 2
-                $notenode = $scriptingforumnode->add(get_string('subscriptionauto', 'scriptingforum'));
+                $notenode = $sforumnode->add(get_string('subscriptionauto', 'sforum'));
                 break;
             case SCRIPTING_FORUM_DISALLOWSUBSCRIBE : // 3
-                $notenode = $scriptingforumnode->add(get_string('subscriptiondisabled', 'scriptingforum'));
+                $notenode = $sforumnode->add(get_string('subscriptiondisabled', 'sforum'));
                 break;
         }
     }
 
     if ($cansubscribe) {
-        if (\mod_scriptingforum\subscriptions::is_subscribed($USER->id, $scriptingforumobject, null, $PAGE->cm)) {
-            $linktext = get_string('unsubscribe', 'scriptingforum');
+        if (\mod_sforum\subscriptions::is_subscribed($USER->id, $sforumobject, null, $PAGE->cm)) {
+            $linktext = get_string('unsubscribe', 'sforum');
         } else {
-            $linktext = get_string('subscribe', 'scriptingforum');
+            $linktext = get_string('subscribe', 'sforum');
         }
-        $url = new moodle_url('/mod/scriptingforum/subscribe.php', array('id'=>$scriptingforumobject->id, 'sesskey'=>sesskey()));
-        $scriptingforumnode->add($linktext, $url, navigation_node::TYPE_SETTING);
+        $url = new moodle_url('/mod/sforum/subscribe.php', array('id'=>$sforumobject->id, 'sesskey'=>sesskey()));
+        $sforumnode->add($linktext, $url, navigation_node::TYPE_SETTING);
 
         if (isset($discussionid)) {
-            if (\mod_scriptingforum\subscriptions::is_subscribed($USER->id,
-                        $scriptingforumobject, $discussionid, $PAGE->cm)) {
-                $linktext = get_string('unsubscribediscussion', 'scriptingforum');
+            if (\mod_sforum\subscriptions::is_subscribed($USER->id,
+                        $sforumobject, $discussionid, $PAGE->cm)) {
+                $linktext = get_string('unsubscribediscussion', 'sforum');
             } else {
-                $linktext = get_string('subscribediscussion', 'scriptingforum');
+                $linktext = get_string('subscribediscussion', 'sforum');
             }
-            $url = new moodle_url('/mod/scriptingforum/subscribe.php', array(
-                    'id' => $scriptingforumobject->id,
+            $url = new moodle_url('/mod/sforum/subscribe.php', array(
+                    'id' => $sforumobject->id,
                     'sesskey' => sesskey(),
                     'd' => $discussionid,
                     'returnurl' => $PAGE->url->out(),
                 ));
-            $scriptingforumnode->add($linktext, $url, navigation_node::TYPE_SETTING);
+            $sforumnode->add($linktext, $url, navigation_node::TYPE_SETTING);
         }
     }
 
-    if (has_capability('mod/scriptingforum:viewsubscribers', $PAGE->cm->context)){
-        $url = new moodle_url('/mod/scriptingforum/subscribers.php',
-                    array('id'=>$scriptingforumobject->id));
-        $scriptingforumnode->add(get_string('showsubscribers', 'scriptingforum'),
+    if (has_capability('mod/sforum:viewsubscribers', $PAGE->cm->context)){
+        $url = new moodle_url('/mod/sforum/subscribers.php',
+                    array('id'=>$sforumobject->id));
+        $sforumnode->add(get_string('showsubscribers', 'sforum'),
                 $url, navigation_node::TYPE_SETTING);
     }
 
-    if ($enrolled && scriptingforum_tp_can_track_scriptingforums($scriptingforumobject)) { // keep tracking info for users with suspended enrolments
-        if ($scriptingforumobject->trackingtype == SCRIPTING_FORUM_TRACKING_OPTIONAL
-                || ((!$CFG->scriptingforum_allowforcedreadtracking) &&
-                $scriptingforumobject->trackingtype == SCRIPTING_FORUM_TRACKING_FORCED)) {
-            if (scriptingforum_tp_is_tracked($scriptingforumobject)) {
-                $linktext = get_string('notrackscriptingforum', 'scriptingforum');
+    if ($enrolled && sforum_tp_can_track_sforums($sforumobject)) { // keep tracking info for users with suspended enrolments
+        if ($sforumobject->trackingtype == SCRIPTING_FORUM_TRACKING_OPTIONAL
+                || ((!$CFG->sforum_allowforcedreadtracking) &&
+                $sforumobject->trackingtype == SCRIPTING_FORUM_TRACKING_FORCED)) {
+            if (sforum_tp_is_tracked($sforumobject)) {
+                $linktext = get_string('notracksforum', 'sforum');
             } else {
-                $linktext = get_string('trackscriptingforum', 'scriptingforum');
+                $linktext = get_string('tracksforum', 'sforum');
             }
-            $url = new moodle_url('/mod/scriptingforum/settracking.php', array(
-                    'id' => $scriptingforumobject->id,
+            $url = new moodle_url('/mod/sforum/settracking.php', array(
+                    'id' => $sforumobject->id,
                     'sesskey' => sesskey(),
                 ));
-            $scriptingforumnode->add($linktext, $url, navigation_node::TYPE_SETTING);
+            $sforumnode->add($linktext, $url, navigation_node::TYPE_SETTING);
         }
     }
 
@@ -7376,23 +7376,23 @@ function scriptingforum_extend_settings_navigation(settings_navigation $settings
     }
 
     $hascourseaccess = ($PAGE->course->id == SITEID) || can_access_course($PAGE->course, $userid);
-    $enablerssfeeds = !empty($CFG->enablerssfeeds) && !empty($CFG->scriptingforum_enablerssfeeds);
+    $enablerssfeeds = !empty($CFG->enablerssfeeds) && !empty($CFG->sforum_enablerssfeeds);
 
-    if ($enablerssfeeds && $scriptingforumobject->rsstype &&
-            $scriptingforumobject->rssarticles && $hascourseaccess) {
+    if ($enablerssfeeds && $sforumobject->rsstype &&
+            $sforumobject->rssarticles && $hascourseaccess) {
         if (!function_exists('rss_get_url')) {
             require_once("$CFG->libdir/rsslib.php");
         }
 
-        if ($scriptingforumobject->rsstype == 1) {
-            $string = get_string('rsssubscriberssdiscussions','scriptingforum');
+        if ($sforumobject->rsstype == 1) {
+            $string = get_string('rsssubscriberssdiscussions','sforum');
         } else {
-            $string = get_string('rsssubscriberssposts','scriptingforum');
+            $string = get_string('rsssubscriberssposts','sforum');
         }
 
         $url = new moodle_url(rss_get_url($PAGE->cm->context->id, $userid,
-                "mod_scriptingforum", $scriptingforumobject->id));
-        $scriptingforumnode->add($string, $url, settings_navigation::TYPE_SETTING,
+                "mod_sforum", $sforumobject->id));
+        $sforumnode->add($string, $url, settings_navigation::TYPE_SETTING,
                 null, null, new pix_icon('i/rss', ''));
     }
 }
@@ -7402,16 +7402,16 @@ function scriptingforum_extend_settings_navigation(settings_navigation $settings
  * similar), to the course-module object.
  * @param cm_info $cm Course-module object
  */
-function scriptingforum_cm_info_view(cm_info $cm) {
+function sforum_cm_info_view(cm_info $cm) {
     global $CFG;
 
-    if (scriptingforum_tp_can_track_scriptingforums()) {
-        if ($unread = scriptingforum_tp_count_scriptingforum_unread_posts($cm, $cm->get_course())) {
+    if (sforum_tp_can_track_sforums()) {
+        if ($unread = sforum_tp_count_sforum_unread_posts($cm, $cm->get_course())) {
             $out = '<span class="unread"> <a href="' . $cm->url . '">';
             if ($unread == 1) {
-                $out .= get_string('unreadpostsone', 'scriptingforum');
+                $out .= get_string('unreadpostsone', 'sforum');
             } else {
-                $out .= get_string('unreadpostsnumber', 'scriptingforum', $unread);
+                $out .= get_string('unreadpostsnumber', 'sforum', $unread);
             }
             $out .= '</a></span>';
             $cm->set_after_link($out);
@@ -7425,17 +7425,17 @@ function scriptingforum_cm_info_view(cm_info $cm) {
  * @param stdClass $parentcontext Block's parent context
  * @param stdClass $currentcontext Current context of block
  */
-function scriptingforum_page_type_list($pagetype, $parentcontext, $currentcontext) {
-    $scriptingforum_pagetype = array(
-        'mod-scriptingforum-*'=>get_string('page-mod-scriptingforum-x', 'scriptingforum'),
-        'mod-scriptingforum-view'=>get_string('page-mod-scriptingforum-view', 'scriptingforum'),
-        'mod-scriptingforum-discuss'=>get_string('page-mod-scriptingforum-discuss', 'scriptingforum')
+function sforum_page_type_list($pagetype, $parentcontext, $currentcontext) {
+    $sforum_pagetype = array(
+        'mod-sforum-*'=>get_string('page-mod-sforum-x', 'sforum'),
+        'mod-sforum-view'=>get_string('page-mod-sforum-view', 'sforum'),
+        'mod-sforum-discuss'=>get_string('page-mod-sforum-discuss', 'sforum')
     );
-    return $scriptingforum_pagetype;
+    return $sforum_pagetype;
 }
 
 /**
- * Gets all of the courses where the provided user has posted in a scriptingforum.
+ * Gets all of the courses where the provided user has posted in a sforum.
  *
  * @global moodle_database $DB The database connection
  * @param stdClass $user The user who's posts we are looking for
@@ -7445,21 +7445,21 @@ function scriptingforum_page_type_list($pagetype, $parentcontext, $currentcontex
  * @param int $limitnum The number of records to return
  * @return array An array of courses
  */
-function scriptingforum_get_courses_user_posted_in($user, $discussionsonly = false,
+function sforum_get_courses_user_posted_in($user, $discussionsonly = false,
         $includecontexts = true, $limitfrom = null, $limitnum = null) {
     global $DB;
 
-    // If we are only after discussions we need only look at the scriptingforum_discussions
+    // If we are only after discussions we need only look at the sforum_discussions
     // table and join to the userid there. If we are looking for posts then we need
-    // to join to the scriptingforum_posts table.
+    // to join to the sforum_posts table.
     if (!$discussionsonly) {
         $subquery = "(SELECT DISTINCT fd.course
-                         FROM {scriptingforum_discussions} fd
-                         JOIN {scriptingforum_posts} fp ON fp.discussion = fd.id
+                         FROM {sforum_discussions} fd
+                         JOIN {sforum_posts} fp ON fp.discussion = fd.id
                         WHERE fp.userid = :userid )";
     } else {
         $subquery= "(SELECT DISTINCT fd.course
-                         FROM {scriptingforum_discussions} fd
+                         FROM {sforum_discussions} fd
                         WHERE fd.userid = :userid )";
     }
 
@@ -7476,7 +7476,7 @@ function scriptingforum_get_courses_user_posted_in($user, $discussionsonly = fal
     }
 
     // Now we need to get all of the courses to search.
-    // All courses where the user has posted within a scriptingforum will be returned.
+    // All courses where the user has posted within a sforum will be returned.
     $sql = "SELECT c.* $ctxselect
             FROM {course} c
             $ctxjoin
@@ -7489,19 +7489,19 @@ function scriptingforum_get_courses_user_posted_in($user, $discussionsonly = fal
 }
 
 /**
- * Gets all of the scriptingforums a user has posted in for one or more courses.
+ * Gets all of the sforums a user has posted in for one or more courses.
  *
  * @global moodle_database $DB
  * @param stdClass $user
  * @param array $courseids An array of courseids to search or if not provided
  *                       all courses the user has posted within
- * @param bool $discussionsonly If true then only scriptingforums where the user has started
+ * @param bool $discussionsonly If true then only sforums where the user has started
  *                       a discussion will be returned.
  * @param int $limitfrom The offset of records to return
  * @param int $limitnum The number of records to return
- * @return array An array of scriptingforums the user has posted within in the provided courses
+ * @return array An array of sforums the user has posted within in the provided courses
  */
-function scriptingforum_get_scriptingforums_user_posted_in($user, array $courseids = null,
+function sforum_get_sforums_user_posted_in($user, array $courseids = null,
         $discussionsonly = false, $limitfrom = null, $limitnum = null) {
     global $DB;
 
@@ -7513,31 +7513,31 @@ function scriptingforum_get_scriptingforums_user_posted_in($user, array $coursei
         $params = array();
     }
     $params['userid'] = $user->id;
-    $params['scriptingforum'] = 'scriptingforum';
+    $params['sforum'] = 'sforum';
 
     if ($discussionsonly) {
-        $join = 'JOIN {scriptingforum_discussions} ff ON ff.forum = f.id';
+        $join = 'JOIN {sforum_discussions} ff ON ff.forum = f.id';
     } else {
-        $join = 'JOIN {scriptingforum_discussions} fd ON fd.forum = f.id
-                 JOIN {scriptingforum_posts} ff ON ff.discussion = fd.id';
+        $join = 'JOIN {sforum_discussions} fd ON fd.forum = f.id
+                 JOIN {sforum_posts} ff ON ff.discussion = fd.id';
     }
 
     $sql = "SELECT f.*, cm.id AS cmid
-              FROM {scriptingforum} f
+              FROM {sforum} f
               JOIN {course_modules} cm ON cm.instance = f.id
               JOIN {modules} m ON m.id = cm.module
               JOIN (
                   SELECT f.id
-                    FROM {scriptingforum} f
+                    FROM {sforum} f
                     {$join}
                    WHERE ff.userid = :userid
                 GROUP BY f.id
                    ) j ON j.id = f.id
-             WHERE m.name = :scriptingforum
+             WHERE m.name = :sforum
                  {$coursewhere}";
 
-    $coursescriptingforums = $DB->get_records_sql($sql, $params, $limitfrom, $limitnum);
-    return $coursescriptingforums;
+    $coursesforums = $DB->get_records_sql($sql, $params, $limitfrom, $limitnum);
+    return $coursesforums;
 }
 
 /**
@@ -7546,7 +7546,7 @@ function scriptingforum_get_scriptingforums_user_posted_in($user, array $coursei
  * This method can be used to return all of the posts made by the requested user
  * within the given courses.
  * For each course the access of the current user and requested user is checked
- * and then for each post access to the post and scriptingforum is checked as well.
+ * and then for each post access to the post and sforum is checked as well.
  *
  * This function is safe to use with usercapabilities.
  *
@@ -7564,18 +7564,18 @@ function scriptingforum_get_scriptingforums_user_posted_in($user, array $coursei
  *                             that the current user can see.
  *               ->courses: An array of courses the current user can see that the
  *                          requested user has posted in.
- *               ->scriptingforums: An array of scriptingforums relating to the posts returned in the
+ *               ->sforums: An array of sforums relating to the posts returned in the
  *                         property below.
  *               ->posts: An array containing the posts to show for this request.
  */
-function scriptingforum_get_posts_by_user($user, array $courses,
+function sforum_get_posts_by_user($user, array $courses,
         $musthaveaccess = false, $discussionsonly = false, $limitfrom = 0, $limitnum = 50) {
     global $DB, $USER, $CFG;
 
     $return = new stdClass;
     $return->totalcount = 0;    // The total number of posts that the current user is able to view
     $return->courses = array(); // The courses the current user can access
-    $return->scriptingforums = array();  // The scriptingforums that the current user can access that contain posts
+    $return->sforums = array();  // The sforums that the current user can access that contain posts
     $return->posts = array();   // The posts to display
 
     // First up a small sanity check. If there are no courses to check we can
@@ -7616,7 +7616,7 @@ function scriptingforum_get_posts_by_user($user, array $courses,
             if (!is_viewing($coursecontext, $user) && !is_enrolled($coursecontext, $user)) {
                 // Need to have full access to a course to see the rest of own info
                 if ($musthaveaccess) {
-                    print_error('errorenrolmentrequired', 'scriptingforum');
+                    print_error('errorenrolmentrequired', 'sforum');
                 }
                 continue;
             }
@@ -7625,7 +7625,7 @@ function scriptingforum_get_posts_by_user($user, array $courses,
             // if they don't we immediately have a problem.
             if (!can_access_course($course)) {
                 if ($musthaveaccess) {
-                    print_error('errorenrolmentrequired', 'scriptingforum');
+                    print_error('errorenrolmentrequired', 'sforum');
                 }
                 continue;
             }
@@ -7634,7 +7634,7 @@ function scriptingforum_get_posts_by_user($user, array $courses,
             // if they don't we immediately have a problem.
             if (!can_access_course($course, $user) && !is_enrolled($coursecontext, $user)) {
                 if ($musthaveaccess) {
-                    print_error('notenrolled', 'scriptingforum');
+                    print_error('notenrolled', 'sforum');
                 }
                 continue;
             }
@@ -7643,7 +7643,7 @@ function scriptingforum_get_posts_by_user($user, array $courses,
             // we can meet in at least one course level group.
             // Note that we check if either the current user or the requested user have
             // the capability to access all groups. This is because with that capability
-            // a user in group A could post in the group B scriptingforum. Grrrr.
+            // a user in group A could post in the group B sforum. Grrrr.
             if (groups_get_course_groupmode($course) == SEPARATEGROUPS && $course->groupmodeforce
                     && !has_capability('moodle/site:accessallgroups', $coursecontext) &&
                     !has_capability('moodle/site:accessallgroups', $coursecontext, $user->id)) {
@@ -7677,7 +7677,7 @@ function scriptingforum_get_posts_by_user($user, array $courses,
         }
         // Woo hoo we got this far which means the current user can search this
         // this course for the requested user. Although this is only the course accessibility
-        // handling that is complete, the scriptingforum accessibility tests are yet to come.
+        // handling that is complete, the sforum accessibility tests are yet to come.
         $return->courses[$course->id] = $course;
     }
     // No longer beed $courses array - lose it not it may be big
@@ -7695,58 +7695,58 @@ function scriptingforum_get_posts_by_user($user, array $courses,
         }
     }
 
-    // Next step: Collect all of the scriptingforums that we will want to search.
+    // Next step: Collect all of the sforums that we will want to search.
     // It is important to note that this step isn't actually about searching, it is
-    // about determining which scriptingforums we can search by testing accessibility.
-    $scriptingforums = scriptingforum_get_scriptingforums_user_posted_in($user,
+    // about determining which sforums we can search by testing accessibility.
+    $sforums = sforum_get_sforums_user_posted_in($user,
             array_keys($return->courses), $discussionsonly);
     // Will be used to build the where conditions for the search
-    $scriptingforumsearchwhere = array();
+    $sforumsearchwhere = array();
     // Will be used to store the where condition params for the search
-    $scriptingforumsearchparams = array();
-    // Will record scriptingforums where the user can freely access everything
-    $scriptingforumsearchfullaccess = array();
+    $sforumsearchparams = array();
+    // Will record sforums where the user can freely access everything
+    $sforumsearchfullaccess = array();
     // DB caching friendly
     $now = round(time(), -2);
-    // For each course to search we want to find the scriptingforums the user has posted in
-    // and providing the current user can access the scriptingforum create a search condition
-    // for the scriptingforum to get the requested users posts.
+    // For each course to search we want to find the sforums the user has posted in
+    // and providing the current user can access the sforum create a search condition
+    // for the sforum to get the requested users posts.
     foreach ($return->courses as $course) {
-        // Now we need to get the scriptingforums
+        // Now we need to get the sforums
         $modinfo = get_fast_modinfo($course);
-        if (empty($modinfo->instances['scriptingforum'])) {
-            // hmmm, no scriptingforums? well at least its easy... skip!
+        if (empty($modinfo->instances['sforum'])) {
+            // hmmm, no sforums? well at least its easy... skip!
             continue;
         }
         // Iterate
-        foreach ($modinfo->get_instances_of('scriptingforum') as $scriptingforumid => $cm) {
-            if (!$cm->uservisible or !isset($scriptingforums[$scriptingforumid])) {
+        foreach ($modinfo->get_instances_of('sforum') as $sforumid => $cm) {
+            if (!$cm->uservisible or !isset($sforums[$sforumid])) {
                 continue;
             }
-            // Get the scriptingforum in question
-            $scriptingforum = $scriptingforums[$scriptingforumid];
+            // Get the sforum in question
+            $sforum = $sforums[$sforumid];
 
-            // This is needed for functionality later on in the scriptingforum code.
+            // This is needed for functionality later on in the sforum code.
             // It is converted to an object
             // because the cm_info is readonly from 2.6.
             // This is a dirty hack because some other parts of the
-            // code were expecting an writeable object. See {@link scriptingforum_print_post()}.
-            $scriptingforum->cm = new stdClass();
+            // code were expecting an writeable object. See {@link sforum_print_post()}.
+            $sforum->cm = new stdClass();
             foreach ($cm as $key => $value) {
-                $scriptingforum->cm->$key = $value;
+                $sforum->cm->$key = $value;
             }
 
-            // Check that either the current user can view the scriptingforum, or that the
+            // Check that either the current user can view the sforum, or that the
             // current user has capabilities over the requested user and the requested
             // user can view the discussion
-            if (!has_capability('mod/scriptingforum:viewdiscussion', $cm->context) &&
-                !($hascapsonuser && has_capability('mod/scriptingforum:viewdiscussion',
+            if (!has_capability('mod/sforum:viewdiscussion', $cm->context) &&
+                !($hascapsonuser && has_capability('mod/sforum:viewdiscussion',
                         $cm->context, $user->id))) {
                 continue;
             }
 
-            // This will contain scriptingforum specific where clauses
-            $scriptingforumsearchselect = array();
+            // This will contain sforum specific where clauses
+            $sforumsearchselect = array();
             if (!$iscurrentuser && !$hascapsonuser) {
                 // Make sure we check group access
                 if (groups_get_activity_groupmode($cm, $course) == SEPARATEGROUPS and
@@ -7754,78 +7754,78 @@ function scriptingforum_get_posts_by_user($user, array $courses,
                     $groups = $modinfo->get_groups($cm->groupingid);
                     $groups[] = -1;
                     list($groupid_sql, $groupid_params) = $DB->get_in_or_equal($groups,
-                            SQL_PARAMS_NAMED, 'grps'.$scriptingforumid.'_');
-                    $scriptingforumsearchparams = array_merge($scriptingforumsearchparams,
+                            SQL_PARAMS_NAMED, 'grps'.$sforumid.'_');
+                    $sforumsearchparams = array_merge($sforumsearchparams,
                             $groupid_params);
-                    $scriptingforumsearchselect[] = "d.groupid $groupid_sql";
+                    $sforumsearchselect[] = "d.groupid $groupid_sql";
                 }
 
                 // hidden timed discussions
-                if (!empty($CFG->scriptingforum_enabletimedposts) &&
-                        !has_capability('mod/scriptingforum:viewhiddentimedposts', $cm->context)) {
-                    $scriptingforumsearchselect[] = "(d.userid = :userid{$scriptingforumid} OR (d.timestart < :timestart{$scriptingforumid} AND (d.timeend = 0 OR d.timeend > :timeend{$scriptingforumid})))";
-                    $scriptingforumsearchparams['userid'.$scriptingforumid] = $user->id;
-                    $scriptingforumsearchparams['timestart'.$scriptingforumid] = $now;
-                    $scriptingforumsearchparams['timeend'.$scriptingforumid] = $now;
+                if (!empty($CFG->sforum_enabletimedposts) &&
+                        !has_capability('mod/sforum:viewhiddentimedposts', $cm->context)) {
+                    $sforumsearchselect[] = "(d.userid = :userid{$sforumid} OR (d.timestart < :timestart{$sforumid} AND (d.timeend = 0 OR d.timeend > :timeend{$sforumid})))";
+                    $sforumsearchparams['userid'.$sforumid] = $user->id;
+                    $sforumsearchparams['timestart'.$sforumid] = $now;
+                    $sforumsearchparams['timeend'.$sforumid] = $now;
                 }
 
                 // qanda access
-                if ($scriptingforum->type == 'qanda' &&
-                        !has_capability('mod/scriptingforum:viewqandawithoutposting', $cm->context)) {
-                    // We need to check whether the user has posted in the qanda scriptingforum.
-                    $discussionspostedin = scriptingforum_discussions_user_has_posted_in($scriptingforum->id, $user->id);
+                if ($sforum->type == 'qanda' &&
+                        !has_capability('mod/sforum:viewqandawithoutposting', $cm->context)) {
+                    // We need to check whether the user has posted in the qanda sforum.
+                    $discussionspostedin = sforum_discussions_user_has_posted_in($sforum->id, $user->id);
                     if (!empty($discussionspostedin)) {
-                        $scriptingforumonlydiscussions = array();  // Holds discussion ids for the discussions the user is allowed to see in this scriptingforum.
+                        $sforumonlydiscussions = array();  // Holds discussion ids for the discussions the user is allowed to see in this sforum.
                         foreach ($discussionspostedin as $d) {
-                            $scriptingforumonlydiscussions[] = $d->id;
+                            $sforumonlydiscussions[] = $d->id;
                         }
-                        list($discussionid_sql, $discussionid_params) = $DB->get_in_or_equal($scriptingforumonlydiscussions,
-                                SQL_PARAMS_NAMED, 'qanda'.$scriptingforumid.'_');
-                        $scriptingforumsearchparams = array_merge($scriptingforumsearchparams,
+                        list($discussionid_sql, $discussionid_params) = $DB->get_in_or_equal($sforumonlydiscussions,
+                                SQL_PARAMS_NAMED, 'qanda'.$sforumid.'_');
+                        $sforumsearchparams = array_merge($sforumsearchparams,
                                 $discussionid_params);
-                        $scriptingforumsearchselect[] = "(d.id $discussionid_sql OR p.parent = 0)";
+                        $sforumsearchselect[] = "(d.id $discussionid_sql OR p.parent = 0)";
                     } else {
-                        $scriptingforumsearchselect[] = "p.parent = 0";
+                        $sforumsearchselect[] = "p.parent = 0";
                     }
 
                 }
 
-                if (count($scriptingforumsearchselect) > 0) {
-                        $scriptingforumsearchwhere[] = "(d.forum = :scriptingforum{$scriptingforumid} AND ".
-                                implode(" AND ", $scriptingforumsearchselect).")";
-                    $scriptingforumsearchparams['scriptingforum'.$scriptingforumid] = $scriptingforumid;
+                if (count($sforumsearchselect) > 0) {
+                        $sforumsearchwhere[] = "(d.forum = :sforum{$sforumid} AND ".
+                                implode(" AND ", $sforumsearchselect).")";
+                    $sforumsearchparams['sforum'.$sforumid] = $sforumid;
                 } else {
-                    $scriptingforumsearchfullaccess[] = $scriptingforumid;
+                    $sforumsearchfullaccess[] = $sforumid;
                 }
             } else {
                 // The current user/parent can see all of their own posts
-                $scriptingforumsearchfullaccess[] = $scriptingforumid;
+                $sforumsearchfullaccess[] = $sforumid;
             }
         }
     }
 
-    // If we dont have any search conditions, and we don't have any scriptingforums where
+    // If we dont have any search conditions, and we don't have any sforums where
     // the user has full access then we just return the default.
-    if (empty($scriptingforumsearchwhere) && empty($scriptingforumsearchfullaccess)) {
+    if (empty($sforumsearchwhere) && empty($sforumsearchfullaccess)) {
         return $return;
     }
 
-    // Prepare a where condition for the full access scriptingforums.
-    if (count($scriptingforumsearchfullaccess) > 0) {
-        list($fullidsql, $fullidparams) = $DB->get_in_or_equal($scriptingforumsearchfullaccess,
+    // Prepare a where condition for the full access sforums.
+    if (count($sforumsearchfullaccess) > 0) {
+        list($fullidsql, $fullidparams) = $DB->get_in_or_equal($sforumsearchfullaccess,
                     SQL_PARAMS_NAMED, 'fula');
-        $scriptingforumsearchparams = array_merge($scriptingforumsearchparams, $fullidparams);
-        $scriptingforumsearchwhere[] = "(d.forum $fullidsql)";
+        $sforumsearchparams = array_merge($sforumsearchparams, $fullidparams);
+        $sforumsearchwhere[] = "(d.forum $fullidsql)";
     }
 
     // Prepare SQL to both count and search.
-    // We alias user.id to useridx because we scriptingforum_posts already
+    // We alias user.id to useridx because we sforum_posts already
     // has a userid field and not aliasing this would break
     // oracle and mssql.
     $userfields = user_picture::fields('u', null, 'useridx');
     $countsql = 'SELECT COUNT(*) ';
     $selectsql = 'SELECT p.*, d.forum, d.name AS discussionname, '.$userfields.' ';
-    $wheresql = implode(" OR ", $scriptingforumsearchwhere);
+    $wheresql = implode(" OR ", $sforumsearchwhere);
 
     if ($discussionsonly) {
         if ($wheresql == '') {
@@ -7835,28 +7835,28 @@ function scriptingforum_get_posts_by_user($user, array $courses,
         }
     }
 
-    $sql = "FROM {scriptingforum_posts} p
-            JOIN {scriptingforum_discussions} d ON d.id = p.discussion
+    $sql = "FROM {sforum_posts} p
+            JOIN {sforum_discussions} d ON d.id = p.discussion
             JOIN {user} u ON u.id = p.userid
            WHERE ($wheresql)
              AND p.userid = :userid ";
     $orderby = "ORDER BY p.modified DESC";
-    $scriptingforumsearchparams['userid'] = $user->id;
+    $sforumsearchparams['userid'] = $user->id;
 
     // Set the total number posts made by the requested user that the current user can see
     $return->totalcount = $DB->count_records_sql($countsql.$sql,
-            $scriptingforumsearchparams);
+            $sforumsearchparams);
     // Set the collection of posts that has been requested
     $return->posts = $DB->get_records_sql($selectsql.$sql.$orderby,
-            $scriptingforumsearchparams, $limitfrom, $limitnum);
+            $sforumsearchparams, $limitfrom, $limitnum);
 
-    // We need to build an array of scriptingforums for which posts will be displayed.
+    // We need to build an array of sforums for which posts will be displayed.
     // We do this here to save the caller needing to retrieve them themselves before
-    // printing these scriptingforums posts. Given we have the scriptingforums already there is
+    // printing these sforums posts. Given we have the sforums already there is
     // practically no overhead here.
     foreach ($return->posts as $post) {
         if (!array_key_exists($post->forum, $return->forums)) {
-            $return->scriptingforums[$post->forum] = $scriptingforums[$post->forum];
+            $return->sforums[$post->forum] = $sforums[$post->forum];
         }
     }
 
@@ -7864,80 +7864,80 @@ function scriptingforum_get_posts_by_user($user, array $courses,
 }
 
 /**
- * Set the per-scriptingforum maildigest option for the specified user.
+ * Set the per-sforum maildigest option for the specified user.
  *
- * @param stdClass $scriptingforum The scriptingforum to set the option for.
+ * @param stdClass $sforum The sforum to set the option for.
  * @param int $maildigest The maildigest option.
  * @param stdClass $user The user object. This defaults to the global $USER object.
  * @throws invalid_digest_setting thrown if an invalid maildigest option is provided.
  */
-function scriptingforum_set_user_maildigest($scriptingforum, $maildigest, $user = null) {
+function sforum_set_user_maildigest($sforum, $maildigest, $user = null) {
     global $DB, $USER;
 
-    if (is_number($scriptingforum)) {
-        $scriptingforum = $DB->get_record('scriptingforum',
-                    array('id' => $scriptingforum));
+    if (is_number($sforum)) {
+        $sforum = $DB->get_record('sforum',
+                    array('id' => $sforum));
     }
 
     if ($user === null) {
         $user = $USER;
     }
 
-    $course  = $DB->get_record('course', array('id' => $scriptingforum->course), '*', MUST_EXIST);
-    $cm      = get_coursemodule_from_instance('scriptingforum',
-            $scriptingforum->id, $course->id, false, MUST_EXIST);
+    $course  = $DB->get_record('course', array('id' => $sforum->course), '*', MUST_EXIST);
+    $cm      = get_coursemodule_from_instance('sforum',
+            $sforum->id, $course->id, false, MUST_EXIST);
     $context = context_module::instance($cm->id);
 
-    // User must be allowed to see this scriptingforum.
-    require_capability('mod/scriptingforum:viewdiscussion', $context, $user->id);
+    // User must be allowed to see this sforum.
+    require_capability('mod/sforum:viewdiscussion', $context, $user->id);
 
     // Validate the maildigest setting.
-    $digestoptions = scriptingforum_get_user_digest_options($user);
+    $digestoptions = sforum_get_user_digest_options($user);
 
     if (!isset($digestoptions[$maildigest])) {
-        throw new moodle_exception('invaliddigestsetting', 'mod_scriptingforum');
+        throw new moodle_exception('invaliddigestsetting', 'mod_sforum');
     }
 
-    // Attempt to retrieve any existing scriptingforum digest record.
-    $subscription = $DB->get_record('scriptingforum_digests', array(
+    // Attempt to retrieve any existing sforum digest record.
+    $subscription = $DB->get_record('sforum_digests', array(
         'userid' => $user->id,
-        'scriptingforum' => $scriptingforum->id,
+        'sforum' => $sforum->id,
     ));
 
     // Create or Update the existing maildigest setting.
     if ($subscription) {
         if ($maildigest == -1) {
-                $DB->delete_records('scriptingforum_digests',
-                        array('scriptingforum' => $scriptingforum->id, 'userid' => $user->id));
+                $DB->delete_records('sforum_digests',
+                        array('sforum' => $sforum->id, 'userid' => $user->id));
         } else if ($maildigest !== $subscription->maildigest) {
             // Only update the maildigest setting if it's changed.
             $subscription->maildigest = $maildigest;
-            $DB->update_record('scriptingforum_digests', $subscription);
+            $DB->update_record('sforum_digests', $subscription);
         }
     } else {
         if ($maildigest != -1) {
             // Only insert the maildigest setting if it's non-default.
             $subscription = new stdClass();
-            $subscription->scriptingforum = $scriptingforum->id;
+            $subscription->sforum = $sforum->id;
             $subscription->userid = $user->id;
             $subscription->maildigest = $maildigest;
-            $subscription->id = $DB->insert_record('scriptingforum_digests', $subscription);
+            $subscription->id = $DB->insert_record('sforum_digests', $subscription);
         }
     }
 }
 
 /**
  * Determine the maildigest setting for the specified user against the
- * specified scriptingforum.
+ * specified sforum.
  *
- * @param Array $digests An array of scriptingforums and user digest settings.
+ * @param Array $digests An array of sforums and user digest settings.
  * @param stdClass $user The user object containing the id and maildigest default.
- * @param int $scriptingforumid The ID of the scriptingforum to check.
- * @return int The calculated maildigest setting for this user and scriptingforum.
+ * @param int $sforumid The ID of the sforum to check.
+ * @return int The calculated maildigest setting for this user and sforum.
  */
-function scriptingforum_get_user_maildigest_bulk($digests, $user, $scriptingforumid) {
-    if (isset($digests[$scriptingforumid]) && isset($digests[$scriptingforumid][$user->id])) {
-        $maildigest = $digests[$scriptingforumid][$user->id];
+function sforum_get_user_maildigest_bulk($digests, $user, $sforumid) {
+    if (isset($digests[$sforumid]) && isset($digests[$sforumid][$user->id])) {
+        $maildigest = $digests[$sforumid][$user->id];
         if ($maildigest === -1) {
             $maildigest = $user->maildigest;
         }
@@ -7953,7 +7953,7 @@ function scriptingforum_get_user_maildigest_bulk($digests, $user, $scriptingforu
  * @param stdClass $user The user object. This defaults to the global $USER object.
  * @return array The mapping of values to digest options.
  */
-function scriptingforum_get_user_digest_options($user = null) {
+function sforum_get_user_digest_options($user = null) {
     global $USER;
 
     // Revert to the global user object.
@@ -7962,13 +7962,13 @@ function scriptingforum_get_user_digest_options($user = null) {
     }
 
     $digestoptions = array();
-    $digestoptions['0']  = get_string('emaildigestoffshort', 'mod_scriptingforum');
-    $digestoptions['1']  = get_string('emaildigestcompleteshort', 'mod_scriptingforum');
-    $digestoptions['2']  = get_string('emaildigestsubjectsshort', 'mod_scriptingforum');
+    $digestoptions['0']  = get_string('emaildigestoffshort', 'mod_sforum');
+    $digestoptions['1']  = get_string('emaildigestcompleteshort', 'mod_sforum');
+    $digestoptions['2']  = get_string('emaildigestsubjectsshort', 'mod_sforum');
 
     // We need to add the default digest option at the end - it relies on
     // the contents of the existing values.
-    $digestoptions['-1'] = get_string('emaildigestdefault', 'mod_scriptingforum',
+    $digestoptions['-1'] = get_string('emaildigestdefault', 'mod_sforum',
             $digestoptions[$user->maildigest]);
 
     // Resort the options to be in a sensible order.
@@ -7983,22 +7983,22 @@ function scriptingforum_get_user_digest_options($user = null) {
  * If a context of type context_module is specified, it is immediately
  * returned and not checked.
  *
- * @param int $scriptingforumid The ID of the scriptingforum
+ * @param int $sforumid The ID of the sforum
  * @param context_module $context The current context.
  * @return context_module The context determined
  */
-function scriptingforum_get_context($scriptingforumid, $context = null) {
+function sforum_get_context($sforumid, $context = null) {
     global $PAGE;
 
     if (!$context || !($context instanceof context_module)) {
-        // Find out scriptingforum context. First try to take current page context to save on DB query.
-       if ($PAGE->cm && $PAGE->cm->modname === 'scriptingforum' &&
-                    $PAGE->cm->instance == $scriptingforumid
+        // Find out sforum context. First try to take current page context to save on DB query.
+       if ($PAGE->cm && $PAGE->cm->modname === 'sforum' &&
+                    $PAGE->cm->instance == $sforumid
                  && $PAGE->context->contextlevel == CONTEXT_MODULE &&
                     $PAGE->context->instanceid == $PAGE->cm->id) {
             $context = $PAGE->context;
         } else {
-            $cm = get_coursemodule_from_instance('scriptingforum', $scriptingforumid);
+            $cm = get_coursemodule_from_instance('sforum', $sforumid);
             $context = \context_module::instance($cm->id);
         }
     }
@@ -8009,13 +8009,13 @@ function scriptingforum_get_context($scriptingforumid, $context = null) {
 /**
  * Mark the activity completed (if required) and trigger the course_module_viewed event.
  *
- * @param  stdClass $scriptingforum   scriptingforum object
+ * @param  stdClass $sforum   sforum object
  * @param  stdClass $course  course object
  * @param  stdClass $cm      course module object
  * @param  stdClass $context context object
  * @since Moodle 2.9
  */
-function scriptingforum_view($scriptingforum, $course, $cm, $context) {
+function sforum_view($sforum, $course, $cm, $context) {
 
     // Completion.
     $completion = new completion_info($course);
@@ -8025,13 +8025,13 @@ function scriptingforum_view($scriptingforum, $course, $cm, $context) {
 
     $params = array(
         'context' => $context,
-        'objectid' => $scriptingforum->id
+        'objectid' => $sforum->id
     );
 
-    $event = \mod_scriptingforum\event\course_module_viewed::create($params);
+    $event = \mod_sforum\event\course_module_viewed::create($params);
     $event->add_record_snapshot('course_modules', $cm);
     $event->add_record_snapshot('course', $course);
-    $event->add_record_snapshot('scriptingforum', $scriptingforum);
+    $event->add_record_snapshot('sforum', $sforum);
     $event->trigger();
 }
 
@@ -8039,19 +8039,19 @@ function scriptingforum_view($scriptingforum, $course, $cm, $context) {
  * Trigger the discussion viewed event
  *
  * @param  stdClass $modcontext module context object
- * @param  stdClass $scriptingforum scriptingforum object
+ * @param  stdClass $sforum sforum object
  * @param  stdClass $discussion discussion object
  * @since Moodle 2.9
  */
-function scriptingforum_discussion_view($modcontext, $scriptingforum, $discussion) {
+function sforum_discussion_view($modcontext, $sforum, $discussion) {
     $params = array(
         'context' => $modcontext,
         'objectid' => $discussion->id,
     );
 
-    $event = \mod_scriptingforum\event\discussion_viewed::create($params);
-    $event->add_record_snapshot('scriptingforum_discussions', $discussion);
-    $event->add_record_snapshot('scriptingforum', $scriptingforum);
+    $event = \mod_sforum\event\discussion_viewed::create($params);
+    $event->add_record_snapshot('sforum_discussions', $discussion);
+    $event->add_record_snapshot('sforum', $sforum);
     $event->trigger();
 }
 
@@ -8059,24 +8059,24 @@ function scriptingforum_discussion_view($modcontext, $scriptingforum, $discussio
  * Set the discussion to pinned and trigger the discussion pinned event
  *
  * @param  stdClass $modcontext module context object
- * @param  stdClass $scriptingforum      scriptingforum object
+ * @param  stdClass $sforum      sforum object
  * @param  stdClass $discussion discussion object
  * @since Moodle 3.1
  */
-function scriptingforum_discussion_pin($modcontext, $scriptingforum, $discussion) {
+function sforum_discussion_pin($modcontext, $sforum, $discussion) {
     global $DB;
 
-    $DB->set_field('scriptingforum_discussions', 'pinned',
+    $DB->set_field('sforum_discussions', 'pinned',
             SCRIPTING_FORUM_DISCUSSION_PINNED, array('id' => $discussion->id));
 
     $params = array(
         'context' => $modcontext,
         'objectid' => $discussion->id,
-        'other' => array('scriptingforumid' => $scriptingforum->id)
+        'other' => array('sforumid' => $sforum->id)
     );
 
-    $event = \mod_scriptingforum\event\discussion_pinned::create($params);
-    $event->add_record_snapshot('scriptingforum_discussions', $discussion);
+    $event = \mod_sforum\event\discussion_pinned::create($params);
+    $event->add_record_snapshot('sforum_discussions', $discussion);
     $event->trigger();
 }
 
@@ -8084,24 +8084,24 @@ function scriptingforum_discussion_pin($modcontext, $scriptingforum, $discussion
  * Set discussion to unpinned and trigger the discussion unpin event
  *
  * @param  stdClass $modcontext module context object
- * @param  stdClass $scriptingforum      scriptingforum object
+ * @param  stdClass $sforum      sforum object
  * @param  stdClass $discussion discussion object
  * @since Moodle 3.1
  */
-function scriptingforum_discussion_unpin($modcontext, $scriptingforum, $discussion) {
+function sforum_discussion_unpin($modcontext, $sforum, $discussion) {
     global $DB;
 
-    $DB->set_field('scriptingforum_discussions', 'pinned',
+    $DB->set_field('sforum_discussions', 'pinned',
             SCRIPTING_FORUM_DISCUSSION_UNPINNED, array('id' => $discussion->id));
 
     $params = array(
         'context' => $modcontext,
         'objectid' => $discussion->id,
-        'other' => array('scriptingforumid' => $scriptingforum->id)
+        'other' => array('sforumid' => $sforum->id)
     );
 
-    $event = \mod_scriptingforum\event\discussion_unpinned::create($params);
-    $event->add_record_snapshot('scriptingforum_discussions', $discussion);
+    $event = \mod_sforum\event\discussion_unpinned::create($params);
+    $event->add_record_snapshot('sforum_discussions', $discussion);
     $event->trigger();
 }
 
@@ -8115,30 +8115,30 @@ function scriptingforum_discussion_unpin($modcontext, $scriptingforum, $discussi
  *
  * @return bool
  */
-function mod_scriptingforum_myprofile_navigation(core_user\output\myprofile\tree $tree,
+function mod_sforum_myprofile_navigation(core_user\output\myprofile\tree $tree,
         $user, $iscurrentuser, $course) {
     if (isguestuser($user)) {
         // The guest user cannot post, so it is not possible to view any posts.
         // May as well just bail aggressively here.
         return false;
     }
-    $postsurl = new moodle_url('/mod/scriptingforum/user.php', array('id' => $user->id));
+    $postsurl = new moodle_url('/mod/sforum/user.php', array('id' => $user->id));
     if (!empty($course)) {
         $postsurl->param('course', $course->id);
     }
-    $string = get_string('scriptingforumposts', 'mod_scriptingforum');
+    $string = get_string('sforumposts', 'mod_sforum');
     $node = new core_user\output\myprofile\node('miscellaneous',
-            'scriptingforumposts', $string, null, $postsurl);
+            'sforumposts', $string, null, $postsurl);
     $tree->add_node($node);
 
-    $discussionssurl = new moodle_url('/mod/scriptingforum/user.php',
+    $discussionssurl = new moodle_url('/mod/sforum/user.php',
             array('id' => $user->id, 'mode' => 'discussions'));
     if (!empty($course)) {
         $discussionssurl->param('course', $course->id);
     }
-    $string = get_string('myprofileotherdis', 'mod_scriptingforum');
+    $string = get_string('myprofileotherdis', 'mod_sforum');
     $node = new core_user\output\myprofile\node('miscellaneous',
-            'scriptingforumdiscussions', $string, null,
+            'sforumdiscussions', $string, null,
         $discussionssurl);
     $tree->add_node($node);
 

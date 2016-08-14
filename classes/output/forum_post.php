@@ -17,13 +17,13 @@
 /**
  * Forum post renderable.
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2015 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scriptingforum\output;
+namespace mod_sforum\output;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -35,38 +35,38 @@ defined('MOODLE_INTERNAL') || die();
  *
  * @property boolean $viewfullnames Whether to override fullname()
  */
-class scriptingforum_post implements \renderable, \templatable {
+class sforum_post implements \renderable, \templatable {
 
     /**
-     * The course that the scriptingforum post is in.
+     * The course that the sforum post is in.
      *
      * @var object $course
      */
     protected $course = null;
 
     /**
-     * The course module for the scriptingforum.
+     * The course module for the sforum.
      *
      * @var object $cm
      */
     protected $cm = null;
 
     /**
-     * The scriptingforum that the post is in.
+     * The sforum that the post is in.
      *
-     * @var object $scriptingforum
+     * @var object $sforum
      */
-    protected $scriptingforum = null;
+    protected $sforum = null;
 
     /**
-     * The discussion that the scriptingforum post is in.
+     * The discussion that the sforum post is in.
      *
      * @var object $discussion
      */
     protected $discussion = null;
 
     /**
-     * The scriptingforum post being displayed.
+     * The sforum post being displayed.
      *
      * @var object $post
      */
@@ -80,7 +80,7 @@ class scriptingforum_post implements \renderable, \templatable {
     protected $canreply = false;
 
     /**
-     * Whether to override scriptingforum display when displaying usernames.
+     * Whether to override sforum display when displaying usernames.
      * @var boolean $viewfullnames
      */
     protected $viewfullnames = false;
@@ -109,21 +109,21 @@ class scriptingforum_post implements \renderable, \templatable {
     );
 
     /**
-     * Builds a renderable scriptingforum post
+     * Builds a renderable sforum post
      *
-     * @param object $course Course of the scriptingforum
-     * @param object $cm Course Module of the scriptingforum
-     * @param object $scriptingforum The scriptingforum of the post
+     * @param object $course Course of the sforum
+     * @param object $cm Course Module of the sforum
+     * @param object $sforum The sforum of the post
      * @param object $discussion Discussion thread in which the post appears
      * @param object $post The post
      * @param object $author Author of the post
      * @param object $recipient Recipient of the email
      * @param bool $canreply True if the user can reply to the post
      */
-    public function __construct($course, $cm, $scriptingforum, $discussion, $post, $author, $recipient, $canreply) {
+    public function __construct($course, $cm, $sforum, $discussion, $post, $author, $recipient, $canreply) {
         $this->course = $course;
         $this->cm = $cm;
-        $this->scriptingforum = $scriptingforum;
+        $this->sforum = $sforum;
         $this->discussion = $discussion;
         $this->post = $post;
         $this->author = $author;
@@ -134,7 +134,7 @@ class scriptingforum_post implements \renderable, \templatable {
     /**
      * Export this data so it can be used as the context for a mustache template.
      *
-     * @param \mod_scriptingforum_renderer $renderer The render to be used for formatting the message and attachments
+     * @param \mod_sforum_renderer $renderer The render to be used for formatting the message and attachments
      * @param bool $plaintext Whethe the target is a plaintext target
      * @return stdClass Data ready for use in a mustache template
      */
@@ -149,15 +149,15 @@ class scriptingforum_post implements \renderable, \templatable {
     /**
      * Export this data so it can be used as the context for a mustache template.
      *
-     * @param \mod_scriptingforum_renderer $renderer The render to be used for formatting the message and attachments
+     * @param \mod_sforum_renderer $renderer The render to be used for formatting the message and attachments
      * @return stdClass Data ready for use in a mustache template
      */
-    protected function export_for_template_text(\mod_scriptingforum_renderer $renderer) {
+    protected function export_for_template_text(\mod_sforum_renderer $renderer) {
         return array(
             'id'                            => html_entity_decode($this->post->id),
             'coursename'                    => html_entity_decode($this->get_coursename()),
             'courselink'                    => html_entity_decode($this->get_courselink()),
-            'scriptingforumname'                     => html_entity_decode($this->get_scriptingforumname()),
+            'sforumname'                     => html_entity_decode($this->get_sforumname()),
             'showdiscussionname'            => html_entity_decode($this->get_showdiscussionname()),
             'discussionname'                => html_entity_decode($this->get_discussionname()),
             'subject'                       => html_entity_decode($this->get_subject()),
@@ -173,11 +173,11 @@ class scriptingforum_post implements \renderable, \templatable {
             'firstpost'                     => $this->get_is_firstpost(),
             'replylink'                     => $this->get_replylink(),
             'unsubscribediscussionlink'     => $this->get_unsubscribediscussionlink(),
-            'unsubscribescriptingforumlink'          => $this->get_unsubscribescriptingforumlink(),
+            'unsubscribesforumlink'          => $this->get_unsubscribesforumlink(),
             'parentpostlink'                => $this->get_parentpostlink(),
 
-            'scriptingforumindexlink'                => $this->get_scriptingforumindexlink(),
-            'scriptingforumviewlink'                 => $this->get_scriptingforumviewlink(),
+            'sforumindexlink'                => $this->get_sforumindexlink(),
+            'sforumviewlink'                 => $this->get_sforumviewlink(),
             'discussionlink'                => $this->get_discussionlink(),
 
             'authorlink'                    => $this->get_authorlink(),
@@ -190,15 +190,15 @@ class scriptingforum_post implements \renderable, \templatable {
     /**
      * Export this data so it can be used as the context for a mustache template.
      *
-     * @param \mod_scriptingforum_renderer $renderer The render to be used for formatting the message and attachments
+     * @param \mod_sforum_renderer $renderer The render to be used for formatting the message and attachments
      * @return stdClass Data ready for use in a mustache template
      */
-    protected function export_for_template_html(\mod_scriptingforum_renderer $renderer) {
+    protected function export_for_template_html(\mod_sforum_renderer $renderer) {
         return array(
             'id'                            => $this->post->id,
             'coursename'                    => $this->get_coursename(),
             'courselink'                    => $this->get_courselink(),
-            'scriptingforumname'                     => $this->get_scriptingforumname(),
+            'sforumname'                     => $this->get_sforumname(),
             'showdiscussionname'            => $this->get_showdiscussionname(),
             'discussionname'                => $this->get_discussionname(),
             'subject'                       => $this->get_subject(),
@@ -214,11 +214,11 @@ class scriptingforum_post implements \renderable, \templatable {
             'firstpost'                     => $this->get_is_firstpost(),
             'replylink'                     => $this->get_replylink(),
             'unsubscribediscussionlink'     => $this->get_unsubscribediscussionlink(),
-            'unsubscribescriptingforumlink'          => $this->get_unsubscribescriptingforumlink(),
+            'unsubscribesforumlink'          => $this->get_unsubscribesforumlink(),
             'parentpostlink'                => $this->get_parentpostlink(),
 
-            'scriptingforumindexlink'                => $this->get_scriptingforumindexlink(),
-            'scriptingforumviewlink'                 => $this->get_scriptingforumviewlink(),
+            'sforumindexlink'                => $this->get_sforumindexlink(),
+            'sforumviewlink'                 => $this->get_sforumviewlink(),
             'discussionlink'                => $this->get_discussionlink(),
 
             'authorlink'                    => $this->get_authorlink(),
@@ -276,14 +276,14 @@ class scriptingforum_post implements \renderable, \templatable {
     }
 
     /**
-     * Get the link to the scriptingforum index for this course.
+     * Get the link to the sforum index for this course.
      *
      * @return string
      */
-    public function get_scriptingforumindexlink() {
+    public function get_sforumindexlink() {
         $link = new \moodle_url(
             // Posts are viewed on the topic.
-            '/mod/scriptingforum/index.php', array(
+            '/mod/sforum/index.php', array(
                 'id'    => $this->course->id,
             )
         );
@@ -292,15 +292,15 @@ class scriptingforum_post implements \renderable, \templatable {
     }
 
     /**
-     * Get the link to the view page for this scriptingforum.
+     * Get the link to the view page for this sforum.
      *
      * @return string
      */
-    public function get_scriptingforumviewlink() {
+    public function get_sforumviewlink() {
         $link = new \moodle_url(
             // Posts are viewed on the topic.
-            '/mod/scriptingforum/view.php', array(
-                'f' => $this->scriptingforum->id,
+            '/mod/sforum/view.php', array(
+                'f' => $this->sforum->id,
             )
         );
 
@@ -315,7 +315,7 @@ class scriptingforum_post implements \renderable, \templatable {
     protected function _get_discussionlink() {
         return new \moodle_url(
             // Posts are viewed on the topic.
-            '/mod/scriptingforum/discuss.php', array(
+            '/mod/sforum/discuss.php', array(
                 // Within a discussion.
                 'd' => $this->discussion->id,
             )
@@ -374,14 +374,14 @@ class scriptingforum_post implements \renderable, \templatable {
     }
 
     /**
-     * Get the link to unsubscribe from the scriptingforum.
+     * Get the link to unsubscribe from the sforum.
      *
      * @return string
      */
-    public function get_unsubscribescriptingforumlink() {
+    public function get_unsubscribesforumlink() {
         $link = new \moodle_url(
-            '/mod/scriptingforum/subscribe.php', array(
-                'id' => $this->scriptingforum->id,
+            '/mod/sforum/subscribe.php', array(
+                'id' => $this->sforum->id,
             )
         );
 
@@ -395,8 +395,8 @@ class scriptingforum_post implements \renderable, \templatable {
      */
     public function get_unsubscribediscussionlink() {
         $link = new \moodle_url(
-            '/mod/scriptingforum/subscribe.php', array(
-                'id'  => $this->scriptingforum->id,
+            '/mod/sforum/subscribe.php', array(
+                'id'  => $this->sforum->id,
                 'd'   => $this->discussion->id,
             )
         );
@@ -411,7 +411,7 @@ class scriptingforum_post implements \renderable, \templatable {
      */
     public function get_replylink() {
         return new \moodle_url(
-            '/mod/scriptingforum/post.php', array(
+            '/mod/sforum/post.php', array(
                 'reply' => $this->post->id,
             )
         );
@@ -436,7 +436,7 @@ class scriptingforum_post implements \renderable, \templatable {
     }
 
     /**
-     * ID number of the course that the scriptingforum is in.
+     * ID number of the course that the sforum is in.
      *
      * @return string
      */
@@ -445,7 +445,7 @@ class scriptingforum_post implements \renderable, \templatable {
     }
 
     /**
-     * The full name of the course that the scriptingforum is in.
+     * The full name of the course that the sforum is in.
      *
      * @return string
      */
@@ -456,7 +456,7 @@ class scriptingforum_post implements \renderable, \templatable {
     }
 
     /**
-     * The name of the course that the scriptingforum is in.
+     * The name of the course that the sforum is in.
      *
      * @return string
      */
@@ -467,12 +467,12 @@ class scriptingforum_post implements \renderable, \templatable {
     }
 
     /**
-     * The name of the scriptingforum.
+     * The name of the sforum.
      *
      * @return string
      */
-    public function get_scriptingforumname() {
-        return format_string($this->scriptingforum->name, true);
+    public function get_sforumname() {
+        return format_string($this->sforum->name, true);
     }
 
     /**
@@ -486,13 +486,13 @@ class scriptingforum_post implements \renderable, \templatable {
 
     /**
      * Whether to show the discussion name.
-     * If the scriptingforum name matches the discussion name, the discussion name
+     * If the sforum name matches the discussion name, the discussion name
      * is not typically displayed.
      *
      * @return boolean
      */
     public function get_showdiscussionname() {
-        return ($this->scriptingforum->name !== $this->discussion->name);
+        return ($this->sforum->name !== $this->discussion->name);
     }
 
     /**
@@ -528,7 +528,7 @@ class scriptingforum_post implements \renderable, \templatable {
         global $CFG;
 
         $postmodified = $this->post->modified;
-        if (!empty($CFG->scriptingforum_enabletimedposts) && ($this->discussion->timestart > $postmodified)) {
+        if (!empty($CFG->sforum_enabletimedposts) && ($this->discussion->timestart > $postmodified)) {
             $postmodified = $this->discussion->timestart;
         }
 
@@ -553,7 +553,7 @@ class scriptingforum_post implements \renderable, \templatable {
      */
     public function get_group_picture() {
         if (isset($this->userfrom->groups)) {
-            $groups = $this->userfrom->groups[$this->scriptingforum->id];
+            $groups = $this->userfrom->groups[$this->sforum->id];
         } else {
             $groups = groups_get_all_groups($this->course->id, $this->author->id, $this->cm->groupingid);
         }

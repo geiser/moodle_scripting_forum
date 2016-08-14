@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * A type of scriptingforum.
+ * A type of sforum.
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Andrew Robert Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -28,16 +28,16 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot.'/user/selector/lib.php');
 
 /**
- * A user selector control for potential subscribers to the selected scriptingforum
- * @package   mod_scriptingforum
+ * A user selector control for potential subscribers to the selected sforum
+ * @package   mod_sforum
  * @copyright 2016 Geiser Chalco
  * @copyright 2009 Sam Hemelryk
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class mod_scriptingforum_potential_subscriber_selector extends
-        mod_scriptingforum_subscriber_selector_base {
+class mod_sforum_potential_subscriber_selector extends
+        mod_sforum_subscriber_selector_base {
     /**
-     * If set to true EVERYONE in this course is force subscribed to this scriptingforum
+     * If set to true EVERYONE in this course is force subscribed to this sforum
      * @var bool
      */
     protected $forcesubscribed = false;
@@ -122,7 +122,7 @@ class mod_scriptingforum_potential_subscriber_selector extends
         $availableusers = $DB->get_records_sql($fields .
                 $sql . $order, array_merge($params, $sortparams));
 
-        $cm = get_coursemodule_from_instance('scriptingforum', $this->scriptingforumid);
+        $cm = get_coursemodule_from_instance('sforum', $this->sforumid);
         $modinfo = get_fast_modinfo($cm->course);
         $info = new \core_availability\info_module($modinfo->get_cm($cm->id));
         $availableusers = $info->filter_user_list($availableusers);
@@ -140,9 +140,9 @@ class mod_scriptingforum_potential_subscriber_selector extends
         }
 
         if ($this->forcesubscribed) {
-            return array(get_string("existingsubscribers", 'scriptingforum') => $availableusers);
+            return array(get_string("existingsubscribers", 'sforum') => $availableusers);
         } else {
-            return array(get_string("potentialsubscribers", 'scriptingforum') => $availableusers);
+            return array(get_string("potentialsubscribers", 'sforum') => $availableusers);
         }
     }
 
@@ -155,7 +155,7 @@ class mod_scriptingforum_potential_subscriber_selector extends
     }
 
     /**
-     * Sets this scriptingforum as force subscribed or not
+     * Sets this sforum as force subscribed or not
      */
     public function set_force_subscribed($setting=true) {
         $this->forcesubscribed = true;

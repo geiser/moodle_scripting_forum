@@ -16,28 +16,28 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scriptingforum
+ * @package   mod_sforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-require_once($CFG->dirroot . '/mod/scriptingforum/lib.php');
+require_once($CFG->dirroot . '/mod/sforum/lib.php');
 require_once($CFG->libdir . '/portfolio/caller.php');
 
 /**
- * @package   mod_scriptingforum
+ * @package   mod_sforum
  * @copyright 2016 Geiser Chalco {@link http://github.com/geiser}
  * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
+class sforum_portfolio_caller extends portfolio_module_caller_base {
 
     protected $postid;
     protected $discussionid;
     protected $attachment;
 
     private $post;
-    private $scriptingforum;
+    private $sforum;
     private $discussion;
     private $posts;
     private $keyedfiles; // just using multifiles isn't enough if we're exporting a full thread
@@ -58,7 +58,7 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
     function __construct($callbackargs) {
         parent::__construct($callbackargs);
         if (!$this->postid && !$this->discussionid) {
-            throw new portfolio_caller_exception('mustprovidediscussionorpost', 'scriptingforum');
+            throw new portfolio_caller_exception('mustprovidediscussionorpost', 'sforum');
         }
     }
     /**
@@ -68,8 +68,8 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
         global $DB;
 
         if ($this->postid) {
-            if (!$this->post = $DB->get_record('scriptingforum_posts', array('id' => $this->postid))) {
-                throw new portfolio_caller_exception('invalidpostid', 'scriptingforum');
+            if (!$this->post = $DB->get_record('sforum_posts', array('id' => $this->postid))) {
+                throw new portfolio_caller_exception('invalidpostid', 'sforum');
             }
         }
 
@@ -79,19 +79,19 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
         } else if ($this->post) {
             $dbparams = array('id' => $this->post->discussion);
         } else {
-            throw new portfolio_caller_exception('mustprovidediscussionorpost', 'scriptingforum');
+            throw new portfolio_caller_exception('mustprovidediscussionorpost', 'sforum');
         }
 
-        if (!$this->discussion = $DB->get_record('scriptingforum_discussions', $dbparams)) {
-            throw new portfolio_caller_exception('invaliddiscussionid', 'scriptingforum');
+        if (!$this->discussion = $DB->get_record('sforum_discussions', $dbparams)) {
+            throw new portfolio_caller_exception('invaliddiscussionid', 'sforum');
         }
 
-        if (!$this->scriptingforum = $DB->get_record('scriptingforum',
+        if (!$this->sforum = $DB->get_record('sforum',
                 array('id' => $this->discussion->forum))) {
-            throw new portfolio_caller_exception('invalidscriptingforumid', 'scriptingforum');
+            throw new portfolio_caller_exception('invalidsforumid', 'sforum');
         }
 
-        if (!$this->cm = get_coursemodule_from_instance('scriptingforum', $this->scriptingforum->id)) {
+        if (!$this->cm = get_coursemodule_from_instance('sforum', $this->sforum->id)) {
             throw new portfolio_caller_exception('invalidcoursemodule');
         }
 
@@ -102,9 +102,9 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
                 $this->set_file_and_format_data($this->attachment);
             } else {
                 $attach = $fs->get_area_files($this->modcontext->id,
-                            'mod_scriptingforum', 'attachment', $this->post->id, 'timemodified', false);
+                            'mod_sforum', 'attachment', $this->post->id, 'timemodified', false);
                 $embed  = $fs->get_area_files($this->modcontext->id,
-                        'mod_scriptingforum', 'post', $this->post->id, 'timemodified', false);
+                        'mod_sforum', 'post', $this->post->id, 'timemodified', false);
                 $files = array_merge($attach, $embed);
                 $this->set_file_and_format_data($files);
             }
@@ -115,13 +115,13 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
             }
         } else { // whole thread
             $fs = get_file_storage();
-            $this->posts = scriptingforum_get_all_discussion_posts($this->discussion->id, 'p.created ASC');
+            $this->posts = sforum_get_all_discussion_posts($this->discussion->id, 'p.created ASC');
             $this->multifiles = array();
             foreach ($this->posts as $post) {
                 $attach = $fs->get_area_files($this->modcontext->id,
-                            'mod_scriptingforum', 'attachment', $post->id, 'timemodified', false);
+                            'mod_sforum', 'attachment', $post->id, 'timemodified', false);
                 $embed  = $fs->get_area_files($this->modcontext->id,
-                        'mod_scriptingforum', 'post', $post->id, 'timemodified', false);
+                        'mod_sforum', 'post', $post->id, 'timemodified', false);
                 $files = array_merge($attach, $embed);
                 if ($files) {
                     $this->keyedfiles[$post->id] = $files;
@@ -151,7 +151,7 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
      */
     function get_return_url() {
         global $CFG;
-        return $CFG->wwwroot . '/mod/scriptingforum/discuss.php?d=' . $this->discussion->id;
+        return $CFG->wwwroot . '/mod/sforum/discuss.php?d=' . $this->discussion->id;
     }
     /**
      * @global object
@@ -163,7 +163,7 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
         $navlinks = array();
         $navlinks[] = array(
             'name' => format_string($this->discussion->name),
-            'link' => $CFG->wwwroot . '/mod/scriptingforum/discuss.php?d=' . $this->discussion->id,
+            'link' => $CFG->wwwroot . '/mod/sforum/discuss.php?d=' . $this->discussion->id,
             'type' => 'title'
         );
         return array($navlinks, $this->cm);
@@ -213,8 +213,8 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
             $manifest = ($this->exporter->get('format') instanceof PORTFOLIO_FORMAT_RICH);
             if ($writingleap) {
                 // add on an extra 'selection' entry
-                $selection = new portfolio_format_leap2a_entry('scriptingforumdiscussion' . $this->discussionid,
-                    get_string('discussion', 'scriptingforum') . ': ' . $this->discussion->name, 'selection');
+                $selection = new portfolio_format_leap2a_entry('sforumdiscussion' . $this->discussionid,
+                    get_string('discussion', 'sforum') . ': ' . $this->discussion->name, 'selection');
                 $leapwriter->add_entry($selection);
                 $leapwriter->make_selection($selection, $ids, 'Grouping');
                 $content = $leapwriter->to_xml();
@@ -241,7 +241,7 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
 
     /**
      * helper function to add a leap2a entry element
-     * that corresponds to a single scriptingforum post,
+     * that corresponds to a single sforum post,
      * including any attachments
      *
      * the entry/ies are added directly to the leapwriter, which is passed by ref
@@ -253,7 +253,7 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
      * @return int id of new entry
      */
     private function prepare_post_leap2a(portfolio_format_leap2a_writer $leapwriter, $post, $posthtml) {
-        $entry = new portfolio_format_leap2a_entry('scriptingforumpost' . $post->id,
+        $entry = new portfolio_format_leap2a_entry('sforumpost' . $post->id,
                     $post->subject, 'resource', $posthtml);
         $entry->published = $post->created;
         $entry->updated = $post->modified;
@@ -261,7 +261,7 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
         if (is_array($this->keyedfiles) && array_key_exists($post->id, $this->keyedfiles) &&
                is_array($this->keyedfiles[$post->id])) {
             $leapwriter->link_files($entry, $this->keyedfiles[$post->id],
-                         'scriptingforumpost' . $post->id . 'attachment');
+                         'sforumpost' . $post->id . 'attachment');
         }
         $entry->add_category('web', 'resource_type');
         $leapwriter->add_entry($entry);
@@ -288,7 +288,7 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
         }
     }
     /**
-     * this is a very cut down version of what is in scriptingforum_make_mail_post
+     * this is a very cut down version of what is in sforum_make_mail_post
      *
      * @global object
      * @param int $post
@@ -312,9 +312,9 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
         $formattedtext = format_text($post->message,
                 $post->messageformat, $options, $this->get('course')->id);
         $formattedtext = portfolio_rewrite_pluginfile_urls($formattedtext,
-                $this->modcontext->id, 'mod_scriptingforum', 'post', $post->id, $format);
+                $this->modcontext->id, 'mod_sforum', 'post', $post->id, $format);
 
-        $output = '<table border="0" cellpadding="3" cellspacing="0" class="scriptingforumpost">';
+        $output = '<table border="0" cellpadding="3" cellspacing="0" class="sforumpost">';
 
         $output .= '<tr class="header"><td>';// can't print picture.
         $output .= '</td>';
@@ -330,7 +330,7 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
         $by = new stdClass();
         $by->name = $fullname;
         $by->date = userdate($post->modified, '', core_date::get_user_timezone($this->user));
-        $output .= '<div class="author">'.get_string('bynameondate', 'scriptingforum', $by).'</div>';
+        $output .= '<div class="author">'.get_string('bynameondate', 'sforum', $by).'</div>';
 
         $output .= '</td></tr>';
 
@@ -344,7 +344,7 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
                 array_key_exists($post->id, $this->keyedfiles) &&
                 is_array($this->keyedfiles[$post->id]) && count($this->keyedfiles[$post->id]) > 0) {
             $output .= '<div class="attachments">';
-            $output .= '<br /><b>' .  get_string('attachments', 'scriptingforum') . '</b>:<br /><br />';
+            $output .= '<br /><b>' .  get_string('attachments', 'sforum') . '</b>:<br /><br />';
             foreach ($this->keyedfiles[$post->id] as $file) {
                 $output .= $format->file_output($file)  . '<br/ >';
             }
@@ -392,17 +392,17 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
     function check_permissions() {
         $context = context_module::instance($this->cm->id);
         if ($this->post) {
-            return (has_capability('mod/scriptingforum:exportpost', $context)
+            return (has_capability('mod/sforum:exportpost', $context)
                 || ($this->post->userid == $this->user->id
-                    && has_capability('mod/scriptingforum:exportownpost', $context)));
+                    && has_capability('mod/sforum:exportownpost', $context)));
         }
-        return has_capability('mod/scriptingforum:exportdiscussion', $context);
+        return has_capability('mod/sforum:exportdiscussion', $context);
     }
     /**
      * @return string
      */
     public static function display_name() {
-        return get_string('modulename', 'scriptingforum');
+        return get_string('modulename', 'sforum');
     }
 
     public static function base_supported_formats() {
@@ -419,7 +419,7 @@ class scriptingforum_portfolio_caller extends portfolio_module_caller_base {
  * @copyright 2012 David Mudrak <david@moodle.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class scriptingforum_file_info_container extends file_info {
+class sforum_file_info_container extends file_info {
     /** @var file_browser */
     protected $browser;
     /** @var stdClass */
@@ -450,7 +450,7 @@ class scriptingforum_file_info_container extends file_info {
         $this->browser = $browser;
         $this->course = $course;
         $this->cm = $cm;
-        $this->component = 'mod_scriptingforum';
+        $this->component = 'mod_sforum';
         $this->context = $context;
         $this->areas = $areas;
         $this->filearea = $filearea;
@@ -540,7 +540,7 @@ class scriptingforum_file_info_container extends file_info {
         $children = array();
         foreach ($rs as $record) {
             if (($child = $this->browser->get_file_info($this->context,
-                        'mod_scriptingforum', $this->filearea, $record->itemid))
+                        'mod_sforum', $this->filearea, $record->itemid))
                     && ($returnemptyfolders || $child->count_non_empty_children($extensions))) {
                 $children[] = $child;
             }

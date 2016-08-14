@@ -17,12 +17,13 @@
 /**
  * Forum post renderable for e-mail.
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
+ * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2015 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scriptingforum\output;
+namespace mod_sforum\output;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -32,6 +33,6 @@ defined('MOODLE_INTERNAL') || die();
  * @copyright  2015 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class scriptingforum_post_email extends scriptingforum_post {
+class sforum_post_email extends sforum_post {
 }
 

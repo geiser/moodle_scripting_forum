@@ -16,25 +16,25 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Subscribe to or unsubscribe from a scripting_forum or
- * manage scripting_forum subscription mode
+ * Subscribe to or unsubscribe from a sforum or
+ * manage sforum subscription mode
  *
  * This script can be used by either individual users to subscribe to or
- * unsubscribe from a scripting_forum (no 'mode' param provided),
- * or by scripting_forum managers to control the subscription mode (by 'mode' param).
+ * unsubscribe from a sforum (no 'mode' param provided),
+ * or by sforum managers to control the subscription mode (by 'mode' param).
  * This script can be called from a link in email so the sesskey is not
  * required parameter. However, if sesskey is missing, the user has to go
  * through a confirmation page that redirects the user back with the
  * sesskey.
  *
- * @package   mod_scripting_forum
+ * @package   mod_sforum
  * @copyright  2016 Geiser Chalco  {@link http://github.com/geiser}
  * @copyright  1999 onwards Martin Dougiamas  {@link http://moodle.com}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
-require_once($CFG->dirroot.'/mod/scripting_forum/lib.php');
+require_once($CFG->dirroot.'/mod/sforum/lib.php');
 
 $id             = required_param('id', PARAM_INT);         // Setting subscription on.
 $mode           = optional_param('mode', null, PARAM_INT); // The subscription mode.
@@ -43,7 +43,7 @@ $discussionid   = optional_param('d', null, PARAM_INT);    // The discussionid t
 $sesskey        = optional_param('sesskey', null, PARAM_RAW);
 $returnurl      = optional_param('returnurl', null, PARAM_RAW);
 
-$url = new moodle_url('/mod/scripting_forum/subscribe.php', array('id'=>$id));
+$url = new moodle_url('/mod/sforum/subscribe.php', array('id'=>$id));
 if (!is_null($mode)) {
     $url->param('mode', $mode);
 }
@@ -55,23 +55,23 @@ if (!is_null($sesskey)) {
 }
 if (!is_null($discussionid)) {
     $url->param('d', $discussionid);
-    if (!$discussion = $DB->get_record('scripting_forum_discussions',
-            array('id' => $discussionid, 'scripting_forum' => $id))) {
-        print_error('invaliddiscussionid', 'scripting_forum');
+    if (!$discussion = $DB->get_record('sforum_discussions',
+            array('id' => $discussionid, 'sforum' => $id))) {
+        print_error('invaliddiscussionid', 'sforum');
     }
 }
 $PAGE->set_url($url);
 
-$scripting_forum = $DB->get_record('scripting_forum', array('id' => $id), '*', MUST_EXIST);
-$course  = $DB->get_record('course', array('id' => $scripting_forum->course), '*', MUST_EXIST);
-$cm      = get_coursemodule_from_instance('scripting_forum',
-           $scripting_forum->id, $course->id, false, MUST_EXIST);
+$sforum = $DB->get_record('sforum', array('id' => $id), '*', MUST_EXIST);
+$course  = $DB->get_record('course', array('id' => $sforum->course), '*', MUST_EXIST);
+$cm      = get_coursemodule_from_instance('sforum',
+           $sforum->id, $course->id, false, MUST_EXIST);
 $context = context_module::instance($cm->id);
 
 if ($user) {
     require_sesskey();
-    if (!has_capability('mod/scripting_forum:managesubscriptions', $context)) {
-        print_error('nopermissiontosubscribe', 'scripting_forum');
+    if (!has_capability('mod/sforum:managesubscriptions', $context)) {
+        print_error('nopermissiontosubscribe', 'sforum');
     }
     $user = $DB->get_record('user', array('id' => $user), '*', MUST_EXIST);
 } else {
@@ -84,13 +84,13 @@ if (isset($cm->groupmode) && empty($course->groupmodeforce)) {
     $groupmode = $course->groupmode;
 }
 
-$issubscribed = \mod_scripting_forum\subscriptions::is_subscribed($user->id,
-        $scripting_forum, $discussionid, $cm);
+$issubscribed = \mod_sforum\subscriptions::is_subscribed($user->id,
+        $sforum, $discussionid, $cm);
 
 // For a user to subscribe when a groupmode is set, they must have access to at least one group.
 if ($groupmode && !$issubscribed && !has_capability('moodle/site:accessallgroups', $context)) {
     if (!groups_get_all_groups($course->id, $USER->id)) {
-        print_error('cannotsubscribe', 'scripting_forum');
+        print_error('cannotsubscribe', 'sforum');
     }
 }
 
@@ -101,16 +101,16 @@ if (is_null($mode) and !is_enrolled($context, $USER, '', true)) {   // Guests an
     $PAGE->set_heading($course->fullname);
     if (isguestuser()) {
         echo $OUTPUT->header();
-        echo $OUTPUT->confirm(get_string('subscribeenrolledonly', 'scripting_forum').
+        echo $OUTPUT->confirm(get_string('subscribeenrolledonly', 'sforum').
                 '<br /><br />'.get_string('liketologin'), get_login_url(),
-                new moodle_url('/mod/scripting_forum/view.php', array('f'=>$id)));
+                new moodle_url('/mod/sforum/view.php', array('f'=>$id)));
         echo $OUTPUT->footer();
         exit;
     } else {
         // There should not be any links leading to this place, just redirect.
         redirect(
-                new moodle_url('/mod/scripting_forum/view.php', array('f'=>$id)),
-                get_string('subscribeenrolledonly', 'scripting_forum'),
+                new moodle_url('/mod/sforum/view.php', array('f'=>$id)),
+                get_string('subscribeenrolledonly', 'sforum'),
                 null,
                 \core\output\notification::NOTIFY_ERROR
             );
@@ -126,61 +126,61 @@ if ($returnurl) {
 }
 
 if (!is_null($mode) and
-    has_capability('mod/scripting_forum:managesubscriptions', $context)) {
+    has_capability('mod/sforum:managesubscriptions', $context)) {
     require_sesskey();
     switch ($mode) {
         case FORUM_CHOOSESUBSCRIBE : // 0
-            \mod_scripting_forum\subscriptions::set_subscription_mode($scripting_forum->id, FORUM_CHOOSESUBSCRIBE);
+            \mod_sforum\subscriptions::set_subscription_mode($sforum->id, FORUM_CHOOSESUBSCRIBE);
             redirect(
                     $returnto,
-                    get_string('everyonecannowchoose', 'scripting_forum'),
+                    get_string('everyonecannowchoose', 'sforum'),
                     null,
                     \core\output\notification::NOTIFY_SUCCESS
                 );
             break;
         case FORUM_FORCESUBSCRIBE : // 1
-            \mod_scripting_forum\subscriptions::set_subscription_mode($scripting_forum->id, FORUM_FORCESUBSCRIBE);
+            \mod_sforum\subscriptions::set_subscription_mode($sforum->id, FORUM_FORCESUBSCRIBE);
             redirect(
                     $returnto,
-                    get_string('everyoneisnowsubscribed', 'scripting_forum'),
+                    get_string('everyoneisnowsubscribed', 'sforum'),
                     null,
                     \core\output\notification::NOTIFY_SUCCESS
                 );
             break;
         case FORUM_INITIALSUBSCRIBE : // 2
-            if ($scripting_forum->forcesubscribe <> FORUM_INITIALSUBSCRIBE) {
-                $users = \mod_scripting_forum\subscriptions::get_potential_subscribers($context, 0, 'u.id, u.email', '');
+            if ($sforum->forcesubscribe <> FORUM_INITIALSUBSCRIBE) {
+                $users = \mod_sforum\subscriptions::get_potential_subscribers($context, 0, 'u.id, u.email', '');
                 foreach ($users as $user) {
-                    \mod_scripting_forum\subscriptions::subscribe_user($user->id,
-                                $scripting_forum, $context);
+                    \mod_sforum\subscriptions::subscribe_user($user->id,
+                                $sforum, $context);
                 }
             }
-            \mod_scripting_forum\subscriptions::set_subscription_mode($scripting_forum->id, FORUM_INITIALSUBSCRIBE);
+            \mod_sforum\subscriptions::set_subscription_mode($sforum->id, FORUM_INITIALSUBSCRIBE);
             redirect(
                     $returnto,
-                    get_string('everyoneisnowsubscribed', 'scripting_forum'),
+                    get_string('everyoneisnowsubscribed', 'sforum'),
                     null,
                     \core\output\notification::NOTIFY_SUCCESS
                 );
             break;
         case FORUM_DISALLOWSUBSCRIBE : // 3
-            \mod_scripting_forum\subscriptions::set_subscription_mode($scripting_forum->id, FORUM_DISALLOWSUBSCRIBE);
+            \mod_sforum\subscriptions::set_subscription_mode($sforum->id, FORUM_DISALLOWSUBSCRIBE);
             redirect(
                     $returnto,
-                    get_string('noonecansubscribenow', 'scripting_forum'),
+                    get_string('noonecansubscribenow', 'sforum'),
                     null,
                     \core\output\notification::NOTIFY_SUCCESS
                 );
             break;
         default:
-            print_error(get_string('invalidforcesubscribe', 'scripting_forum'));
+            print_error(get_string('invalidforcesubscribe', 'sforum'));
     }
 }
 
-if (\mod_scripting_forum\subscriptions::is_forcesubscribed($scripting_forum)) {
+if (\mod_sforum\subscriptions::is_forcesubscribed($sforum)) {
     redirect(
             $returnto,
-            get_string('everyoneisnowsubscribed', 'scripting_forum'),
+            get_string('everyoneisnowsubscribed', 'sforum'),
             null,
             \core\output\notification::NOTIFY_SUCCESS
         );
@@ -188,7 +188,7 @@ if (\mod_scripting_forum\subscriptions::is_forcesubscribed($scripting_forum)) {
 
 $info = new stdClass();
 $info->name  = fullname($user);
-$info->scripting_forum = format_string($scripting_forum->name);
+$info->sforum = format_string($sforum->name);
 
 if ($issubscribed) {
     if (is_null($sesskey)) {
@@ -197,16 +197,16 @@ if ($issubscribed) {
         $PAGE->set_heading($course->fullname);
         echo $OUTPUT->header();
 
-        $viewurl = new moodle_url('/mod/scripting_forum/view.php', array('f' => $id));
+        $viewurl = new moodle_url('/mod/sforum/view.php', array('f' => $id));
         if ($discussionid) {
             $a = new stdClass();
-            $a->scripting_forum = format_string($scripting_forum->name);
+            $a->sforum = format_string($sforum->name);
             $a->discussion = format_string($discussion->name);
-            echo $OUTPUT->confirm(get_string('confirmunsubscribediscussion', 'scripting_forum', $a),
+            echo $OUTPUT->confirm(get_string('confirmunsubscribediscussion', 'sforum', $a),
                     $PAGE->url, $viewurl);
         } else {
             echo $OUTPUT->confirm(get_string('confirmunsubscribe',
-                        'scripting_forum', format_string($scripting_forum->name)),
+                        'sforum', format_string($sforum->name)),
                     $PAGE->url, $viewurl);
         }
         echo $OUTPUT->footer();
@@ -214,39 +214,39 @@ if ($issubscribed) {
     }
     require_sesskey();
     if ($discussionid === null) {
-        if (\mod_scripting_forum\subscriptions::unsubscribe_user($user->id,
-                    $scripting_forum, $context, true)) {
+        if (\mod_sforum\subscriptions::unsubscribe_user($user->id,
+                    $sforum, $context, true)) {
             redirect(
                     $returnto,
-                    get_string('nownotsubscribed', 'scripting_forum', $info),
+                    get_string('nownotsubscribed', 'sforum', $info),
                     null,
                     \core\output\notification::NOTIFY_SUCCESS
                 );
         } else {
-            print_error('cannotunsubscribe', 'scripting_forum', get_local_referer(false));
+            print_error('cannotunsubscribe', 'sforum', get_local_referer(false));
         }
     } else {
-        if (\mod_scripting_forum\subscriptions::unsubscribe_user_from_discussion($user->id,
+        if (\mod_sforum\subscriptions::unsubscribe_user_from_discussion($user->id,
                     $discussion, $context)) {
             $info->discussion = $discussion->name;
             redirect(
                     $returnto,
-                    get_string('discussionnownotsubscribed', 'scripting_forum', $info),
+                    get_string('discussionnownotsubscribed', 'sforum', $info),
                     null,
                     \core\output\notification::NOTIFY_SUCCESS
                 );
         } else {
-            print_error('cannotunsubscribe', 'scripting_forum', get_local_referer(false));
+            print_error('cannotunsubscribe', 'sforum', get_local_referer(false));
         }
     }
 
 } else {  // subscribe
-    if (\mod_scripting_forum\subscriptions::subscription_disabled($scripting_forum)
-                && !has_capability('mod/scripting_forum:managesubscriptions', $context)) {
-        print_error('disallowsubscribe', 'scripting_forum', get_local_referer(false));
+    if (\mod_sforum\subscriptions::subscription_disabled($sforum)
+                && !has_capability('mod/sforum:managesubscriptions', $context)) {
+        print_error('disallowsubscribe', 'sforum', get_local_referer(false));
     }
-    if (!has_capability('mod/scripting_forum:viewdiscussion', $context)) {
-        print_error('noviewdiscussionspermission', 'scripting_forum', get_local_referer(false));
+    if (!has_capability('mod/sforum:viewdiscussion', $context)) {
+        print_error('noviewdiscussionspermission', 'sforum', get_local_referer(false));
     }
     if (is_null($sesskey)) {
         // We came here via link in email.
@@ -254,16 +254,16 @@ if ($issubscribed) {
         $PAGE->set_heading($course->fullname);
         echo $OUTPUT->header();
 
-        $viewurl = new moodle_url('/mod/scripting_forum/view.php', array('f' => $id));
+        $viewurl = new moodle_url('/mod/sforum/view.php', array('f' => $id));
         if ($discussionid) {
             $a = new stdClass();
-            $a->scripting_forum = format_string($scripting_forum->name);
+            $a->sforum = format_string($sforum->name);
             $a->discussion = format_string($discussion->name);
             echo $OUTPUT->confirm(get_string('confirmsubscribediscussion',
-                    'scripting_forum', $a), $PAGE->url, $viewurl);
+                    'sforum', $a), $PAGE->url, $viewurl);
         } else {
             echo $OUTPUT->confirm(get_string('confirmsubscribe',
-                        'scripting_forum', format_string($scripting_forum->name)),
+                        'sforum', format_string($sforum->name)),
                     $PAGE->url, $viewurl);
         }
         echo $OUTPUT->footer();
@@ -271,21 +271,21 @@ if ($issubscribed) {
     }
     require_sesskey();
     if ($discussionid == null) {
-        \mod_scripting_forum\subscriptions::subscribe_user($user->id,
-                    $scripting_forum, $context, true);
+        \mod_sforum\subscriptions::subscribe_user($user->id,
+                    $sforum, $context, true);
         redirect(
                 $returnto,
-                get_string('nowsubscribed', 'scripting_forum', $info),
+                get_string('nowsubscribed', 'sforum', $info),
                 null,
                 \core\output\notification::NOTIFY_SUCCESS
             );
     } else {
         $info->discussion = $discussion->name;
-        \mod_scripting_forum\subscriptions::subscribe_user_to_discussion($user->id,
+        \mod_sforum\subscriptions::subscribe_user_to_discussion($user->id,
                 $discussion, $context);
         redirect(
                 $returnto,
-                get_string('discussionnowsubscribed', 'scripting_forum', $info),
+                get_string('discussionnowsubscribed', 'sforum', $info),
                 null,
                 \core\output\notification::NOTIFY_SUCCESS
             );

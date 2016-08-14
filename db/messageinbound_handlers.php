@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   mod_scriptingforum
+ * @package   mod_sforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
  * @copyright 2014 Andrew Nicols
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -26,6 +26,6 @@ defined('MOODLE_INTERNAL') || die();
 
 $handlers = array(
     array(
-        'classname' => '\mod_scriptingforum\message\inbound\reply_handler',
+        'classname' => '\mod_sforum\message\inbound\reply_handler',
     ),
 );

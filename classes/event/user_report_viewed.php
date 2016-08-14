@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is based on part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,19 +15,20 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The mod_forum user report viewed event.
+ * The mod_sforum user report viewed event.
  *
- * @package    mod_forum
+ * @package    mod_sforum
+ * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_forum\event;
+namespace mod_sforum\event;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The mod_forum user report viewed event class.
+ * The mod_sforum user report viewed event class.
  *
  * @property-read array $other {
  *      Extra information about the event.
@@ -35,7 +36,7 @@ defined('MOODLE_INTERNAL') || die();
  *      - string reportmode: The mode the report has been viewed in (posts or discussions).
  * }
  *
- * @package    mod_forum
+ * @package    mod_sforum
  * @since      Moodle 2.7
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -68,7 +69,7 @@ class user_report_viewed extends \core\event\base {
      * @return string
      */
     public static function get_name() {
-        return get_string('eventuserreportviewed', 'mod_forum');
+        return get_string('eventuserreportviewed', 'mod_sforum');
     }
 
     /**
@@ -78,7 +79,7 @@ class user_report_viewed extends \core\event\base {
      */
     public function get_url() {
 
-        $url = new \moodle_url('/mod/forum/user.php', array('id' => $this->relateduserid,
+        $url = new \moodle_url('/mod/sforum/user.php', array('id' => $this->relateduserid,
             'mode' => $this->other['reportmode']));
 
         if ($this->courseid != SITEID) {
@@ -94,10 +95,10 @@ class user_report_viewed extends \core\event\base {
      * @return array|null
      */
     protected function get_legacy_logdata() {
-        // The legacy log table expects a relative path to /mod/forum/.
-        $logurl = substr($this->get_url()->out_as_local_url(), strlen('/mod/forum/'));
+        // The legacy log table expects a relative path to /mod/sforum/.
+        $logurl = substr($this->get_url()->out_as_local_url(), strlen('/mod/sforum/'));
 
-        return array($this->courseid, 'forum', 'user report', $logurl, $this->relateduserid);
+        return array($this->courseid, 'sforum', 'user report', $logurl, $this->relateduserid);
     }
 
     /**

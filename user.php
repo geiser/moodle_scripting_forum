@@ -1,6 +1,6 @@
 <?php
 
-// This file is part of Moodle - http://moodle.org/
+// This file is based on part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,13 +18,14 @@
 /**
  * Display user activity reports for a course
  *
- * @package   mod_forum
- * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
+ * @package   mod_sforum
+ * @copyright 2016 Geiser Chalco {@link http://github.com/geiser}
+ * @copyright 1999 Martin Dougiamas {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
-require_once($CFG->dirroot.'/mod/forum/lib.php');
+require_once($CFG->dirroot.'/mod/sforum/lib.php');
 require_once($CFG->dirroot.'/rating/lib.php');
 
 $courseid  = optional_param('course', null, PARAM_INT); // Limit the posts to just this course
@@ -44,7 +45,7 @@ $discussionsonly = ($mode !== 'posts');
 $isspecificcourse = !is_null($courseid);
 $iscurrentuser = ($USER->id == $userid);
 
-$url = new moodle_url('/mod/forum/user.php', array('id' => $userid));
+$url = new moodle_url('/mod/sforum/user.php', array('id' => $userid));
 if ($isspecificcourse) {
     $url->param('course', $courseid);
 }
@@ -111,8 +112,8 @@ if ($isspecificcourse) {
     $PAGE->set_context(context_user::instance($user->id));
 
     // Now we need to get all of the courses to search.
-    // All courses where the user has posted within a forum will be returned.
-    $courses = forum_get_courses_user_posted_in($user, $discussionsonly);
+    // All courses where the user has posted within a sforum will be returned.
+    $courses = sforum_get_courses_user_posted_in($user, $discussionsonly);
 }
 
 $params = array(
@@ -120,11 +121,11 @@ $params = array(
     'relateduserid' => $user->id,
     'other' => array('reportmode' => $mode),
 );
-$event = \mod_forum\event\user_report_viewed::create($params);
+$event = \mod_sforum\event\user_report_viewed::create($params);
 $event->trigger();
 
 // Get the posts by the requested user that the current user can access.
-$result = forum_get_posts_by_user($user, $courses, $isspecificcourse, $discussionsonly, ($page * $perpage), $perpage);
+$result = sforum_get_posts_by_user($user, $courses, $isspecificcourse, $discussionsonly, ($page * $perpage), $perpage);
 
 // Check whether there are not posts to display.
 if (empty($result->posts)) {
@@ -159,13 +160,13 @@ if (empty($result->posts)) {
     }
 
     // Prepare the page title
-    $pagetitle = get_string('noposts', 'mod_forum');
+    $pagetitle = get_string('noposts', 'mod_sforum');
 
     // Get the page heading
     if ($isspecificcourse) {
         $pageheading = format_string($course->fullname, true, array('context' => $coursecontext));
     } else {
-        $pageheading = get_string('pluginname', 'mod_forum');
+        $pageheading = get_string('pluginname', 'mod_sforum');
     }
 
     // Next we need to set up the loading of the navigation and choose a message
@@ -174,11 +175,11 @@ if (empty($result->posts)) {
         // No need to extend the navigation it happens automatically for the
         // current user.
         if ($discussionsonly) {
-            $notification = get_string('nodiscussionsstartedbyyou', 'forum');
+            $notification = get_string('nodiscussionsstartedbyyou', 'sforum');
         } else {
-            $notification = get_string('nopostsmadebyyou', 'forum');
+            $notification = get_string('nopostsmadebyyou', 'sforum');
         }
-        // These are the user's forum interactions.
+        // These are the user's sforum interactions.
         // Shut down the navigation 'Users' node.
         $usernode = $PAGE->navigation->find('users', null);
         $usernode->make_inactive();
@@ -189,10 +190,10 @@ if (empty($result->posts)) {
             $newusernode->make_active();
             // Check to see if this is a discussion or a post.
             if ($mode == 'posts') {
-                $navbar = $PAGE->navbar->add(get_string('posts', 'forum'), new moodle_url('/mod/forum/user.php',
+                $navbar = $PAGE->navbar->add(get_string('posts', 'sforum'), new moodle_url('/mod/sforum/user.php',
                         array('id' => $user->id, 'course' => $courseid)));
             } else {
-                $navbar = $PAGE->navbar->add(get_string('discussions', 'forum'), new moodle_url('/mod/forum/user.php',
+                $navbar = $PAGE->navbar->add(get_string('discussions', 'sforum'), new moodle_url('/mod/sforum/user.php',
                         array('id' => $user->id, 'course' => $courseid, 'mode' => 'discussions')));
             }
         }
@@ -207,24 +208,24 @@ if (empty($result->posts)) {
             $usernode->make_active();
             // Check to see if this is a discussion or a post.
             if ($mode == 'posts') {
-                $navbar = $PAGE->navbar->add(get_string('posts', 'forum'), new moodle_url('/mod/forum/user.php',
+                $navbar = $PAGE->navbar->add(get_string('posts', 'sforum'), new moodle_url('/mod/sforum/user.php',
                         array('id' => $user->id, 'course' => $courseid)));
             } else {
-                $navbar = $PAGE->navbar->add(get_string('discussions', 'forum'), new moodle_url('/mod/forum/user.php',
+                $navbar = $PAGE->navbar->add(get_string('discussions', 'sforum'), new moodle_url('/mod/sforum/user.php',
                         array('id' => $user->id, 'course' => $courseid, 'mode' => 'discussions')));
             }
         }
 
         $fullname = fullname($user);
         if ($discussionsonly) {
-            $notification = get_string('nodiscussionsstartedby', 'forum', $fullname);
+            $notification = get_string('nodiscussionsstartedby', 'sforum', $fullname);
         } else {
-            $notification = get_string('nopostsmadebyuser', 'forum', $fullname);
+            $notification = get_string('nopostsmadebyuser', 'sforum', $fullname);
         }
     } else {
         // Don't extend the navigation it would be giving out information that
         // the current uesr doesn't have access to.
-        $notification = get_string('cannotviewusersposts', 'forum');
+        $notification = get_string('cannotviewusersposts', 'sforum');
         if ($isspecificcourse) {
             $url = new moodle_url('/course/view.php', array('id' => $courseid));
         } else {
@@ -267,39 +268,39 @@ $discussions = array();
 foreach ($result->posts as $post) {
     $discussions[] = $post->discussion;
 }
-$discussions = $DB->get_records_list('forum_discussions', 'id', array_unique($discussions));
+$discussions = $DB->get_records_list('sforum_discussions', 'id', array_unique($discussions));
 
 //todo Rather than retrieving the ratings for each post individually it would be nice to do them in groups
-//however this requires creating arrays of posts with each array containing all of the posts from a particular forum,
+//however this requires creating arrays of posts with each array containing all of the posts from a particular sforum,
 //retrieving the ratings then reassembling them all back into a single array sorted by post.modified (descending)
 $rm = new rating_manager();
 $ratingoptions = new stdClass;
-$ratingoptions->component = 'mod_forum';
+$ratingoptions->component = 'mod_sforum';
 $ratingoptions->ratingarea = 'post';
 foreach ($result->posts as $post) {
-    if (!isset($result->forums[$post->forum]) || !isset($discussions[$post->discussion])) {
+    if (!isset($result->sforums[$post->sforum]) || !isset($discussions[$post->discussion])) {
         // Something very VERY dodgy has happened if we end up here
         continue;
     }
-    $forum = $result->forums[$post->forum];
-    $cm = $forum->cm;
+    $sforum = $result->sforums[$post->sforum];
+    $cm = $sforum->cm;
     $discussion = $discussions[$post->discussion];
     $course = $result->courses[$discussion->course];
 
-    $forumurl = new moodle_url('/mod/forum/view.php', array('id' => $cm->id));
-    $discussionurl = new moodle_url('/mod/forum/discuss.php', array('d' => $post->discussion));
+    $sforumurl = new moodle_url('/mod/sforum/view.php', array('id' => $cm->id));
+    $discussionurl = new moodle_url('/mod/sforum/discuss.php', array('d' => $post->discussion));
 
     // load ratings
-    if ($forum->assessed != RATING_AGGREGATE_NONE) {
+    if ($sforum->assessed != RATING_AGGREGATE_NONE) {
         $ratingoptions->context = $cm->context;
         $ratingoptions->items = array($post);
-        $ratingoptions->aggregate = $forum->assessed;//the aggregation method
-        $ratingoptions->scaleid = $forum->scale;
+        $ratingoptions->aggregate = $sforum->assessed;//the aggregation method
+        $ratingoptions->scaleid = $sforum->scale;
         $ratingoptions->userid = $user->id;
-        $ratingoptions->assesstimestart = $forum->assesstimestart;
-        $ratingoptions->assesstimefinish = $forum->assesstimefinish;
-        if ($forum->type == 'single' or !$post->discussion) {
-            $ratingoptions->returnurl = $forumurl;
+        $ratingoptions->assesstimestart = $sforum->assesstimestart;
+        $ratingoptions->assesstimefinish = $sforum->assesstimefinish;
+        if ($sforum->type == 'single' or !$post->discussion) {
+            $ratingoptions->returnurl = $sforumurl;
         } else {
             $ratingoptions->returnurl = $discussionurl;
         }
@@ -310,17 +311,17 @@ foreach ($result->posts as $post) {
     }
 
     $courseshortname = format_string($course->shortname, true, array('context' => context_course::instance($course->id)));
-    $forumname = format_string($forum->name, true, array('context' => $cm->context));
+    $sforumname = format_string($sforum->name, true, array('context' => $cm->context));
 
     $fullsubjects = array();
     if (!$isspecificcourse && !$hasparentaccess) {
         $fullsubjects[] = html_writer::link(new moodle_url('/course/view.php', array('id' => $course->id)), $courseshortname);
-        $fullsubjects[] = html_writer::link($forumurl, $forumname);
+        $fullsubjects[] = html_writer::link($sforumurl, $sforumname);
     } else {
         $fullsubjects[] = html_writer::tag('span', $courseshortname);
-        $fullsubjects[] = html_writer::tag('span', $forumname);
+        $fullsubjects[] = html_writer::tag('span', $sforumname);
     }
-    if ($forum->type != 'single') {
+    if ($sforum->type != 'single') {
         $discussionname = format_string($discussion->name, true, array('context' => $cm->context));
         if (!$isspecificcourse && !$hasparentaccess) {
             $fullsubjects[] .= html_writer::link($discussionurl, $discussionname);
@@ -330,7 +331,7 @@ foreach ($result->posts as $post) {
         if ($post->parent != 0) {
             $postname = format_string($post->subject, true, array('context' => $cm->context));
             if (!$isspecificcourse && !$hasparentaccess) {
-                $fullsubjects[] .= html_writer::link(new moodle_url('/mod/forum/discuss.php', array('d' => $post->discussion, 'parent' => $post->id)), $postname);
+                $fullsubjects[] .= html_writer::link(new moodle_url('/mod/sforum/discuss.php', array('d' => $post->discussion, 'parent' => $post->id)), $postname);
             } else {
                 $fullsubjects[] .= html_writer::tag('span', $postname);
             }
@@ -341,17 +342,17 @@ foreach ($result->posts as $post) {
     // we've added will be lost.
     $post->subjectnoformat = true;
     $discussionurl->set_anchor('p'.$post->id);
-    $fulllink = html_writer::link($discussionurl, get_string("postincontext", "forum"));
+    $fulllink = html_writer::link($discussionurl, get_string("postincontext", "sforum"));
 
-    $postoutput[] = forum_print_post($post, $discussion, $forum, $cm, $course, false, false, false, $fulllink, '', null, true, null, true);
+    $postoutput[] = sforum_print_post($post, $discussion, $sforum, $cm, $course, false, false, false, $fulllink, '', null, true, null, true);
 }
 
 $userfullname = fullname($user);
 
 if ($discussionsonly) {
-    $inpageheading = get_string('discussionsstartedby', 'mod_forum', $userfullname);
+    $inpageheading = get_string('discussionsstartedby', 'mod_sforum', $userfullname);
 } else {
-    $inpageheading = get_string('postsmadebyuser', 'mod_forum', $userfullname);
+    $inpageheading = get_string('postsmadebyuser', 'mod_sforum', $userfullname);
 }
 if ($isspecificcourse) {
     $a = new stdClass;
@@ -359,9 +360,9 @@ if ($isspecificcourse) {
     $a->coursename = format_string($course->fullname, true, array('context' => $coursecontext));
     $pageheading = $a->coursename;
     if ($discussionsonly) {
-        $pagetitle = get_string('discussionsstartedbyuserincourse', 'mod_forum', $a);
+        $pagetitle = get_string('discussionsstartedbyuserincourse', 'mod_sforum', $a);
     } else {
-        $pagetitle = get_string('postsmadebyuserincourse', 'mod_forum', $a);
+        $pagetitle = get_string('postsmadebyuserincourse', 'mod_sforum', $a);
     }
 } else {
     $pagetitle = $inpageheading;
@@ -380,10 +381,10 @@ if (isset($courseid) && $courseid != SITEID) {
     $usernode->make_active();
     // Check to see if this is a discussion or a post.
     if ($mode == 'posts') {
-        $navbar = $PAGE->navbar->add(get_string('posts', 'forum'), new moodle_url('/mod/forum/user.php',
+        $navbar = $PAGE->navbar->add(get_string('posts', 'sforum'), new moodle_url('/mod/sforum/user.php',
                 array('id' => $user->id, 'course' => $courseid)));
     } else {
-        $navbar = $PAGE->navbar->add(get_string('discussions', 'forum'), new moodle_url('/mod/forum/user.php',
+        $navbar = $PAGE->navbar->add(get_string('discussions', 'sforum'), new moodle_url('/mod/sforum/user.php',
                 array('id' => $user->id, 'course' => $courseid, 'mode' => 'discussions')));
     }
 }
@@ -410,9 +411,9 @@ if (!empty($postoutput)) {
     }
     echo $OUTPUT->paging_bar($result->totalcount, $page, $perpage, $url);
 } else if ($discussionsonly) {
-    echo $OUTPUT->heading(get_string('nodiscussionsstartedby', 'forum', $userfullname));
+    echo $OUTPUT->heading(get_string('nodiscussionsstartedby', 'sforum', $userfullname));
 } else {
-    echo $OUTPUT->heading(get_string('noposts', 'forum'));
+    echo $OUTPUT->heading(get_string('noposts', 'sforum'));
 }
 
 echo html_writer::end_tag('div');

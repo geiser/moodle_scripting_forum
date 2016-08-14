@@ -15,29 +15,30 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The mod_forum post deleted event.
+ * The mod_sforum post deleted event.
  *
- * @package    mod_forum
+ * @package    mod_sforum
+ * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_forum\event;
+namespace mod_sforum\event;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The mod_forum post deleted event class.
+ * The mod_sforum post deleted event class.
  *
  * @property-read array $other {
  *      Extra information about the event.
  *
  *      - int discussionid: The discussion id the post is part of.
- *      - int forumid: The forum id the post is part of.
- *      - string forumtype: The type of forum the post is part of.
+ *      - int sforumid: The sforum id the post is part of.
+ *      - string sforumtype: The type of sforum the post is part of.
  * }
  *
- * @package    mod_forum
+ * @package    mod_sforum
  * @since      Moodle 2.7
  * @copyright  2014 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -51,7 +52,7 @@ class post_deleted extends \core\event\base {
     protected function init() {
         $this->data['crud'] = 'd';
         $this->data['edulevel'] = self::LEVEL_OTHER;
-        $this->data['objecttable'] = 'forum_posts';
+        $this->data['objecttable'] = 'sforum_posts';
     }
 
     /**
@@ -61,7 +62,7 @@ class post_deleted extends \core\event\base {
      */
     public function get_description() {
         return "The user with id '$this->userid' has deleted the post with id '$this->objectid' in the discussion with " .
-            "id '{$this->other['discussionid']}' in the forum with course module id '$this->contextinstanceid'.";
+            "id '{$this->other['discussionid']}' in the sforum with course module id '$this->contextinstanceid'.";
     }
 
     /**
@@ -70,7 +71,7 @@ class post_deleted extends \core\event\base {
      * @return string
      */
     public static function get_name() {
-        return get_string('eventpostdeleted', 'mod_forum');
+        return get_string('eventpostdeleted', 'mod_sforum');
     }
 
     /**
@@ -79,13 +80,13 @@ class post_deleted extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        if ($this->other['forumtype'] == 'single') {
-            // Single discussion forums are an exception. We show
-            // the forum itself since it only has one discussion
+        if ($this->other['sforumtype'] == 'single') {
+            // Single discussion sforums are an exception. We show
+            // the sforum itself since it only has one discussion
             // thread.
-            $url = new \moodle_url('/mod/forum/view.php', array('f' => $this->other['forumid']));
+            $url = new \moodle_url('/mod/sforum/view.php', array('f' => $this->other['sforumid']));
         } else {
-            $url = new \moodle_url('/mod/forum/discuss.php', array('d' => $this->other['discussionid']));
+            $url = new \moodle_url('/mod/sforum/discuss.php', array('d' => $this->other['discussionid']));
         }
         return $url;
     }
@@ -96,10 +97,10 @@ class post_deleted extends \core\event\base {
      * @return array|null
      */
     protected function get_legacy_logdata() {
-        // The legacy log table expects a relative path to /mod/forum/.
-        $logurl = substr($this->get_url()->out_as_local_url(), strlen('/mod/forum/'));
+        // The legacy log table expects a relative path to /mod/sforum/.
+        $logurl = substr($this->get_url()->out_as_local_url(), strlen('/mod/sforum/'));
 
-        return array($this->courseid, 'forum', 'delete post', $logurl, $this->objectid, $this->contextinstanceid);
+        return array($this->courseid, 'sforum', 'delete post', $logurl, $this->objectid, $this->contextinstanceid);
     }
 
     /**
@@ -115,12 +116,12 @@ class post_deleted extends \core\event\base {
             throw new \coding_exception('The \'discussionid\' value must be set in other.');
         }
 
-        if (!isset($this->other['forumid'])) {
-            throw new \coding_exception('The \'forumid\' value must be set in other.');
+        if (!isset($this->other['sforumid'])) {
+            throw new \coding_exception('The \'sforumid\' value must be set in other.');
         }
 
-        if (!isset($this->other['forumtype'])) {
-            throw new \coding_exception('The \'forumtype\' value must be set in other.');
+        if (!isset($this->other['sforumtype'])) {
+            throw new \coding_exception('The \'sforumtype\' value must be set in other.');
         }
 
         if ($this->contextlevel != CONTEXT_MODULE) {
@@ -129,14 +130,15 @@ class post_deleted extends \core\event\base {
     }
 
     public static function get_objectid_mapping() {
-        return array('db' => 'forum_posts', 'restore' => 'forum_post');
+        return array('db' => 'sforum_posts', 'restore' => 'sforum_post');
     }
 
     public static function get_other_mapping() {
         $othermapped = array();
-        $othermapped['forumid'] = array('db' => 'forum', 'restore' => 'forum');
-        $othermapped['discussionid'] = array('db' => 'forum_discussions', 'restore' => 'forum_discussion');
+        $othermapped['sforumid'] = array('db' => 'sforum', 'restore' => 'sforum');
+        $othermapped['discussionid'] = array('db' => 'sforum_discussions', 'restore' => 'sforum_discussion');
 
         return $othermapped;
     }
 }
+

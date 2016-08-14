@@ -15,9 +15,9 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template mod_scriptingforum/scriptingforum_post_emaildigestbasic_textemail
+    @template mod_sforum/sforum_post_emaildigestbasic_textemail
 
-    Template which defines a scriptingforum post for sending in a single-post text email.
+    Template which defines a sforum post for sending in a single-post text email.
 
     Classes required for JS:
     * none
@@ -33,7 +33,7 @@
 }}
 
 {{ discussionlink }}
-{{{ subject }}} {{# str }} bynameondate, scriptingforum, {
+{{{ subject }}} {{# str }} bynameondate, sforum, {
         "name": {{# quote }}{{{ authorfullname }}}{{/ quote }},
         "date": {{# quote }}{{ postdate }}{{/ quote }}
     } {{/ str }}

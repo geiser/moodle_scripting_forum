@@ -1,19 +1,19 @@
 var timefromitems = ['fromday','frommonth','fromyear','fromhour', 'fromminute'];
 var timetoitems = ['today','tomonth','toyear','tohour','tominute'];
 
-function scriptingforum_produce_subscribe_link(forumid, backtoindex, ltext, ltitle) {
+function sforum_produce_subscribe_link(forumid, backtoindex, ltext, ltitle) {
     var elementid = "subscriptionlink";
     var subs_link = document.getElementById(elementid);
     if(subs_link){
-        subs_link.innerHTML = "<a title='"+ltitle+"' href='"+M.cfg.wwwroot+"/mod/scriptingforum/subscribe.php?id="+forumid+backtoindex+"&amp;sesskey="+M.cfg.sesskey+"'>"+ltext+"<\/a>";
+        subs_link.innerHTML = "<a title='"+ltitle+"' href='"+M.cfg.wwwroot+"/mod/sforum/subscribe.php?id="+forumid+backtoindex+"&amp;sesskey="+M.cfg.sesskey+"'>"+ltext+"<\/a>";
     }
 }
 
-function scriptingforum_produce_tracking_link(forumid, ltext, ltitle) {
+function sforum_produce_tracking_link(forumid, ltext, ltitle) {
     var elementid = "trackinglink";
     var subs_link = document.getElementById(elementid);
     if(subs_link){
-        subs_link.innerHTML = "<a title='"+ltitle+"' href='"+M.cfg.wwwroot+"/mod/scriptingforum/settracking.php?id="+forumid+"&amp;sesskey="+M.cfg.sesskey+"'>"+ltext+"<\/a>";
+        subs_link.innerHTML = "<a title='"+ltitle+"' href='"+M.cfg.wwwroot+"/mod/sforum/settracking.php?id="+forumid+"&amp;sesskey="+M.cfg.sesskey+"'>"+ltext+"<\/a>";
     }
 }
 
