@@ -56,18 +56,37 @@ class mod_sforum_mod_form extends moodleform_mod {
                 get_string('sforumtype', 'sforum'), $sforumtypes);
         $mform->addHelpButton('type', 'sforumtype', 'sforum');
         $mform->setDefault('type', 'general');
+        
+        if ($this->_features->groupings) {
+            // CL Role selector - used to select CL roles in activity
+            $options = array();
+            if ($groupings = $DB->get_records('groupings', array('courseid'=>$COURSE->id))) {
+                foreach ($groupings as $grouping) {
+                    $options[$grouping->id] = format_string($grouping->name);
+                }
+            }
+            core_collator::asort($options); 
+            $options = array(null => get_string('none')) + $options;
+            $mform->addElement('select', 'clroles', get_string('clroles', 'sforum'), $options);
+            $mform->addHelpButton('clroles', 'clroles', 'sforum');
+        }
+        $mform->addRule('clroles', null, 'required', null, 'client');
+
+        $mform->addElement('textarea', 'steps', get_string('steps', 'sforum'),
+                'wrap="virtual" rows="10" cols="80"');
+        $mform->addHelpButton('steps', 'steps', 'sforum');
 
         // Attachments and word count.
         $mform->addElement('header', 'attachmentswordcounthdr',
                 get_string('attachmentswordcount', 'sforum'));
 
         $choices = get_max_upload_sizes($CFG->maxbytes,
-                $COURSE->maxbytes, 0, $CFG->sforum_maxbytes);
+                $COURSE->maxbytes, 0, $CFG->forum_maxbytes);
         $choices[1] = get_string('uploadnotallowed');
         $mform->addElement('select', 'maxbytes',
                 get_string('maxattachmentsize', 'sforum'), $choices);
         $mform->addHelpButton('maxbytes', 'maxattachmentsize', 'sforum');
-        $mform->setDefault('maxbytes', $CFG->sforum_maxbytes);
+        $mform->setDefault('maxbytes', $CFG->forum_maxbytes);
 
         $choices = array(
             0 => 0,
@@ -88,7 +107,7 @@ class mod_sforum_mod_form extends moodleform_mod {
         $mform->addElement('select', 'maxattachments',
                 get_string('maxattachments', 'sforum'), $choices);
         $mform->addHelpButton('maxattachments', 'maxattachments', 'sforum');
-        $mform->setDefault('maxattachments', $CFG->sforum_maxattachments);
+        $mform->setDefault('maxattachments', $CFG->forum_maxattachments);
 
         $mform->addElement('selectyesno', 'displaywordcount',
                 get_string('displaywordcount', 'sforum'));
@@ -111,19 +130,19 @@ class mod_sforum_mod_form extends moodleform_mod {
         $options = array();
         $options[FORUM_TRACKING_OPTIONAL] = get_string('trackingoptional', 'sforum');
         $options[FORUM_TRACKING_OFF] = get_string('trackingoff', 'sforum');
-        if ($CFG->sforum_allowforcedreadtracking) {
+        if ($CFG->forum_allowforcedreadtracking) {
             $options[FORUM_TRACKING_FORCED] = get_string('trackingon', 'sforum');
         }
         $mform->addElement('select', 'trackingtype', get_string('trackingtype', 'sforum'), $options);
         $mform->addHelpButton('trackingtype', 'trackingtype', 'sforum');
-        $default = $CFG->sforum_trackingtype;
-        if ((!$CFG->sforum_allowforcedreadtracking) && ($default == FORUM_TRACKING_FORCED)) {
+        $default = $CFG->forum_trackingtype;
+        if ((!$CFG->forum_allowforcedreadtracking) && ($default == FORUM_TRACKING_FORCED)) {
             $default = FORUM_TRACKING_OPTIONAL;
         }
         $mform->setDefault('trackingtype', $default);
 
-        if ($CFG->enablerssfeeds && isset($CFG->sforum_enablerssfeeds) &&
-                $CFG->sforum_enablerssfeeds) {
+        if ($CFG->enablerssfeeds && isset($CFG->forum_enablerssfeeds) &&
+                $CFG->forum_enablerssfeeds) {
 //-------------------------------------------------------------------------------
             $mform->addElement('header', 'rssheader', get_string('rss'));
             $choices = array();
@@ -132,8 +151,8 @@ class mod_sforum_mod_form extends moodleform_mod {
             $choices[2] = get_string('posts', 'sforum');
             $mform->addElement('select', 'rsstype', get_string('rsstype'), $choices);
             $mform->addHelpButton('rsstype', 'rsstype', 'sforum');
-            if (isset($CFG->sforum_rsstype)) {
-                $mform->setDefault('rsstype', $CFG->sforum_rsstype);
+            if (isset($CFG->forum_rsstype)) {
+                $mform->setDefault('rsstype', $CFG->forum_rsstype);
             }
 
             $choices = array();
@@ -153,8 +172,8 @@ class mod_sforum_mod_form extends moodleform_mod {
             $mform->addElement('select', 'rssarticles', get_string('rssarticles'), $choices);
             $mform->addHelpButton('rssarticles', 'rssarticles', 'sforum');
             $mform->disabledIf('rssarticles', 'rsstype', 'eq', '0');
-            if (isset($CFG->sforum_rssarticles)) {
-                $mform->setDefault('rssarticles', $CFG->sforum_rssarticles);
+            if (isset($CFG->forum_rssarticles)) {
+                $mform->setDefault('rssarticles', $CFG->forum_rssarticles);
             }
         }
 

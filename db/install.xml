@@ -211,15 +211,15 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="forum" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="label" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="dependon" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="For now only one dependence is enough, in the future working with more than one will be wonderful"/>
+        <FIELD NAME="description" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="dependon" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="For now only one dependence is enough, in the future working with more than one will be wonderful"/>
         <FIELD NAME="optional" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="groupid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="CL role who can push these step in forward" />
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="sforum" REFFIELDS="id"/>
-        <KEY NAME="dependon" TYPE="foreign" FIELDS="dependon" REFTABLE="sforum_steps" REFFIELDS="id" COMMENT="The steps that not have prerequisites must be declared with NULL"/>
-        <KEY NAME="groupiid" TYPE="foreign" FIELDS="groupid" REFTABLE="groups" REFFIELDS="id"/>
+        <KEY NAME="groupid" TYPE="foreign" FIELDS="groupid" REFTABLE="groups" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
 

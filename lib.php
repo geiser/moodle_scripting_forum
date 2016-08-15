@@ -134,8 +134,68 @@ function sforum_add_instance($sforum, $mform = null) {
     }
 
     sforum_grade_item_update($sforum);
+    sforum_scripting_clroles_update($sforum);
+    sforum_scripting_steps_update($sforum);
 
     return $sforum->id;
+}
+
+function sforum_scripting_clroles_update($sforum) {
+    global $DB;
+    $clroles = $DB->get_record('sforum_clroles', array('forum'=>$sforum->id));
+    if (!$clroles) {
+        $clroles = new stdClass();
+        $clroles->forum = $sforum->id;
+    }
+    $clroles->groupingid = $sforum->clroles;
+    
+    if ($clroles->id) $DB->update_record('sforum_clroles', $clroles);
+    else $DB->insert_record('sforum_clroles', $clroles);
+}
+
+function sforum_scripting_steps_update($sforum) {
+    global $DB;
+    $steps = pre_split("/[\r\t\n\f]+/", $sforum->steps);
+    foreach ($cstep as &$steps) {
+        $cstep = json_decode($cstep);
+
+        $step = new stdClass();
+        $search = array('forum'=>$sforum->id, 'label'=>$cstep->label);
+        if ($DB->record_exists('sforum_steps', $search)) {
+            $step = $DB->get_record('sforum_steps', $search);
+        }
+
+        $step->forum = $sforum->id;
+        $step->label = $cstep->label;
+        $step->description = $cstep->description;
+        if (!empty($cstep->optional) && ($cstep->optional != false)) {
+            $step->optional = 1;
+        }
+        if (!empty($cstep->clrole)) {
+            $group = $DB->get_record_sql(
+            'SELECT g.id as id
+             FROM {groups} g
+             INNER JOIN {groupings_groups} s ON g.id = s.groupid
+             WHERE g.name = :name AND s.groupingid = :grouping',
+            array('name'=>$cstep->clrole, 'grouping'=>$sforum->clroles),
+            MUST_EXIST);
+            $step->groupid = $group->id;
+        }
+        
+        if (!empty($step->id)) $DB->update_record('sforum_steps', $step);
+        else $step->id = $DB->insert_record('sforum_steps', $step);
+    }
+
+
+        if (!empty($cstep->dependon)) {
+            $dependon = $DB->get_record('sforum_steps',
+                    array('label'=>$cstep->dependon, 'forum'=>$sforum->id));
+            if (!$dependon) $step->dependon = $dependon->id;
+            else $toremove[]
+        }
+
+    die;
+    $steps = $DB->get_records('sforum_steps', array('forum'=>$sforum->id));
 }
 
 /**
@@ -1575,7 +1635,7 @@ function sforum_print_recent_activity($course, $viewfullnames, $timestart) {
                                               d.timestart, d.timeend, $allnamefields
                                          FROM {sforum_posts} p
                                               JOIN {sforum_discussions} d ON d.id = p.discussion
-                                              JOIN {sforum} f             ON f.id = d.sforum
+                                              JOIN {sforum} f             ON f.id = d.forum
                                               JOIN {user} u              ON u.id = p.userid
                                         WHERE p.created > ? AND f.course = ?
                                      ORDER BY p.id ASC", array($timestart, $course->id))) { // order by initial posting date
@@ -7190,11 +7250,7 @@ function sforum_get_layout_modes() {
  * @return array
  */
 function sforum_get_sforum_types() {
-    return array ('general'  => get_string('generalsforum', 'sforum'),
-                  'eachuser' => get_string('eachusersforum', 'sforum'),
-                  'single'   => get_string('singlesforum', 'sforum'),
-                  'qanda'    => get_string('qandasforum', 'sforum'),
-                  'blog'     => get_string('blogsforum', 'sforum'));
+    return array ('eachgroup' => get_string('eachgroupforum', 'sforum'));
 }
 
 /**
@@ -7203,13 +7259,7 @@ function sforum_get_sforum_types() {
  * @return array
  */
 function sforum_get_sforum_types_all() {
-    return array ('news'     => get_string('namenews','sforum'),
-                  'social'   => get_string('namesocial','sforum'),
-                  'general'  => get_string('generalsforum', 'sforum'),
-                  'eachuser' => get_string('eachusersforum', 'sforum'),
-                  'single'   => get_string('singlesforum', 'sforum'),
-                  'qanda'    => get_string('qandasforum', 'sforum'),
-                  'blog'     => get_string('blogsforum', 'sforum'));
+    return array ('eachgroup' => get_string('eachgroupforum', 'sforum'));
 }
 
 /**
@@ -7278,7 +7328,7 @@ function sforum_extend_settings_navigation(settings_navigation $settingsnav,
                 'sesskey'=>sesskey())), navigation_node::TYPE_SETTING);
         $disallowchoice = $mode->add(get_string('subscriptiondisabled',
                 'sforum'), new moodle_url('/mod/sforum/subscribe.php',
-                array('id'=>$scripting/_forumobject->id,
+                array('id'=>$sforumobject->id,
                 'mode'=>SCRIPTING_FORUM_DISALLOWSUBSCRIBE, 'sesskey'=>sesskey())),
                 navigation_node::TYPE_SETTING);
 
