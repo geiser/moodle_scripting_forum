@@ -33,7 +33,6 @@
 class backup_sforum_activity_structure_step extends backup_activity_structure_step {
 
     protected function define_structure() {
-
         // To know if we are including userinfo
         $userinfo = $this->get_setting_value('userinfo');
 
@@ -93,7 +92,6 @@ class backup_sforum_activity_structure_step extends backup_activity_structure_st
 
         $track = new backup_nested_element('track', array('id'), array(
             'userid'));
-
         // Build the tree
 
         $sforum->add_child($discussions);
@@ -129,19 +127,19 @@ class backup_sforum_activity_structure_step extends backup_activity_structure_st
             $discussion->set_source_sql('
                 SELECT *
                   FROM {sforum_discussions}
-                 WHERE sforum = ?',
+                 WHERE forum = ?',
                 array(backup::VAR_PARENTID));
 
             // Need posts ordered by id so parents are always before childs on restore
             $post->set_source_table('sforum_posts', array('discussion' => backup::VAR_PARENTID), 'id ASC');
             $discussionsub->set_source_table('sforum_discussion_subs', array('discussion' => backup::VAR_PARENTID));
 
-            $subscription->set_source_table('sforum_subscriptions', array('sforum' => backup::VAR_PARENTID));
-            $digest->set_source_table('sforum_digests', array('sforum' => backup::VAR_PARENTID));
+            $subscription->set_source_table('sforum_subscriptions', array('forum' => backup::VAR_PARENTID));
+            $digest->set_source_table('sforum_digests', array('forum' => backup::VAR_PARENTID));
 
-            $read->set_source_table('sforum_read', array('sforumid' => backup::VAR_PARENTID));
+            $read->set_source_table('sforum_read', array('forumid' => backup::VAR_PARENTID));
 
-            $track->set_source_table('sforum_track_prefs', array('sforumid' => backup::VAR_PARENTID));
+            $track->set_source_table('sforum_track_prefs', array('forumid' => backup::VAR_PARENTID));
 
             $rating->set_source_table('rating', array('contextid'  => backup::VAR_CONTEXTID,
                                                       'component'  => backup_helper::is_sqlparam('mod_sforum'),

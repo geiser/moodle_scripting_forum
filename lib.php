@@ -156,7 +156,7 @@ function sforum_scripting_clroles_update($sforum) {
     }
     $clroles->groupingid = $sforum->clroles;
     
-    if ($clroles->id) $DB->update_record('sforum_clroles', $clroles);
+    if (!empty($clroles->id)) $DB->update_record('sforum_clroles', $clroles);
     else $DB->insert_record('sforum_clroles', $clroles);
 }
 
@@ -170,11 +170,9 @@ function sforum_scripting_clroles_update($sforum) {
  */
 function sforum_scripting_steps_update($sforum) {
     global $DB;
-    $current_ids = array_keys($DB->get_records_sql_menu(
-            'SELECT g.id, g.label
-            FROM {groups} g
-            INNER JOIN {groupings_groups} s ON g.id = s.groupid
-            WHERE s.groupingid = ?', array($sforum->clroles)));
+
+    $current_ids = array_keys($DB->get_records_menu('sforum_steps',
+            array('forum'=>$sforum->id), '', 'id, label'));
     // delete permormed steps
     if (!empty($current_ids)) {
         $DB->delete_records_select('sforum_performed_steps', "stepid IN ('"+
@@ -182,8 +180,9 @@ function sforum_scripting_steps_update($sforum) {
     }
     // update or insert steps
     $updated_ids = array();
-    $steps = pre_split("/[\r\t\n\f]+/", $sforum->steps);
-    foreach ($cstep as $steps) {
+    $steps = array_filter(preg_split("/[\r\t\n\f]+/", $sforum->steps),
+            function($s) { return !empty($s); });
+    foreach ($steps as $cstep) {
         $cstep = json_decode($cstep); // decode json
         $step = new stdClass();
         $search = array('forum'=>$sforum->id, 'label'=>$cstep->label);
@@ -192,7 +191,11 @@ function sforum_scripting_steps_update($sforum) {
         }
         $step->forum = $sforum->id;
         $step->label = $cstep->label;
-        $step->description = $cstep->description;
+        $step->description = $cstep->label;
+        if (!empty($cstep->description)) {
+            $step->description = $cstep->description;
+        }
+        $step->optional = 0;
         if (!empty($cstep->optional) && ($cstep->optional != false)) {
             $step->optional = 1;
         }
@@ -222,7 +225,8 @@ function sforum_scripting_steps_update($sforum) {
             implode("','", $eliminated_ids)+"')");
     }
     // update dependon in each step
-    foreach ($cstep as $steps) {
+    foreach ($steps as $cstep) {
+        $cstep = json_decode($cstep); // decode json
         $search = array('forum'=>$sforum->id, 'label'=>$cstep->label);
         $step = $DB->get_record('sforum_steps', $search, MUST_EXIST);
         if (!empty($cstep->dependon)) {
@@ -397,14 +401,13 @@ function sforum_delete_instance($id) {
 
     // Delete digest and subscription preferences.
     $DB->delete_records('sforum_digests',
-         array('sforum' => $sforum->id));
+         array('forum' => $sforum->id));
     $DB->delete_records('sforum_subscriptions',
-         array('sforum'=>$sforum->id));
+         array('forum'=>$sforum->id));
     $DB->delete_records('sforum_discussion_subs',
-         array('sforum' => $sforum->id));
-
+         array('forum' => $sforum->id));
     if ($discussions = $DB->get_records('sforum_discussions',
-                            array('sforum'=>$sforum->id))) {
+                            array('forum'=>$sforum->id))) {
         foreach ($discussions as $discussion) {
             if (!sforum_delete_discussion($discussion, true, $course, $cm, $sforum)) {
                 $result = false;
@@ -420,8 +423,6 @@ function sforum_delete_instance($id) {
 
     sforum_grade_item_delete($sforum);
     
-    $DB->get_records_menu('');
-
     // delete cl roles
     $DB->delete_records('sforum_clroles', array('forum'=>$sforum->id));
     // delete performed steps
@@ -494,7 +495,7 @@ function sforum_get_completion_state($course,$cm,$userid,$type) {
     $result=$type; // Default return value
 
     $postcountparams=array('userid'=>$userid,
-                     'sforumid'=>$sforum->id);
+                     'forumid'=>$sforum->id);
     $postcountsql="
 SELECT
     COUNT(1)
@@ -502,12 +503,12 @@ FROM
     {sforum_posts} fp
     INNER JOIN {sforum_discussions} fd ON fp.discussion=fd.id
 WHERE
-    fp.userid=:userid AND fd.sforum=:sforumid";
+    fp.userid=:userid AND fd.forum=:forumid";
 
     if ($sforum->completiondiscussions) {
         $value = $sforum->completiondiscussions <=
                  $DB->count_records('sforum_discussions',
-                      array('sforum'=>$sforum->id,'userid'=>$userid));
+                      array('forumid'=>$sforum->id,'userid'=>$userid));
         if ($type == COMPLETION_AND) {
             $result = $result && $value;
         } else {
@@ -6495,11 +6496,11 @@ function sforum_tp_get_course_unread_posts($userid, $courseid) {
     if ($CFG->sforum_allowforcedreadtracking) {
         $trackingsql = "AND (f.trackingtype = ".SCRIPTING_FORUM_TRACKING_FORCED."
                             OR (f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OPTIONAL." AND tf.id IS NULL
-                                AND (SELECT tracksforums FROM {user} WHERE id = ?) = 1))";
+                                AND (SELECT trackforums FROM {user} WHERE id = ?) = 1))";
     } else {
         $trackingsql = "AND ((f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OPTIONAL." OR f.trackingtype = ".SCRIPTING_FORUM_TRACKING_FORCED.")
                             AND tf.id IS NULL
-                            AND (SELECT tracksforums FROM {user} WHERE id = ?) = 1)";
+                            AND (SELECT trackforums FROM {user} WHERE id = ?) = 1)";
     }
 
     $sql = "SELECT f.id, COUNT(p.id) AS unread
@@ -6633,7 +6634,7 @@ function sforum_tp_delete_read_records($userid=-1, $postid=-1,
     }
     if ($sforumid > -1) {
         if ($select != '') $select .= ' AND ';
-        $select .= 'sforumid = ?';
+        $select .= 'forumid = ?';
         $params[] = $sforumid;
     }
     if ($select == '') {
@@ -6658,12 +6659,12 @@ function sforum_tp_get_untracked_sforums($userid, $courseid) {
     if ($CFG->sforum_allowforcedreadtracking) {
         $trackingsql = "AND (f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OFF."
                             OR (f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OPTIONAL." AND (ft.id IS NOT NULL
-                                OR (SELECT tracksforums FROM {user} WHERE id = ?) = 0)))";
+                                OR (SELECT trackforums FROM {user} WHERE id = ?) = 0)))";
     } else {
         $trackingsql = "AND (f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OFF."
                             OR ((f.trackingtype = ".SCRIPTING_FORUM_TRACKING_OPTIONAL." OR f.trackingtype = ".SCRIPTING_FORUM_TRACKING_FORCED.")
                                 AND (ft.id IS NOT NULL
-                                    OR (SELECT tracksforums FROM {user} WHERE id = ?) = 0)))";
+                                    OR (SELECT trackforums FROM {user} WHERE id = ?) = 0)))";
     }
 
     $sql = "SELECT f.id
@@ -6717,7 +6718,7 @@ function sforum_tp_can_track_sforums($sforum=false, $user=false) {
             // Since we can force tracking, assume yes without a specific sforum.
             return true;
         } else {
-            return (bool)$user->tracksforums;
+            return (bool)$user->trackforums;
         }
     }
 
@@ -6735,12 +6736,12 @@ function sforum_tp_can_track_sforums($sforum=false, $user=false) {
         // If we allow forcing, then forced sforums takes procidence over user setting.
         return ($sforumforced ||
                 ($sforumallows  &&
-                (!empty($user->tracksforums) &&
-                (bool)$user->tracksforums)));
+                (!empty($user->trackforums) &&
+                (bool)$user->trackforums)));
     } else {
         // If we don't allow forcing, user setting trumps.
             return ($sforumforced || $sforumallows) &&
-                    !empty($user->tracksforums);
+                    !empty($user->trackforums);
     }
 }
 
@@ -7456,9 +7457,9 @@ function sforum_extend_settings_navigation(settings_navigation $settingsnav,
                 || ((!$CFG->sforum_allowforcedreadtracking) &&
                 $sforumobject->trackingtype == SCRIPTING_FORUM_TRACKING_FORCED)) {
             if (sforum_tp_is_tracked($sforumobject)) {
-                $linktext = get_string('notracksforum', 'sforum');
+                $linktext = get_string('notrackforum', 'sforum');
             } else {
-                $linktext = get_string('tracksforum', 'sforum');
+                $linktext = get_string('trackforum', 'sforum');
             }
             $url = new moodle_url('/mod/sforum/settracking.php', array(
                     'id' => $sforumobject->id,
