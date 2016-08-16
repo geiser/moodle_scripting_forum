@@ -75,7 +75,6 @@ define('SCRIPTING_FORUM_DISCUSSION_UNPINNED', 0);
 /// STANDARD FUNCTIONS ///////////////////////////////////////////////////////////
 
 /**
- * TODO
  * Given an object containing all the necessary data,
  * (defined by the form in mod_scripting_form.php) this function
  * will create a new instance and return the id number
@@ -140,6 +139,14 @@ function sforum_add_instance($sforum, $mform = null) {
     return $sforum->id;
 }
 
+/**
+ * Handle changes in the CL roles during the creation or update of a
+ * scripting forum instance. This function is typically called in the
+ * end of functions: sforum_add_instance and sforum_update_instance 
+ *
+ * @param stdClass $sforum The sforum object
+ * @return void
+ */
 function sforum_scripting_clroles_update($sforum) {
     global $DB;
     $clroles = $DB->get_record('sforum_clroles', array('forum'=>$sforum->id));
@@ -153,24 +160,43 @@ function sforum_scripting_clroles_update($sforum) {
     else $DB->insert_record('sforum_clroles', $clroles);
 }
 
+/**
+ * Handle changes in the steps during the creation or update of a
+ * scripting forum instance. This function is typically called in the
+ * end of functions: sforum_add_instance and sforum_update_instance 
+ *
+ * @param stdClass $sforum The sforum object
+ * @return void
+ */
 function sforum_scripting_steps_update($sforum) {
     global $DB;
+    $current_ids = array_keys($DB->get_records_sql_menu(
+            'SELECT g.id, g.label
+            FROM {groups} g
+            INNER JOIN {groupings_groups} s ON g.id = s.groupid
+            WHERE s.groupingid = ?', array($sforum->clroles)));
+    // delete permormed steps
+    if (!empty($current_ids)) {
+        $DB->delete_records_select('sforum_performed_steps', "stepid IN ('"+
+            implode("','", $current_ids)+"')");
+    }
+    // update or insert steps
+    $updated_ids = array();
     $steps = pre_split("/[\r\t\n\f]+/", $sforum->steps);
-    foreach ($cstep as &$steps) {
-        $cstep = json_decode($cstep);
-
+    foreach ($cstep as $steps) {
+        $cstep = json_decode($cstep); // decode json
         $step = new stdClass();
         $search = array('forum'=>$sforum->id, 'label'=>$cstep->label);
         if ($DB->record_exists('sforum_steps', $search)) {
             $step = $DB->get_record('sforum_steps', $search);
         }
-
         $step->forum = $sforum->id;
         $step->label = $cstep->label;
         $step->description = $cstep->description;
         if (!empty($cstep->optional) && ($cstep->optional != false)) {
             $step->optional = 1;
         }
+        // update cl role in each step
         if (!empty($cstep->clrole)) {
             $group = $DB->get_record_sql(
             'SELECT g.id as id
@@ -181,21 +207,31 @@ function sforum_scripting_steps_update($sforum) {
             MUST_EXIST);
             $step->groupid = $group->id;
         }
-        
-        if (!empty($step->id)) $DB->update_record('sforum_steps', $step);
-        else $step->id = $DB->insert_record('sforum_steps', $step);
+        // 
+        if (!empty($step->id)) {
+            $DB->update_record('sforum_steps', $step);
+            $updated_ids[] = $step->id;
+        } else {
+            $step->id = $DB->insert_record('sforum_steps', $step);
+        }
     }
-
-
+    // eliminate non-updated steps
+    $eliminated_ids = array_diff($current_ids, $updated_ids);
+    if (!empty($eliminated_ids)) {
+        $DB->delete_records_select('sforum_steps', "id IN ('"+
+            implode("','", $eliminated_ids)+"')");
+    }
+    // update dependon in each step
+    foreach ($cstep as $steps) {
+        $search = array('forum'=>$sforum->id, 'label'=>$cstep->label);
+        $step = $DB->get_record('sforum_steps', $search, MUST_EXIST);
         if (!empty($cstep->dependon)) {
             $dependon = $DB->get_record('sforum_steps',
-                    array('label'=>$cstep->dependon, 'forum'=>$sforum->id));
-            if (!$dependon) $step->dependon = $dependon->id;
-            else $toremove[]
+                    array('label'=>$cstep->dependon, 'forum'=>$sforum->id), MUST_EXIST);
+            $step->dependon = $dependon->id;
+            $DB->update_record('sforum_steps', $step);
         }
-
-    die;
-    $steps = $DB->get_records('sforum_steps', array('forum'=>$sforum->id));
+    }
 }
 
 /**
@@ -216,7 +252,6 @@ function sforum_instance_created($context, $sforum) {
 }
 
 /**
- * TODO
  * Given an object containing all the necessary data,
  * (defined by the form in mod_scripting_form.php) this function
  * will update an existing instance with new data.
@@ -324,13 +359,13 @@ function sforum_update_instance($sforum, $mform) {
     }
 
     sforum_grade_item_update($sforum);
+    sforum_scripting_clroles_update($sforum);
+    sforum_scripting_steps_update($sforum);
 
     return true;
 }
 
-
 /**
- * TODO
  * Given an ID of an instance of this module,
  * this function will permanently delete the instance
  * and any data that depends on it.
@@ -384,6 +419,20 @@ function sforum_delete_instance($id) {
     }
 
     sforum_grade_item_delete($sforum);
+    
+    $DB->get_records_menu('');
+
+    // delete cl roles
+    $DB->delete_records('sforum_clroles', array('forum'=>$sforum->id));
+    // delete performed steps
+    $step_ids = array_keys($DB->get_records_menu('sforum_steps',
+            array('forum'=>$sforum->id), '', 'id, label'));
+    if (!empty($step_ids)) {
+        $DB->delete_records_select('sforum_performed_steps',
+                    "stepid IN ('"+implode("','", $step_ids)+"')");
+    }
+    // delete steps
+    $DB->delete_records('sforum_steps', array('forum'=>$sforum->id));
 
     return $result;
 }
