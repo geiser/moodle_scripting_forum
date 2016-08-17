@@ -320,7 +320,7 @@ class subscriptions {
                 if (!isset(self::$sforumcache[$userid][$sforumid])) {
                     if ($DB->record_exists('sforum_subscriptions', array(
                         'userid' => $userid,
-                        'sforum' => $sforumid,
+                        'forum' => $sforumid,
                     ))) {
                         self::$sforumcache[$userid][$sforumid] = true;
                     } else {

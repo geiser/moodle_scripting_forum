@@ -115,6 +115,11 @@ class mod_sforum_post_form extends moodleform {
         $mform->addRule('subject', get_string('required'), 'required', null, 'client');
         $mform->addRule('subject', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
+        $mform->addElement('select', 'step', get_string('step', 'sforum'),
+                array('multiple'=>'multiple', 'aa'=>'ddd'));
+        $mform->addHelpButton('step',  'step', 'sforum');
+        $mform->addRule('step', get_string('required'), 'required', null, 'client');
+
         $mform->addElement('editor', 'message',
                 get_string('message', 'sforum'),
                 null, self::editor_options($modcontext, (empty($post->id) ? null : $post->id)));

@@ -181,7 +181,7 @@ function sforum_scripting_steps_update($sforum) {
     // update or insert steps
     $updated_ids = array();
     $steps = array_filter(preg_split("/[\r\t\n\f]+/", $sforum->steps),
-            function($s) { return !empty($s); });
+            function($s) { return !empty(trim($s)); });
     foreach ($steps as $cstep) {
         $cstep = json_decode($cstep); // decode json
         $step = new stdClass();
@@ -228,10 +228,10 @@ function sforum_scripting_steps_update($sforum) {
     foreach ($steps as $cstep) {
         $cstep = json_decode($cstep); // decode json
         $search = array('forum'=>$sforum->id, 'label'=>$cstep->label);
-        $step = $DB->get_record('sforum_steps', $search, MUST_EXIST);
+        $step = $DB->get_record('sforum_steps', $search, '*', MUST_EXIST);
         if (!empty($cstep->dependon)) {
             $dependon = $DB->get_record('sforum_steps',
-                    array('label'=>$cstep->dependon, 'forum'=>$sforum->id), MUST_EXIST);
+                    array('label'=>$cstep->dependon, 'forum'=>$sforum->id), '*', MUST_EXIST);
             $step->dependon = $dependon->id;
             $DB->update_record('sforum_steps', $step);
         }
@@ -1553,7 +1553,7 @@ function sforum_print_overview($courses,&$htmlarray) {
     $params[] = $USER->id;
     $coursessql = implode(' OR ', $coursessqls);
 
-    $sql = "SELECT d.id, d.sforum, d.course, d.groupid, COUNT(*) as count "
+    $sql = "SELECT d.id, d.forum, d.course, d.groupid, COUNT(*) as count "
                 .'FROM {sforum_discussions} d '
                 .'JOIN {sforum_posts} p ON p.discussion = d.id '
                 ."WHERE ($coursessql) "
