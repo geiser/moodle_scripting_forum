@@ -73,8 +73,9 @@ class mod_sforum_mod_form extends moodleform_mod {
         $mform->addRule('clroles', null, 'required', null, 'client');
 
         $mform->addElement('textarea', 'steps', get_string('steps', 'sforum'),
-                'wrap="virtual" rows="10" cols="80"');
+                'rows="10" cols="80"');
         $mform->addHelpButton('steps', 'steps', 'sforum');
+        $mform->addRule('steps', null, 'required', null, 'client');
 
         // Attachments and word count.
         $mform->addElement('header', 'attachmentswordcounthdr',
@@ -212,13 +213,248 @@ class mod_sforum_mod_form extends moodleform_mod {
 //-------------------------------------------------------------------------------
 
         $this->standard_grading_coursemodule_elements();
-
         $this->standard_coursemodule_elements();
+
 //-------------------------------------------------------------------------------
 // buttons
         $this->add_action_buttons();
 
     }
+
+    /**
+     * Hack in adds all the standard elements to a form to edit the settings for an activity module.
+     */
+    function standard_coursemodule_elements(){
+        global $COURSE, $CFG, $DB;
+        $mform =& $this->_form;
+
+        $this->_outcomesused = false;
+        if ($this->_features->outcomes) {
+            if ($outcomes = grade_outcome::fetch_all_available($COURSE->id)) {
+                $this->_outcomesused = true;
+                $mform->addElement('header', 'modoutcomes', get_string('outcomes', 'grades'));
+                foreach($outcomes as $outcome) {
+                    $mform->addElement('advcheckbox', 'outcome_'.$outcome->id, $outcome->get_name());
+                }
+            }
+        }
+
+        if ($this->_features->rating) {
+            require_once($CFG->dirroot.'/rating/lib.php');
+            $rm = new rating_manager();
+
+            $mform->addElement('header', 'modstandardratings', get_string('ratings', 'rating'));
+
+            $permission=CAP_ALLOW;
+            $rolenamestring = null;
+            $isupdate = false;
+            if (!empty($this->_cm)) {
+                $isupdate = true;
+                $context = context_module::instance($this->_cm->id);
+
+                $rolenames = get_role_names_with_caps_in_context($context, array('moodle/rating:rate', 'mod/'.$this->_cm->modname.':rate'));
+                $rolenamestring = implode(', ', $rolenames);
+            } else {
+                $rolenamestring = get_string('capabilitychecknotavailable','rating');
+            }
+            $mform->addElement('static', 'rolewarning', get_string('rolewarning','rating'), $rolenamestring);
+            $mform->addHelpButton('rolewarning', 'rolewarning', 'rating');
+
+            $mform->addElement('select', 'assessed', get_string('aggregatetype', 'rating') , $rm->get_aggregate_types());
+            $mform->setDefault('assessed', 0);
+            $mform->addHelpButton('assessed', 'aggregatetype', 'rating');
+
+            $gradeoptions = array('isupdate' => $isupdate,
+                                  'currentgrade' => false,
+                                  'hasgrades' => false,
+                                  'canrescale' => $this->_features->canrescale,
+                                  'useratings' => $this->_features->rating);
+            if ($isupdate) {
+                $gradeitem = grade_item::fetch(array('itemtype' => 'mod',
+                                                     'itemmodule' => $this->_cm->modname,
+                                                     'iteminstance' => $this->_cm->instance,
+                                                     'itemnumber' => 0,
+                                                     'courseid' => $COURSE->id));
+                if ($gradeitem) {
+                    $gradeoptions['currentgrade'] = $gradeitem->grademax;
+                    $gradeoptions['currentgradetype'] = $gradeitem->gradetype;
+                    $gradeoptions['currentscaleid'] = $gradeitem->scaleid;
+                    $gradeoptions['hasgrades'] = $gradeitem->has_grades();
+                }
+            }
+            $mform->addElement('modgrade', 'scale', get_string('scale'), $gradeoptions);
+            $mform->disabledIf('scale', 'assessed', 'eq', 0);
+            $mform->addHelpButton('scale', 'modgrade', 'grades');
+            $mform->setDefault('scale', $CFG->gradepointdefault);
+
+            $mform->addElement('checkbox', 'ratingtime', get_string('ratingtime', 'rating'));
+            $mform->disabledIf('ratingtime', 'assessed', 'eq', 0);
+
+            $mform->addElement('date_time_selector', 'assesstimestart', get_string('from'));
+            $mform->disabledIf('assesstimestart', 'assessed', 'eq', 0);
+            $mform->disabledIf('assesstimestart', 'ratingtime');
+
+            $mform->addElement('date_time_selector', 'assesstimefinish', get_string('to'));
+            $mform->disabledIf('assesstimefinish', 'assessed', 'eq', 0);
+            $mform->disabledIf('assesstimefinish', 'ratingtime');
+        }
+
+        //doing this here means splitting up the grade related settings on the lesson settings page
+        //$this->standard_grading_coursemodule_elements();
+
+        $mform->addElement('header', 'modstandardelshdr', get_string('modstandardels', 'form'));
+
+        $mform->addElement('modvisible', 'visible', get_string('visible'));
+        if (!empty($this->_cm)) {
+            $context = context_module::instance($this->_cm->id);
+            if (!has_capability('moodle/course:activityvisibility', $context)) {
+                $mform->hardFreeze('visible');
+            }
+        }
+
+        if ($this->_features->idnumber) {
+            $mform->addElement('text', 'cmidnumber', get_string('idnumbermod'));
+            $mform->setType('cmidnumber', PARAM_RAW);
+            $mform->addHelpButton('cmidnumber', 'idnumbermod');
+        }
+
+        if ($this->_features->groups) {
+            // hack to change group mode 
+            $options = array(SEPARATEGROUPS => get_string('groupsseparate'));
+            $mform->addElement('select', 'groupmode', get_string('groupmode', 'group'), $options, SEPARATEGROUPS);
+            $mform->addHelpButton('groupmode', 'groupmode', 'group');
+        }
+
+        if ($this->_features->groupings) {
+            // Groupings selector - used to select grouping for groups in activity.
+            $options = array();
+            if ($groupings = $DB->get_records('groupings', array('courseid'=>$COURSE->id))) {
+                foreach ($groupings as $grouping) {
+                    $options[$grouping->id] = format_string($grouping->name);
+                }
+            }
+            core_collator::asort($options);
+            $options = array(null => get_string('none')) + $options;
+            $mform->addElement('select', 'groupingid', get_string('grouping', 'group'), $options);
+            $mform->addHelpButton('groupingid', 'grouping', 'group');
+            $mform->addRule('groupingid', null, 'required', null, 'client');
+        }
+        
+        if (!empty($CFG->enableavailability)) {
+            // Add special button to end of previous section if groups/groupings
+            // are enabled.
+            if ($this->_features->groups || $this->_features->groupings) {
+                $mform->addElement('static', 'restrictgroupbutton', '',
+                        html_writer::tag('button', get_string('restrictbygroup', 'availability'),
+                        array('id' => 'restrictbygroup', 'disabled' => 'disabled')));
+            }
+
+            // Availability field. This is just a textarea; the user interface
+            // interaction is all implemented in JavaScript.
+            $mform->addElement('header', 'availabilityconditionsheader',
+                    get_string('restrictaccess', 'availability'));
+            // Note: This field cannot be named 'availability' because that
+            // conflicts with fields in existing modules (such as assign).
+            // So it uses a long name that will not conflict.
+            $mform->addElement('textarea', 'availabilityconditionsjson',
+                    get_string('accessrestrictions', 'availability'));
+            // The _cm variable may not be a proper cm_info, so get one from modinfo.
+            if ($this->_cm) {
+                $modinfo = get_fast_modinfo($COURSE);
+                $cm = $modinfo->get_cm($this->_cm->id);
+            } else {
+                $cm = null;
+            }
+            \core_availability\frontend::include_all_javascript($COURSE, $cm);
+        }
+
+        // Conditional activities: completion tracking section
+        if(!isset($completion)) {
+            $completion = new completion_info($COURSE);
+        }
+        if ($completion->is_enabled()) {
+            $mform->addElement('header', 'activitycompletionheader', get_string('activitycompletion', 'completion'));
+
+            // Unlock button for if people have completed it (will
+            // be removed in definition_after_data if they haven't)
+            $mform->addElement('submit', 'unlockcompletion', get_string('unlockcompletion', 'completion'));
+            $mform->registerNoSubmitButton('unlockcompletion');
+            $mform->addElement('hidden', 'completionunlocked', 0);
+            $mform->setType('completionunlocked', PARAM_INT);
+
+            $trackingdefault = COMPLETION_TRACKING_NONE;
+            // If system and activity default is on, set it.
+            if ($CFG->completiondefault && $this->_features->defaultcompletion) {
+                $trackingdefault = COMPLETION_TRACKING_MANUAL;
+            }
+
+            $mform->addElement('select', 'completion', get_string('completion', 'completion'),
+                array(COMPLETION_TRACKING_NONE=>get_string('completion_none', 'completion'),
+                COMPLETION_TRACKING_MANUAL=>get_string('completion_manual', 'completion')));
+            $mform->setDefault('completion', $trackingdefault);
+            $mform->addHelpButton('completion', 'completion', 'completion');
+
+            // Automatic completion once you view it
+            $gotcompletionoptions = false;
+            if (plugin_supports('mod', $this->_modname, FEATURE_COMPLETION_TRACKS_VIEWS, false)) {
+                $mform->addElement('checkbox', 'completionview', get_string('completionview', 'completion'),
+                    get_string('completionview_desc', 'completion'));
+                $mform->disabledIf('completionview', 'completion', 'ne', COMPLETION_TRACKING_AUTOMATIC);
+                $gotcompletionoptions = true;
+            }
+
+            // Automatic completion once it's graded
+            if (plugin_supports('mod', $this->_modname, FEATURE_GRADE_HAS_GRADE, false)) {
+                $mform->addElement('checkbox', 'completionusegrade', get_string('completionusegrade', 'completion'),
+                    get_string('completionusegrade_desc', 'completion'));
+                $mform->disabledIf('completionusegrade', 'completion', 'ne', COMPLETION_TRACKING_AUTOMATIC);
+                $mform->addHelpButton('completionusegrade', 'completionusegrade', 'completion');
+                $gotcompletionoptions = true;
+
+                // If using the rating system, there is no grade unless ratings are enabled.
+                if ($this->_features->rating) {
+                    $mform->disabledIf('completionusegrade', 'assessed', 'eq', 0);
+                }
+            }
+
+            // Automatic completion according to module-specific rules
+            $this->_customcompletionelements = $this->add_completion_rules();
+            foreach ($this->_customcompletionelements as $element) {
+                $mform->disabledIf($element, 'completion', 'ne', COMPLETION_TRACKING_AUTOMATIC);
+            }
+
+            $gotcompletionoptions = $gotcompletionoptions ||
+                count($this->_customcompletionelements)>0;
+
+            // Automatic option only appears if possible
+            if ($gotcompletionoptions) {
+                $mform->getElement('completion')->addOption(
+                    get_string('completion_automatic', 'completion'),
+                    COMPLETION_TRACKING_AUTOMATIC);
+            }
+
+            // Completion expected at particular date? (For progress tracking)
+            $mform->addElement('date_selector', 'completionexpected', get_string('completionexpected', 'completion'), array('optional'=>true));
+            $mform->addHelpButton('completionexpected', 'completionexpected', 'completion');
+            $mform->disabledIf('completionexpected', 'completion', 'eq', COMPLETION_TRACKING_NONE);
+        }
+
+        // Populate module tags.
+        if (core_tag_tag::is_enabled('core', 'course_modules')) {
+            $mform->addElement('header', 'tagshdr', get_string('tags', 'tag'));
+            $mform->addElement('tags', 'tags', get_string('tags'), array('itemtype' => 'course_modules', 'component' => 'core'));
+            if ($this->_cm) {
+                $tags = core_tag_tag::get_item_tags_array('core', 'course_modules', $this->_cm->id);
+                $mform->setDefault('tags', $tags);
+            }
+        }
+
+        $this->standard_hidden_coursemodule_elements();
+
+        $this->plugin_extend_coursemodule_standard_elements();
+    }
+
+
 
     function definition_after_data() {
         parent::definition_after_data();

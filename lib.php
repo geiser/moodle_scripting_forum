@@ -172,12 +172,7 @@ function sforum_scripting_steps_update($sforum) {
     global $DB;
 
     $current_ids = array_keys($DB->get_records_menu('sforum_steps',
-            array('forum'=>$sforum->id), '', 'id, label'));
-    // delete permormed steps
-    if (!empty($current_ids)) {
-        $DB->delete_records_select('sforum_performed_steps', "stepid IN ('"+
-            implode("','", $current_ids)+"')");
-    }
+            array('forum'=>$sforum->id, 'deleted'=>0), '', 'id, label'));
     // update or insert steps
     $updated_ids = array();
     $steps = array_filter(preg_split("/[\r\t\n\f]+/", $sforum->steps),
@@ -221,7 +216,7 @@ function sforum_scripting_steps_update($sforum) {
     // eliminate non-updated steps
     $eliminated_ids = array_diff($current_ids, $updated_ids);
     if (!empty($eliminated_ids)) {
-        $DB->delete_records_select('sforum_steps', "id IN ('"+
+        $DB->execute("UPDATE {sforum_steps} SET deleted = 1 WHERE id IN ('"+
             implode("','", $eliminated_ids)+"')");
     }
     // update dependon in each step
@@ -432,6 +427,8 @@ function sforum_delete_instance($id) {
         $DB->delete_records_select('sforum_performed_steps',
                     "stepid IN ('"+implode("','", $step_ids)+"')");
     }
+    // delete current steps 
+    $DB->delete_records('sforum_current_steps', array('forum'=>$sforum->id));
     // delete steps
     $DB->delete_records('sforum_steps', array('forum'=>$sforum->id));
 

@@ -598,6 +598,22 @@ if (!isset($sforum->maxattachments)) {
     $sforum->maxattachments = 3;
 }
 
+
+$sql = 'SELECT s.label, s.description
+FROM {sforum_steps} s
+INNER JOIN {groups_members} m ON m.groupid = s.groupid
+WHERE s.forum = :forumid AND m.userid = :userid AND s.deleted != 0 AND '
+$cond = array('forumid'=>$sforum->id, 'userid'=>$user->id);
+$current_step = $DB->get_field('sforum_current_steps', 'stepid',
+    array('forum'=>$sforum->id, 'userid'=>$USER->id));
+if (empty($current_step)) {
+   $sql .= 's.dependon IS NULL';
+} else {
+   $sql .= '(s.dependon = :stepid OR s.dependon IS NULL)';
+   $cond = array_merge($cond, array('stepid'=>$current_step));
+}
+$nextsteps = $DB->get_records_sql_menu($sql, $cond);
+
 $thresholdwarning = sforum_check_throttling($sforum, $cm);
 $mform_post = new mod_sforum_post_form('post.php',
         array('course' => $course,
@@ -609,7 +625,9 @@ $mform_post = new mod_sforum_post_form('post.php',
               'subscribe' => \mod_sforum\subscriptions::is_subscribed(
                       $USER->id, $sforum, null, $cm),
               'thresholdwarning' => $thresholdwarning,
-              'edit' => $edit), 'post', '', array('id' => 'mformsforum'));
+              'nextsteps' => $nextsteps,
+              'edit' => $edit),
+        'post', '', array('id' => 'mformsforum'));
 
 $draftitemid = file_get_submitted_draft_itemid('attachments');
 file_prepare_draft_area($draftitemid,
