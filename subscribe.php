@@ -56,7 +56,7 @@ if (!is_null($sesskey)) {
 if (!is_null($discussionid)) {
     $url->param('d', $discussionid);
     if (!$discussion = $DB->get_record('sforum_discussions',
-            array('id' => $discussionid, 'sforum' => $id))) {
+            array('id' => $discussionid, 'forum' => $id))) {
         print_error('invaliddiscussionid', 'sforum');
     }
 }

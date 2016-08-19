@@ -97,10 +97,9 @@ class mod_sforum_post_form extends moodleform {
         $subscribe = $this->_customdata['subscribe'];
         $edit = $this->_customdata['edit'];
         $thresholdwarning = $this->_customdata['thresholdwarning'];
-        
-        $nextsteps = array(null=>get_string('none'));
-        if (!empty($this->_customdata['nextsteps'])) {
-            $nextsteps = array_merge($nextsteps, $this->_customdata['nextsteps']);
+        $nextsteps = $this->_customdata['nextsteps'];
+        if (empty($this->_customdata['nextsteps'])) {
+            $nextsteps = array(null=>get_string('none'));
         }
         $defaultstep = null;
         if (!empty($this->_customdata['defaultstep'])) {

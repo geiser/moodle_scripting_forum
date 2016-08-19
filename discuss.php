@@ -44,7 +44,7 @@ $PAGE->set_url($url);
 $discussion = $DB->get_record('sforum_discussions', array('id' => $d), '*', MUST_EXIST);
 $course = $DB->get_record('course', array('id' => $discussion->course), '*', MUST_EXIST);
 $sforum = $DB->get_record('sforum',
-        array('id' => $discussion->sforum), '*', MUST_EXIST);
+        array('id' => $discussion->forum), '*', MUST_EXIST);
 $cm = get_coursemodule_from_instance('sforum', $sforum->id,
         $course->id, false, MUST_EXIST);
 
@@ -136,7 +136,7 @@ if ($move > 0 and confirm_sesskey()) {
             // The user has opted out of this discussion and the move would cause
             // them to receive notifications again.
             // Ensure they are unsubscribed from the discussion still.
-            $subscriptionchanges[$userid] = \mod_sforum\subscriptions::FORUM_DISCUSSION_UNSUBSCRIBED;
+            $subscriptionchanges[$userid] = \mod_sforum\subscriptions::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED;
         } else if (!$sforumsubscribed && $discussionsubscribed && !$targetsubscription) {
             // The user has opted into this discussion and would otherwise not receive
             // the subscription after the move.
@@ -145,7 +145,7 @@ if ($move > 0 and confirm_sesskey()) {
         }
     }
 
-    $DB->set_field('sforum_discussions', 'sforum',
+    $DB->set_field('sforum_discussions', 'forum',
             $sforumto->id, array('id' => $discussion->id));
     $DB->set_field('sforum_read', 'sforumid',
             $sforumto->id, array('discussionid' => $discussion->id));
@@ -157,7 +157,7 @@ if ($move > 0 and confirm_sesskey()) {
     $newdiscussion = clone $discussion;
     $newdiscussion->sforum = $sforumto->id;
     foreach ($subscriptionchanges as $userid => $preference) {
-        if ($preference != \mod_sforum\subscriptions::FORUM_DISCUSSION_UNSUBSCRIBED) {
+        if ($preference != \mod_sforum\subscriptions::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED) {
             // Users must have viewdiscussion to a discussion.
             if (has_capability('mod/sforum:viewdiscussion', $destinationctx, $userid)) {
                 \mod_sforum\subscriptions::subscribe_user_to_discussion($userid,
@@ -198,11 +198,11 @@ if ($pin !== -1 && confirm_sesskey()) {
             'other' => array('sforumid' => $sforum->id));
 
     switch ($pin) {
-        case FORUM_DISCUSSION_PINNED:
+        case SCRIPTING_FORUM_DISCUSSION_PINNED:
             // Pin the discussion and trigger discussion pinned event.
             sforum_discussion_pin($modcontext, $sforum, $discussion);
             break;
-        case FORUM_DISCUSSION_UNPINNED:
+        case SCRIPTING_FORUM_DISCUSSION_UNPINNED:
             // Unpin the discussion and trigger discussion unpinned event.
             sforum_discussion_unpin($modcontext, $sforum, $discussion);
             break;
@@ -396,11 +396,11 @@ if ($sforum->type != 'single' &&
 }
 
 if (has_capability('mod/sforum:pindiscussions', $modcontext)) {
-    if ($discussion->pinned == FORUM_DISCUSSION_PINNED) {
-        $pinlink = FORUM_DISCUSSION_UNPINNED;
+    if ($discussion->pinned == SCRIPTING_FORUM_DISCUSSION_PINNED) {
+        $pinlink = SCRIPTING_FORUM_DISCUSSION_UNPINNED;
         $pintext = get_string('discussionunpin', 'sforum');
     } else {
-        $pinlink = FORUM_DISCUSSION_PINNED;
+        $pinlink = SCRIPTING_FORUM_DISCUSSION_PINNED;
         $pintext = get_string('discussionpin', 'sforum');
     }
     $button = new single_button(new moodle_url('discuss.php',

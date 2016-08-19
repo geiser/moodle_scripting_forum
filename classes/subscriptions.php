@@ -40,7 +40,7 @@ class subscriptions {
      *
      * @var int
      */
-    const FORUM_DISCUSSION_UNSUBSCRIBED = -1;
+    const SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED = -1;
 
     /**
      * The subscription cache for sforums.
@@ -120,7 +120,7 @@ class subscriptions {
 
         // Check whether there is a record for this discussion subscription.
         if (isset($subscriptions[$discussionid])) {
-            return ($subscriptions[$discussionid] != self::FORUM_DISCUSSION_UNSUBSCRIBED);
+            return ($subscriptions[$discussionid] != self::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED);
         }
 
         return self::is_subscribed_to_sforum($userid, $sforum);
@@ -145,7 +145,7 @@ class subscriptions {
      * @return bool
      */
     public static function is_forcesubscribed($sforum) {
-        return ($sforum->forcesubscribe == FORUM_FORCESUBSCRIBE);
+        return ($sforum->forcesubscribe == SCRIPTING_FORUM_FORCESUBSCRIBE);
     }
 
     /**
@@ -172,7 +172,7 @@ class subscriptions {
     /**
      * Set the sforum subscription mode.
      *
-     * By default when called without options, this is set to FORUM_FORCESUBSCRIBE.
+     * By default when called without options, this is set to SCRIPTING_FORUM_FORCESUBSCRIBE.
      *
      * @param \stdClass $sforum The record of the sforum to set
      * @param int $status The new subscription state
@@ -228,7 +228,7 @@ class subscriptions {
         $params = array_merge($courseparams, array(
             'modulename'=>'sforum',
             'userid' => $USER->id,
-            'forcesubscribe' => FORUM_FORCESUBSCRIBE,
+            'forcesubscribe' => SCRIPTING_FORUM_FORCESUBSCRIBE,
         ));
         $sforums = $DB->get_recordset_sql($sql, $params);
 
@@ -368,7 +368,7 @@ class subscriptions {
         $subscriptions = $DB->get_recordset_sql($sql, array(
             'course' => $courseid,
             'userid' => $userid,
-            'subscriptionforced' => FORUM_FORCESUBSCRIBE,
+            'subscriptionforced' => SCRIPTING_FORUM_FORCESUBSCRIBE,
         ));
 
         foreach ($subscriptions as $id => $data) {
@@ -428,7 +428,7 @@ class subscriptions {
             if ($includediscussionsubscriptions) {
                 $params['ssforumid'] = $sforum->id;
                 $params['dssforumid'] = $sforum->id;
-                $params['unsubscribed'] = self::FORUM_DISCUSSION_UNSUBSCRIBED;
+                $params['unsubscribed'] = self::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED;
 
                 $sql = "SELECT $fields
                         FROM (
@@ -510,7 +510,7 @@ class subscriptions {
                 if (!isset(self::$sforumdiscussioncache[$userid][$sforumid])) {
                     $subscriptions = $DB->get_recordset('sforum_discussion_subs', array(
                         'userid' => $userid,
-                        'sforum' => $sforumid,
+                        'forum' => $sforumid,
                     ), null, 'id, discussion, preference');
                     foreach ($subscriptions as $id => $data) {
                         self::add_to_discussion_cache($sforumid, $userid, $data->discussion, $data->preference);
@@ -519,7 +519,7 @@ class subscriptions {
                 }
             } else {
                 $subscriptions = $DB->get_recordset('sforum_discussion_subs', array(
-                    'sforum' => $sforumid,
+                    'forum' => $sforumid,
                 ), null, 'id, userid, discussion, preference');
                 foreach ($subscriptions as $id => $data) {
                     self::add_to_discussion_cache($sforumid, $data->userid, $data->discussion, $data->preference);
@@ -604,14 +604,14 @@ class subscriptions {
                     'userid = :userid AND sforum = :sforumid AND preference <> :preference', array(
                         'userid' => $userid,
                         'sforumid' => $sforum->id,
-                        'preference' => self::FORUM_DISCUSSION_UNSUBSCRIBED,
+                        'preference' => self::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED,
                     ));
 
             // Reset the subscription caches for this sforum.
             // We know that the there were previously entries and there aren't any more.
             if (isset(self::$sforumdiscussioncache[$userid]) && isset(self::$sforumdiscussioncache[$userid][$sforum->id])) {
                 foreach (self::$sforumdiscussioncache[$userid][$sforum->id] as $discussionid => $preference) {
-                    if ($preference != self::FORUM_DISCUSSION_UNSUBSCRIBED) {
+                    if ($preference != self::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED) {
                         unset(self::$sforumdiscussioncache[$userid][$sforum->id][$discussionid]);
                     }
                 }
@@ -667,7 +667,7 @@ class subscriptions {
             if ($userrequest) {
                 $discussionsubscriptions = $DB->get_recordset('sforum_discussion_subs', $sqlparams);
                 $DB->delete_records('sforum_discussion_subs',
-                        array('userid' => $userid, 'sforum' => $sforum->id, 'preference' => self::FORUM_DISCUSSION_UNSUBSCRIBED));
+                        array('userid' => $userid, 'sforum' => $sforum->id, 'preference' => self::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED));
 
                 // We know that the there were previously entries and there aren't any more.
                 if (isset(self::$sforumdiscussioncache[$userid]) && isset(self::$sforumdiscussioncache[$userid][$sforum->id])) {
@@ -715,17 +715,17 @@ class subscriptions {
         // First check whether the user is subscribed to the discussion already.
         $subscription = $DB->get_record('sforum_discussion_subs', array('userid' => $userid, 'discussion' => $discussion->id));
         if ($subscription) {
-            if ($subscription->preference != self::FORUM_DISCUSSION_UNSUBSCRIBED) {
+            if ($subscription->preference != self::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED) {
                 // The user is already subscribed to the discussion. Ignore.
                 return false;
             }
         }
         // No discussion-level subscription. Check for a sforum level subscription.
-        if ($DB->record_exists('sforum_subscriptions', array('userid' => $userid, 'sforum' => $discussion->sforum))) {
-            if ($subscription && $subscription->preference == self::FORUM_DISCUSSION_UNSUBSCRIBED) {
+        if ($DB->record_exists('sforum_subscriptions', array('userid' => $userid, 'forum' => $discussion->forum))) {
+            if ($subscription && $subscription->preference == self::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED) {
                 // The user is subscribed to the sforum, but unsubscribed from the discussion, delete the discussion preference.
                 $DB->delete_records('sforum_discussion_subs', array('id' => $subscription->id));
-                unset(self::$sforumdiscussioncache[$userid][$discussion->sforum][$discussion->id]);
+                unset(self::$sforumdiscussioncache[$userid][$discussion->forum][$discussion->id]);
             } else {
                 // The user is already subscribed to the sforum. Ignore.
                 return false;
@@ -737,22 +737,22 @@ class subscriptions {
             } else {
                 $subscription = new \stdClass();
                 $subscription->userid  = $userid;
-                $subscription->sforum = $discussion->sforum;
+                $subscription->forum = $discussion->forum;
                 $subscription->discussion = $discussion->id;
                 $subscription->preference = time();
 
                 $subscription->id = $DB->insert_record('sforum_discussion_subs', $subscription);
-                self::$sforumdiscussioncache[$userid][$discussion->sforum][$discussion->id] = $subscription->preference;
+                self::$sforumdiscussioncache[$userid][$discussion->forum][$discussion->id] = $subscription->preference;
             }
         }
 
-        $context = sforum_get_context($discussion->sforum, $context);
+        $context = sforum_get_context($discussion->forum, $context);
         $params = array(
             'context' => $context,
             'objectid' => $subscription->id,
             'relateduserid' => $userid,
             'other' => array(
-                'sforumid' => $discussion->sforum,
+                'sforumid' => $discussion->forum,
                 'discussion' => $discussion->id,
             ),
 
@@ -777,44 +777,44 @@ class subscriptions {
         // First check whether the user's subscription preference for this discussion.
         $subscription = $DB->get_record('sforum_discussion_subs', array('userid' => $userid, 'discussion' => $discussion->id));
         if ($subscription) {
-            if ($subscription->preference == self::FORUM_DISCUSSION_UNSUBSCRIBED) {
+            if ($subscription->preference == self::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED) {
                 // The user is already unsubscribed from the discussion. Ignore.
                 return false;
             }
         }
         // No discussion-level preference. Check for a sforum level subscription.
-        if (!$DB->record_exists('sforum_subscriptions', array('userid' => $userid, 'sforum' => $discussion->sforum))) {
-            if ($subscription && $subscription->preference != self::FORUM_DISCUSSION_UNSUBSCRIBED) {
+        if (!$DB->record_exists('sforum_subscriptions', array('userid' => $userid, 'sforum' => $discussion->forum))) {
+            if ($subscription && $subscription->preference != self::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED) {
                 // The user is not subscribed to the sforum, but subscribed from the discussion, delete the discussion subscription.
                 $DB->delete_records('sforum_discussion_subs', array('id' => $subscription->id));
-                unset(self::$sforumdiscussioncache[$userid][$discussion->sforum][$discussion->id]);
+                unset(self::$sforumdiscussioncache[$userid][$discussion->forum][$discussion->id]);
             } else {
                 // The user is not subscribed from the sforum. Ignore.
                 return false;
             }
         } else {
             if ($subscription) {
-                $subscription->preference = self::FORUM_DISCUSSION_UNSUBSCRIBED;
+                $subscription->preference = self::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED;
                 $DB->update_record('sforum_discussion_subs', $subscription);
             } else {
                 $subscription = new \stdClass();
                 $subscription->userid  = $userid;
-                $subscription->sforum = $discussion->sforum;
+                $subscription->sforum = $discussion->forum;
                 $subscription->discussion = $discussion->id;
-                $subscription->preference = self::FORUM_DISCUSSION_UNSUBSCRIBED;
+                $subscription->preference = self::SCRIPTING_FORUM_DISCUSSION_UNSUBSCRIBED;
 
                 $subscription->id = $DB->insert_record('sforum_discussion_subs', $subscription);
             }
-            self::$sforumdiscussioncache[$userid][$discussion->sforum][$discussion->id] = $subscription->preference;
+            self::$sforumdiscussioncache[$userid][$discussion->forum][$discussion->id] = $subscription->preference;
         }
 
-        $context = sforum_get_context($discussion->sforum, $context);
+        $context = sforum_get_context($discussion->forum, $context);
         $params = array(
             'context' => $context,
             'objectid' => $subscription->id,
             'relateduserid' => $userid,
             'other' => array(
-                'sforumid' => $discussion->sforum,
+                'sforumid' => $discussion->forum,
                 'discussion' => $discussion->id,
             ),
 

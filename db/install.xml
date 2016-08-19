@@ -176,7 +176,8 @@
       </INDEXES>
     </TABLE>
     
-    <TABLE NAME="sforum_discussion_subs" COMMENT="Users may choose to (un)subscribe from specific discussions.">
+    <TABLE NAME="sforum_discussion_subs"
+            COMMENT="Users may choose to (un)subscribe from specific discussions.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="forum" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
@@ -188,8 +189,10 @@
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="sforum" REFFIELDS="id"/>
         <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
-        <KEY NAME="discussion" TYPE="foreign" FIELDS="discussion" REFTABLE="sforum_discussions" REFFIELDS="id"/>
-        <KEY NAME="user_discussions" TYPE="unique" FIELDS="userid, discussion" COMMENT="Users may only have one discussion preferences per discussion"/>
+        <KEY NAME="discussion" TYPE="foreign" FIELDS="discussion"
+                REFTABLE="sforum_discussions" REFFIELDS="id"/>
+        <KEY NAME="user_discussions" TYPE="unique" FIELDS="userid, discussion"
+                COMMENT="Users may only have one discussion preferences per discussion"/>
       </KEYS>
     </TABLE>
 
@@ -197,12 +200,12 @@
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="forum" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="groupingid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="grouping" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="sforum" REFFIELDS="id"/>
-        <KEY NAME="groupingid" TYPE="foreign" FIELDS="groupingid" REFTABLE="groupings" REFFIELDS="id"/>
+        <KEY NAME="grouping" TYPE="foreign" FIELDS="grouping" REFTABLE="groupings" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
 
@@ -212,10 +215,12 @@
         <FIELD NAME="forum" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="label" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="description" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="dependon" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="For now only one dependence is enough, in the future working with more than one will be wonderful"/>
+        <FIELD NAME="dependon" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"
+                COMMENT="For now only one dependence is enough, more than one will be wonderful"/>
         <FIELD NAME="optional" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="deleted" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="groupid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="CL role who can push these step in forward" />
+        <FIELD NAME="groupid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"
+                COMMENT="CL role who can push these step in forward" />
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -224,31 +229,19 @@
       </KEYS>
     </TABLE>
 
-
-    <TABLE NAME="sforum_current_steps" COMMENT="Current step in the sequencing">
+    <TABLE NAME="sforum_performed_steps" COMMENT="Performed steps in the sequencing.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Position in the sequencing"/>
-        <FIELD NAME="forum" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="stepid" TYPE="int" LENGTH="10" NOTNULL="false"  SEQUENCE="false"/>
+        <FIELD NAME="discussion" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="step" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="post" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="users" REFFIELDS="id"/>
-        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="sforum" REFFIELDS="id"/>
-      </KEYS>
-    </TABLE>
-
-    <TABLE NAME="sforum_performed_steps" COMMENT="Performed steps in the sequencing. Each step is basically defined by a post in the forum">
-      <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="stepid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="postid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-      </FIELDS>
-      <KEYS>
-        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="stepid" TYPE="foreign" FIELDS="stepid" REFTABLE="sforum_steps" REFFIELDS="id"/>
-        <KEY NAME="postid" TYPE="foreign" FIELDS="postid" REFTABLE="sforum_posts" REFFIELDS="id"/>
+        <KEY NAME="discussion" TYPE="foreign" FIELDS="discussion"
+                REFTABLE="sforum_discussions" REFFIELDS="id"/>
+        <KEY NAME="step" TYPE="foreign" FIELDS="step" REFTABLE="sforum_steps" REFFIELDS="id"/>
+        <KEY NAME="post" TYPE="foreign" FIELDS="post" REFTABLE="sforum_posts" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
 

@@ -299,7 +299,6 @@ if (!empty($sforum)) {      // User is starting a new discussion in a sforum
     $post->course = $course->id;
     $post->forum  = $sforum->id;
     $post->groupid = ($discussion->groupid == -1) ? 0 : $discussion->groupid;
-
     $post = trusttext_pre_edit($post, 'message', $modcontext);
 
     // Unsetting this will allow the correct return URL to be calculated later.
@@ -408,7 +407,8 @@ if (!empty($sforum)) {      // User is starting a new discussion in a sforum
         if ($replycount) {
             if (!has_capability('mod/sforum:deleteanypost', $modcontext)) {
                 print_error("couldnotdeletereplies", "sforum",
-                      sforum_go_back_to(new moodle_url('/mod/sforum/discuss.php', array('d' => $post->discussion), 'p'.$post->id)));
+                sforum_go_back_to(new moodle_url('/mod/sforum/discuss.php',
+                        array('d' => $post->discussion), 'p'.$post->id)));
             }
             echo $OUTPUT->header();
             echo $OUTPUT->heading(format_string($sforum->name), 2);
@@ -602,8 +602,8 @@ if (!isset($sforum->maxattachments)) {
 $sql = 'SELECT s.label, s.description
 FROM {sforum_steps} s
 INNER JOIN {groups_members} m ON m.groupid = s.groupid
-WHERE s.forum = :forumid AND m.userid = :userid AND s.deleted != 0 AND '
-$cond = array('forumid'=>$sforum->id, 'userid'=>$user->id);
+WHERE s.forum = :forumid AND m.userid = :userid AND s.deleted = 0 AND ';
+$cond = array('forumid'=>$sforum->id, 'userid'=>$USER->id);
 $current_step = $DB->get_field('sforum_current_steps', 'stepid',
     array('forum'=>$sforum->id, 'userid'=>$USER->id));
 if (empty($current_step)) {
@@ -615,6 +615,7 @@ if (empty($current_step)) {
 $nextsteps = $DB->get_records_sql_menu($sql, $cond);
 
 $thresholdwarning = sforum_check_throttling($sforum, $cm);
+
 $mform_post = new mod_sforum_post_form('post.php',
         array('course' => $course,
               'cm' => $cm,

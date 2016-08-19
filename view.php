@@ -22,16 +22,16 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-    require_once('../../config.php');
-    require_once('lib.php');
-    require_once($CFG->libdir.'/completionlib.php');
+require_once('../../config.php');
+require_once('lib.php');
+require_once($CFG->libdir.'/completionlib.php');
 
-    $id          = optional_param('id', 0, PARAM_INT);       // Course Module ID
-    $f           = optional_param('f', 0, PARAM_INT);        // Forum ID
-    $mode        = optional_param('mode', 0, PARAM_INT);     // Display mode (for single sforum)
-    $showall     = optional_param('showall', '', PARAM_INT); // show all discussions on one page
-    $changegroup = optional_param('group', -1, PARAM_INT);   // choose the current group
-    $page        = optional_param('page', 0, PARAM_INT);     // which page to show
+$id          = optional_param('id', 0, PARAM_INT);       // Course Module ID
+$f           = optional_param('f', 0, PARAM_INT);        // Forum ID
+$mode        = optional_param('mode', 0, PARAM_INT);     // Display mode (for single sforum)
+$showall     = optional_param('showall', '', PARAM_INT); // show all discussions on one page
+$changegroup = optional_param('group', -1, PARAM_INT);   // choose the current group
+$page        = optional_param('page', 0, PARAM_INT);     // which page to show
     $search      = optional_param('search', '', PARAM_CLEAN);// search string
 
     $params = array();
@@ -46,7 +46,7 @@
     if ($search) {
         $params['search'] = $search;
     }
-    $PAGE->set_url('/mod/sforum/view.php', $params);
+$PAGE->set_url('/mod/sforum/view.php', $params);
 
     if ($id) {
         if (! $cm = get_coursemodule_from_id('sforum', $id)) {

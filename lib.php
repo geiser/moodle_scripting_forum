@@ -101,37 +101,45 @@ function sforum_add_instance($sforum, $mform = null) {
     $sforum->id = $DB->insert_record('sforum', $sforum);
     $modcontext = context_module::instance($sforum->coursemodule);
 
-    if ($sforum->type == 'single') {  // Create related discussion.
-        $discussion = new stdClass();
-        $discussion->course        = $sforum->course;
-        $discussion->forum         = $sforum->id;
-        $discussion->name          = $sforum->name;
-        $discussion->assessed      = $sforum->assessed;
-        $discussion->message       = $sforum->intro;
-        $discussion->messageformat = $sforum->introformat;
-        $discussion->messagetrust  = trusttext_trusted(context_course::instance($sforum->course));
-        $discussion->mailnow       = false;
-        $discussion->groupid       = -1;
+    if ($sforum->type == 'eachgroup') {  // Create related discussion.
 
-        $message = '';
+        $groupings_groups = $DB->get_records('groupings_groups',
+                array('groupingid'=>$sforum->groupingid));
+        foreach ($groupings_groups as $grouping_group) {
+            $groupname = $DB->get_field('groups', 'name', array('id'=>$grouping_group->groupid));
+            // update discussion
+            $discussion = new stdClass();
+            $discussion->course        = $sforum->course;
+            $discussion->forum         = $sforum->id;
+            $discussion->name          = $sforum->name.' ('.$groupname.')';
+            $discussion->assessed      = $sforum->assessed;
+            $discussion->message       = $sforum->intro;
+            $discussion->messageformat = $sforum->introformat;
+            $discussion->messagetrust  = trusttext_trusted(
+                    context_course::instance($sforum->course));
+            $discussion->mailnow       = false;
+            $discussion->groupid       = $grouping_group->groupid;
 
-        $discussion->id = sforum_add_discussion($discussion, null, $message);
+            $message = '';
 
-        if ($mform and $draftid = file_get_submitted_draft_itemid('introeditor')) {
-            // Ugly hack - we need to copy the files somehow.
-            $discussion = $DB->get_record('sforum_discussions',
-                          array('id'=>$discussion->id), '*', MUST_EXIST);
-            $post = $DB->get_record('sforum_posts',
-                    array('id'=>$discussion->firstpost), '*', MUST_EXIST);
+            $discussion->id = sforum_add_discussion($discussion, null, $message);
 
-            $options = array('subdirs'=>true); // Use the same options as intro field!
-            $post->message = file_save_draft_area_files($draftid,
-                             $modcontext->id, 'mod_sforum', 'post',
-                             $post->id, $options, $post->message);
-            $DB->set_field('sforum_posts', 'message', $post->message, array('id'=>$post->id));
+            if ($mform and $draftid = file_get_submitted_draft_itemid('introeditor')) {
+                // Ugly hack - we need to copy the files somehow.
+                $discussion = $DB->get_record('sforum_discussions',
+                              array('id'=>$discussion->id), '*', MUST_EXIST);
+                $post = $DB->get_record('sforum_posts',
+                        array('id'=>$discussion->firstpost), '*', MUST_EXIST);
+
+                $options = array('subdirs'=>true); // Use the same options as intro field!
+                $post->message = file_save_draft_area_files($draftid,
+                                 $modcontext->id, 'mod_sforum', 'post',
+                                 $post->id, $options, $post->message);
+                $DB->set_field('sforum_posts', 'message', $post->message, array('id'=>$post->id));
+            }
         }
     }
-
+    
     sforum_grade_item_update($sforum);
     sforum_scripting_clroles_update($sforum);
     sforum_scripting_steps_update($sforum);
@@ -180,7 +188,7 @@ function sforum_scripting_steps_update($sforum) {
     foreach ($steps as $cstep) {
         $cstep = json_decode($cstep); // decode json
         $step = new stdClass();
-        $search = array('forum'=>$sforum->id, 'label'=>$cstep->label);
+        $search = array('forum'=>$sforum->id, 'label'=>$cstep->label, 'deleted'=>0);
         if ($DB->record_exists('sforum_steps', $search)) {
             $step = $DB->get_record('sforum_steps', $search);
         }
@@ -216,13 +224,13 @@ function sforum_scripting_steps_update($sforum) {
     // eliminate non-updated steps
     $eliminated_ids = array_diff($current_ids, $updated_ids);
     if (!empty($eliminated_ids)) {
-        $DB->execute("UPDATE {sforum_steps} SET deleted = 1 WHERE id IN ('"+
-            implode("','", $eliminated_ids)+"')");
+        $DB->execute("UPDATE {sforum_steps} SET deleted = 1 WHERE id IN ('".
+            implode("','", $eliminated_ids)."')");
     }
     // update dependon in each step
     foreach ($steps as $cstep) {
         $cstep = json_decode($cstep); // decode json
-        $search = array('forum'=>$sforum->id, 'label'=>$cstep->label);
+        $search = array('forum'=>$sforum->id, 'label'=>$cstep->label, 'deleted'=>0);
         $step = $DB->get_record('sforum_steps', $search, '*', MUST_EXIST);
         if (!empty($cstep->dependon)) {
             $dependon = $DB->get_record('sforum_steps',
@@ -287,63 +295,63 @@ function sforum_update_instance($sforum, $mform) {
         sforum_update_grades($sforum); // recalculate grades for the sforum
     }
 
-    if ($sforum->type == 'single') {  // Update related discussion and post.
-        $discussions = $DB->get_records('sforum_discussions',
-                       array('sforum'=>$sforum->id), 'timemodified ASC');
-        if (!empty($discussions)) {
-            if (count($discussions) > 1) {
-                echo $OUTPUT->notification(get_string('warnformorepost', 'sforum'));
+    if ($sforum->type == 'eachgroup') {  // Update related discussion and post.
+         
+        $groupings_groups = $DB->get_records('groupings_groups',
+                array('groupingid'=>$sforum->groupingid));
+        foreach ($groupings_groups as $grouping_group) {
+            $discussion = $DB->get_record('sforum_discussions',
+                array('forum'=>$sforum->id, 'groupid'=>$grouping_group->groupid));
+            $groupname = $DB->get_field('groups', 'name', array('id'=>$grouping_group->groupid));
+            if (! $discussion) {
+                // try to recover by creating initial discussion - MDL-16262
+                $discussion = new stdClass();
+                $discussion->course          = $sforum->course;
+                $discussion->forum           = $sforum->id;
+                $discussion->name            = $sforum->name.' ('.$groupname.')';
+                $discussion->assessed        = $sforum->assessed;
+                $discussion->message         = $sforum->intro;
+                $discussion->messageformat   = $sforum->introformat;
+                $discussion->messagetrust    = true;
+                $discussion->mailnow         = false;
+                $discussion->groupid         = $grouping_group->groupid;;
+
+                $message = '';
+
+                sforum_add_discussion($discussion, null, $message);
+
+                if (! $discussion = $DB->get_record('sforum_discussions',
+                                array('forum'=>$sforum->id, 'groupid'=>$grouping_group->groupid))) {
+                    print_error('cannotadd', 'sforum');
+                }
             }
-            $discussion = array_pop($discussions);
-        } else {
-            // try to recover by creating initial discussion - MDL-16262
-            $discussion = new stdClass();
-            $discussion->course          = $sforum->course;
-            $discussion->forum           = $sforum->id;
-            $discussion->name            = $sforum->name;
-            $discussion->assessed        = $sforum->assessed;
-            $discussion->message         = $sforum->intro;
-            $discussion->messageformat   = $sforum->introformat;
-            $discussion->messagetrust    = true;
-            $discussion->mailnow         = false;
-            $discussion->groupid         = -1;
-
-            $message = '';
-
-            sforum_add_discussion($discussion, null, $message);
-
-            if (! $discussion = $DB->get_record('sforum_discussions',
-                                array('sforum'=>$sforum->id))) {
-                print_error('cannotadd', 'sforum');
+            if (! $post = $DB->get_record('sforum_posts', array('id'=>$discussion->firstpost))) {
+                print_error('cannotfindfirstpost', 'sforum');
             }
-        }
-        if (! $post = $DB->get_record('sforum_posts', array('id'=>$discussion->firstpost))) {
-            print_error('cannotfindfirstpost', 'sforum');
-        }
 
-        $cm         = get_coursemodule_from_instance('sforum', $sforum->id);
-        $modcontext = context_module::instance($cm->id, MUST_EXIST);
+            $cm         = get_coursemodule_from_instance('sforum', $sforum->id);
+            $modcontext = context_module::instance($cm->id, MUST_EXIST);
 
-        $post = $DB->get_record('sforum_posts',
-                array('id'=>$discussion->firstpost), '*', MUST_EXIST);
-        $post->subject       = $sforum->name;
-        $post->message       = $sforum->intro;
-        $post->messageformat = $sforum->introformat;
-        $post->messagetrust  = trusttext_trusted($modcontext);
-        $post->modified      = $sforum->timemodified;
-        $post->userid        = $USER->id;    // MDL-18599, so that current teacher
-                                             // can take ownership of activities.
-
-        if ($mform and $draftid = file_get_submitted_draft_itemid('introeditor')) {
-            // Ugly hack - we need to copy the files somehow.
-            $options = array('subdirs'=>true); // Use the same options as intro field!
-            $post->message = file_save_draft_area_files($draftid, $modcontext->id,
+            $post = $DB->get_record('sforum_posts',
+                    array('id'=>$discussion->firstpost), '*', MUST_EXIST);
+            $post->subject       = $sforum->name;
+            $post->message       = $sforum->intro;
+            $post->messageformat = $sforum->introformat;
+            $post->messagetrust  = trusttext_trusted($modcontext);
+            $post->modified      = $sforum->timemodified;
+            $post->userid        = $USER->id;    // MDL-18599, so that current teacher
+                                                 // can take ownership of activities.
+            if ($mform and $draftid = file_get_submitted_draft_itemid('introeditor')) {
+                // Ugly hack - we need to copy the files somehow.
+                $options = array('subdirs'=>true); // Use the same options as intro field!
+                $post->message = file_save_draft_area_files($draftid, $modcontext->id,
                              'mod_sforum', 'post', $post->id, $options, $post->message);
-        }
+            }
 
-        $DB->update_record('sforum_posts', $post);
-        $discussion->name = $sforum->name;
-        $DB->update_record('sforum_discussions', $discussion);
+            $DB->update_record('sforum_posts', $post);
+            $discussion->name = $sforum->name.' ('.$groupname.')';
+            $DB->update_record('sforum_discussions', $discussion);
+        }
     }
 
     $DB->update_record('sforum', $sforum);
@@ -351,7 +359,8 @@ function sforum_update_instance($sforum, $mform) {
     $modcontext = context_module::instance($sforum->coursemodule);
     if (($sforum->forcesubscribe == SCRIPTING_FORUM_INITIALSUBSCRIBE) &&
         ($oldsforum->forcesubscribe <> $sforum->forcesubscribe)) {
-        $users = \mod_sforum\subscriptions::get_potential_subscribers($modcontext, 0, 'u.id, u.email', '');
+        $users = \mod_sforum\subscriptions::get_potential_subscribers(
+                        $modcontext, 0, 'u.id, u.email', '');
         foreach ($users as $user) {
             \mod_sforum\subscriptions::subscribe_user($user->id, $sforum, $modcontext);
         }
@@ -651,8 +660,8 @@ function sforum_cron() {
             if (!isset($discussions[$discussionid])) {
                 if ($discussion = $DB->get_record('sforum_discussions', array('id'=> $post->discussion))) {
                     $discussions[$discussionid] = $discussion;
-                    \mod_sforum\subscriptions::fill_subscription_cache($discussion->sforum);
-                    \mod_sforum\subscriptions::fill_discussion_subscription_cache($discussion->sforum);
+                    \mod_sforum\subscriptions::fill_subscription_cache($discussion->forum);
+                    \mod_sforum\subscriptions::fill_discussion_subscription_cache($discussion->forum);
 
                 } else {
                     mtrace('Could not find discussion ' . $discussionid);
@@ -1466,7 +1475,7 @@ function sforum_filter_user_groups_discussions($discussions) {
 
         // Course data is already cached.
         $instances = get_fast_modinfo($discussion->course)->get_instances();
-        $sforum = $instances['sforum'][$discussion->sforum];
+        $sforum = $instances['sforum'][$discussion->forum];
 
         // Continue if the user should not see this discussion.
         if (!sforum_is_user_group_discussion($sforum, $discussion->groupid)) {
@@ -1565,7 +1574,7 @@ function sforum_print_overview($courses,&$htmlarray) {
     if (!$discussions = $DB->get_records_sql($sql, $params)) {
         $discussions = array();
     }
-
+    
     $sforumsnewposts = sforum_filter_user_groups_discussions($discussions);
 
     // also get all sforum tracking stuff ONCE.
@@ -1638,7 +1647,7 @@ function sforum_print_overview($courses,&$htmlarray) {
             $showunread = true;
         }
         if ($count > 0 || $thisunread > 0) {
-            $str .= '<div class="overview sforum"><div class="name">'.$strsforum.': <a title="'.$strsforum.'" href="'.$CFG->wwwroot.'/mod/sforum/view.php?f='.$sforum->id.'">'.$sforum->name.'</a></div>';
+            $str .= '<div class="overview forum"><div class="name">'.$strsforum.': <a title="'.$strsforum.'" href="'.$CFG->wwwroot.'/mod/sforum/view.php?f='.$sforum->id.'">'.$sforum->name.'</a></div>';
             $str .= '<div class="info"><span class="postsincelogin">';
             $str .= get_string('overviewnumpostssince', 'sforum', $count)."</span>";
             if (!empty($showunread)) {
@@ -2446,7 +2455,7 @@ function sforum_get_post_from_log($log) {
 
     } else if ($log->action == "add discussion") {
 
-        return $DB->get_record_sql("SELECT p.*, f.type AS sforumtype, d.sforum, d.groupid, $allnames, u.email, u.picture
+        return $DB->get_record_sql("SELECT p.*, f.type AS sforumtype, d.forum, d.groupid, $allnames, u.email, u.picture
                                  FROM {sforum_discussions} d,
                                       {sforum_posts} p,
                                       {sforum} f,
@@ -2788,7 +2797,7 @@ function sforum_get_discussions($cm, $sforumsort="", $fullpost=true, $unused=-1,
 function sforum_get_discussion_neighbours($cm, $discussion, $sforum) {
     global $CFG, $DB, $USER;
 
-    if ($cm->instance != $discussion->sforum or $discussion->sforum != $sforum->id or $sforum->id != $cm->instance) {
+    if ($cm->instance != $discussion->forum or $discussion->forum != $sforum->id or $sforum->id != $cm->instance) {
         throw new coding_exception('Discussion is not part of the same sforum.');
     }
 
@@ -2848,7 +2857,7 @@ function sforum_get_discussion_neighbours($cm, $discussion, $sforum) {
     $sql = "SELECT d.id, d.name, d.timemodified, d.groupid, d.timestart, d.timeend
               FROM {sforum_discussions} d
               JOIN {sforum_posts} p ON d.firstpost = p.id
-             WHERE d.sforum = :sforumid
+             WHERE d.forum = :sforumid
                AND d.id <> :discid1
                    $timelimit
                    $groupselect";
@@ -3264,9 +3273,9 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
             return;
         }
         $output .= html_writer::tag('a', '', array('id'=>'p'.$post->id));
-        $output .= html_writer::start_tag('div', array('class'=>'sforumpost clearfix',
+        $output .= html_writer::start_tag('div', array('class'=>'forumpost clearfix',
                                                        'role' => 'region',
-                                                       'aria-label' => get_string('hiddensforumpost', 'sforum')));
+                                                       'aria-label' => get_string('hiddenforumpost', 'sforum')));
         $output .= html_writer::start_tag('div', array('class'=>'row header'));
         $output .= html_writer::tag('div', '', array('class'=>'left picture')); // Picture
         if ($post->parent) {
@@ -3274,17 +3283,17 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
         } else {
             $output .= html_writer::start_tag('div', array('class'=>'topic starter'));
         }
-        $output .= html_writer::tag('div', get_string('sforumsubjecthidden','sforum'), array('class' => 'subject',
+        $output .= html_writer::tag('div', get_string('forumsubjecthidden','sforum'), array('class' => 'subject',
                                                                                            'role' => 'header')); // Subject.
-        $output .= html_writer::tag('div', get_string('sforumauthorhidden', 'sforum'), array('class' => 'author',
+        $output .= html_writer::tag('div', get_string('forumauthorhidden', 'sforum'), array('class' => 'author',
                                                                                            'role' => 'header')); // Author.
         $output .= html_writer::end_tag('div');
         $output .= html_writer::end_tag('div'); // row
         $output .= html_writer::start_tag('div', array('class'=>'row'));
         $output .= html_writer::tag('div', '&nbsp;', array('class'=>'left side')); // Groups
-        $output .= html_writer::tag('div', get_string('sforumbodyhidden','sforum'), array('class'=>'content')); // Content
+        $output .= html_writer::tag('div', get_string('forumbodyhidden','sforum'), array('class'=>'content')); // Content
         $output .= html_writer::end_tag('div'); // row
-        $output .= html_writer::end_tag('div'); // sforumpost
+        $output .= html_writer::end_tag('div'); // forumpost
 
         if ($return) {
             return $output;
@@ -3301,7 +3310,7 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
         $str->parent       = get_string('parent', 'sforum');
         $str->pruneheading = get_string('pruneheading', 'sforum');
         $str->prune        = get_string('prune', 'sforum');
-        $str->displaymode     = get_user_preferences('sforum_displaymode', $CFG->sforum_displaymode);
+        $str->displaymode  = get_user_preferences('sforum_displaymode', $CFG->sforum_displaymode);
         $str->markread     = get_string('markread', 'sforum');
         $str->markunread   = get_string('markunread', 'sforum');
     }
@@ -3377,27 +3386,28 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
         $age = 0;
     }
 
-    if ($sforum->type == 'single' and $discussion->firstpost == $post->id) {
-        if (has_capability('moodle/course:manageactivities', $modcontext)) {
-            // The first post in single simple is the sforum description.
-            $commands[] = array('url'=>new moodle_url('/course/modedit.php', array('update'=>$cm->id, 'sesskey'=>sesskey(), 'return'=>1)), 'text'=>$str->edit);
-        }
-    } else if (($ownpost && $age < $CFG->maxeditingtime) || $cm->cache->caps['mod/sforum:editanypost']) {
+//    if ($sforum->type == 'single' and $discussion->firstpost == $post->id) {
+//        if (has_capability('moodle/course:manageactivities', $modcontext)) {
+//            // The first post in single simple is the sforum description.
+//            $commands[] = array('url'=>new moodle_url('/course/modedit.php', array('update'=>$cm->id, 'sesskey'=>sesskey(), 'return'=>1)), 'text'=>$str->edit);
+//        }
+//    } else
+    if (($ownpost && $age < $CFG->maxeditingtime) || $cm->cache->caps['mod/sforum:editanypost']) {
         $commands[] = array('url'=>new moodle_url('/mod/sforum/post.php', array('edit'=>$post->id)), 'text'=>$str->edit);
     }
 
-    if ($cm->cache->caps['mod/sforum:splitdiscussions'] && $post->parent && $sforum->type != 'single') {
+    if ($cm->cache->caps['mod/sforum:splitdiscussions'] && $post->parent && $sforum->type != 'eachgroup') {
         $commands[] = array('url'=>new moodle_url('/mod/sforum/post.php', array('prune'=>$post->id)), 'text'=>$str->prune, 'title'=>$str->pruneheading);
     }
 
-    if ($sforum->type == 'single' and $discussion->firstpost == $post->id) {
-        // Do not allow deleting of first post in single simple type.
+    if ($sforum->type == 'eachgroup' and $discussion->firstpost == $post->id) {
+        // Do not allow deleting of first post in discussion of eachgroup type.
     } else if (($ownpost && $age < $CFG->maxeditingtime && $cm->cache->caps['mod/sforum:deleteownpost']) || $cm->cache->caps['mod/sforum:deleteanypost']) {
         $commands[] = array('url'=>new moodle_url('/mod/sforum/post.php', array('delete'=>$post->id)), 'text'=>$str->delete);
     }
 
     if ($reply) {
-        $commands[] = array('url'=>new moodle_url('/mod/sforum/post.php#mformsforum', array('reply'=>$post->id)), 'text'=>$str->reply);
+        add_reply_commands($commands, $post);
     }
 
     if ($CFG->enableportfolios && ($cm->cache->caps['mod/sforum:exportpost'] || ($ownpost && $cm->cache->caps['mod/sforum:exportownpost']))) {
@@ -3453,7 +3463,7 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
     $postbyuser->user = $postuser->fullname;
     $discussionbyuser = get_string('postbyuser', 'sforum', $postbyuser);
     $output .= html_writer::tag('a', '', array('id'=>'p'.$post->id));
-    $output .= html_writer::start_tag('div', array('class'=>'sforumpost clearfix'.$sforumpostclass.$topicclass,
+    $output .= html_writer::start_tag('div', array('class'=>'forumpost clearfix'.$sforumpostclass.$topicclass,
                                                    'role' => 'region',
                                                    'aria-label' => $discussionbyuser));
     $output .= html_writer::start_tag('div', array('class'=>'row header clearfix'));
@@ -3539,7 +3549,7 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
 
     // Output ratings
     if (!empty($post->rating)) {
-        $output .= html_writer::tag('div', $OUTPUT->render($post->rating), array('class'=>'sforum-post-rating'));
+        $output .= html_writer::tag('div', $OUTPUT->render($post->rating), array('class'=>'forum-post-rating'));
     }
 
     // Output the commands
@@ -3596,6 +3606,50 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
     }
     echo $output;
     return;
+}
+
+function add_reply_commands(&$commands, $post) {
+    global $DB, $USER;
+    $url = '/mod/sforum/post.php#mformsforum';
+    $stepid = $DB->get_field_sql('SELECT c.stepid
+FROM {sforum_current_steps} c
+INNER JOIN {sforum_discussions} d ON d.forum = c.forum
+WHERE d.id = :discussion AND c.userid = :user',
+    array('discussion'=>$post->discussion, 'user'=>$USER->id));
+    
+    $sql = 'SELECT *
+FROM {sforum_steps} s
+INNER JOIN {sforum_discussions} d ON d.forum = s.forum
+INNER JOIN {groups_members} m ON m.groupid = s.groupid 
+WHERE s.deleted = 0 AND d.id = :discussion AND m.userid = :user';
+    $cond = array('discussion'=>$post->discussion, 'user'=>$USER->id);
+    if ($stepid == false) {
+        $sql .= ' AND s.dependon IS NULL';
+    } else {
+        $sql .= ' AND (s.dependon = :step OR s.dependon )';
+    } 
+
+    $commands[] = array(
+        'url'=>new moodle_url($url, array('reply'=>$post->id)),
+        'text'=>get_string('reply', 'sforum'));
+}
+
+function sforum_get_next_steps() {
+$sql = 'SELECT s.label, s.description
+FROM {sforum_steps} s
+INNER JOIN {groups_members} m ON m.groupid = s.groupid
+WHERE s.forum = :forumid AND m.userid = :userid AND s.deleted = 0 AND ';
+$cond = array('forumid'=>$sforum->id, 'userid'=>$USER->id);
+
+if (empty($current_step)) {
+   $sql .= 's.dependon IS NULL';
+} else {
+   $sql .= '(s.dependon = :stepid OR s.dependon IS NULL)';
+   $cond = array_merge($cond, array('stepid'=>$current_step));
+}
+$nextsteps = $DB->get_records_sql_menu($sql, $cond);
+
+
 }
 
 /**
@@ -4016,21 +4070,22 @@ function sforum_get_discussion_subscription_icon_preloaders() {
  * Print the drop down that allows the user to select how they want to have
  * the discussion displayed.
  *
- * @param int $id sforum id if $sforumtype is 'single',
+ * @param int $id sforum id if $sforumtype is 'eachgroup',
  *              discussion id for any other sforum type
  * @param mixed $mode sforum layout mode
  * @param string $sforumtype optional
  */
 function sforum_print_mode_form($id, $mode, $sforumtype='') {
     global $OUTPUT;
-    if ($sforumtype == 'single') {
-        $select = new single_select(new moodle_url("/mod/sforum/view.php", array('f'=>$id)), 'mode', sforum_get_layout_modes(), $mode, null, "mode");
-        $select->set_label(get_string('displaymode', 'sforum'), array('class' => 'accesshide'));
-        $select->class = "sforummode";
-    } else {
-        $select = new single_select(new moodle_url("/mod/sforum/discuss.php", array('d'=>$id)), 'mode', sforum_get_layout_modes(), $mode, null, "mode");
-        $select->set_label(get_string('displaymode', 'sforum'), array('class' => 'accesshide'));
-    }
+//    if ($sforumtype == 'eachgroup') {
+//        $select = new single_select(new moodle_url("/mod/sforum/view.php", array('f'=>$id)), 'mode', sforum_get_layout_modes(), $mode, null, "mode");
+//        $select->set_label(get_string('displaymode', 'sforum'), array('class' => 'accesshide'));
+//        $select->class = "forummode";
+//    } else {
+      $select = new single_select(new moodle_url("/mod/sforum/discuss.php", array('d'=>$id)),
+            'mode', sforum_get_layout_modes(), $mode, null, "mode");
+      $select->set_label(get_string('displaymode', 'sforum'), array('class' => 'accesshide'));
+//    }
     echo $OUTPUT->render($select);
 }
 
@@ -4043,17 +4098,17 @@ function sforum_print_mode_form($id, $mode, $sforumtype='') {
 function sforum_search_form($course, $search='') {
     global $CFG, $OUTPUT;
 
-    $output  = '<div class="sforumsearch">';
+    $output  = '<div class="forumsearch">';
     $output .= '<form action="'.$CFG->wwwroot.'/mod/sforum/search.php" style="display:inline">';
     $output .= '<fieldset class="invisiblefieldset">';
     $output .= $OUTPUT->help_icon('search');
     $output .= '<label class="accesshide" for="search" >'.
             get_string('search', 'sforum').'</label>';
     $output .= '<input id="search" name="search" type="text" size="18" value="'.s($search, true).'" />';
-    $output .= '<label class="accesshide" for="searchsforums" >'.
-            get_string('searchsforums', 'sforum').'</label>';
-    $output .= '<input id="searchsforums" value="'.
-            get_string('searchsforums', 'sforum').'" type="submit" />';
+    $output .= '<label class="accesshide" for="searchforums" >'.
+            get_string('searchforums', 'sforum').'</label>';
+    $output .= '<input id="searchforums" value="'.
+            get_string('searchforums', 'sforum').'" type="submit" />';
     $output .= '<input name="id" type="hidden" value="'.$course->id.'" />';
     $output .= '</fieldset>';
     $output .= '</form>';
@@ -4619,8 +4674,13 @@ function sforum_add_discussion($discussion, $mform=null, $unused=null, $userid=n
 
     // The first post is stored as a real post, and linked
     // to from the discuss entry.
+    if (empty($discussion->forum)) {
+      //TODO remove this hack
+      $discussion->forum = $discussion->sforum;
+    }
 
-    $sforum = $DB->get_record('sforum', array('id'=>$discussion->sforum));
+
+    $sforum = $DB->get_record('sforum', array('id'=>$discussion->forum));
     $cm   = get_coursemodule_from_instance('sforum', $sforum->id);
 
     $post = new stdClass();
@@ -4997,21 +5057,21 @@ function sforum_get_subscribe_link($sforum, $context, $messages = array(), $cant
 }
 
 /**
- * Returns true if user created new discussion already.
+ * Returns true if someone of group user has already created new discussion.
  *
  * @param int $sforumid  The sforum to check for postings
  * @param int $userid   The user to check for postings
  * @param int $groupid  The group to restrict the check to
  * @return bool
  */
-function sforum_user_has_posted_discussion($sforumid, $userid, $groupid = null) {
+function sforum_group_user_has_posted_discussion($sforumid, $userid, $groupid = null) {
     global $CFG, $DB;
 
     $sql = "SELECT 'x'
-              FROM {sforum_discussions} d, {sforum_posts} p
-             WHERE d.forum = ? AND p.discussion = d.id AND p.parent = 0 AND p.userid = ?";
+    FROM {sforum_discussions} d, {sforum_posts} p
+    WHERE d.forum = ? AND p.discussion = d.id AND p.parent = 0"; // "AND p.userid = ?";
 
-    $params = [$sforumid, $userid];
+    $params = [$sforumid]; //, $userid];
 
     if ($groupid) {
         $sql .= " AND d.groupid = ?";
@@ -5133,12 +5193,8 @@ function sforum_user_can_post_discussion($sforum, $currentgroup=null, $unused=-1
         return false;
     }
 
-    if ($sforum->type == 'single') {
-        return false;
-    }
-
-    if ($sforum->type == 'eachuser') {
-        if (sforum_user_has_posted_discussion($sforum->id, $USER->id, $currentgroup)) {
+    if ($sforum->type == 'eachgroup') {
+        if (sforum_group_user_has_posted_discussion($sforum->id, $USER->id, $currentgroup)) {
             return false;
         }
     }
@@ -5530,7 +5586,7 @@ function sforum_print_latest_discussions($course,
     }
 
     if ($canstart) {
-        echo '<div class="singlebutton sforumaddnew">';
+        echo '<div class="singlebutton forumaddnew">';
         echo "<form id=\"newdiscussionform\" method=\"get\" action=\"$CFG->wwwroot/mod/sforum/post.php\">";
         echo '<div>';
         echo "<input type=\"hidden\" name=\"sforum\" value=\"$sforum->id\" />";
@@ -5571,7 +5627,7 @@ function sforum_print_latest_discussions($course,
 
     if (! $discussions = sforum_get_discussions($cm,
             $sort, $fullpost, null, $maxdiscussions, $getuserlastmodified, $page, $perpage)) {
-        echo '<div class="sforumnodiscuss">';
+        echo '<div class="forumnodiscuss">';
         if ($sforum->type == 'news') {
             echo '('.get_string('nonews', 'sforum').')';
         } else if ($sforum->type == 'qanda') {
@@ -5624,7 +5680,7 @@ function sforum_print_latest_discussions($course,
     }
 
     if ($displayformat == 'header') {
-        echo '<table cellspacing="0" class="sforumheaderlist">';
+        echo '<table cellspacing="0" cellpadding="0" class="forumheaderlist">';
         echo '<thead>';
         echo '<tr>';
         echo '<th class="header topic" scope="col">'.
@@ -5728,7 +5784,7 @@ function sforum_print_latest_discussions($course,
                             $discussion, $modcontext, $USER);
                 }
 
-                $discussion->sforum = $sforum->id;
+                $discussion->forum = $sforum->id;
 
                 sforum_print_post($discussion,
                         $discussion, $sforum, $cm, $course, $ownpost, 0, $link, false,
@@ -5748,7 +5804,7 @@ function sforum_print_latest_discussions($course,
         } else {
             $strolder = get_string('olderdiscussions', 'sforum');
         }
-        echo '<div class="sforumolddiscuss">';
+        echo '<div class="forumolddiscuss">';
         echo '<a href="'.$CFG->wwwroot.'/mod/sforum/view.php?f='.
                 $sforum->id.'&amp;showall=1">';
         echo $strolder.'</a> ...</div>';
@@ -5838,11 +5894,11 @@ function sforum_print_discussion($course, $cm, $sforum,
         $ratingoptions->aggregate = $sforum->assessed;//the aggregation method
         $ratingoptions->scaleid = $sforum->scale;
         $ratingoptions->userid = $USER->id;
-        if ($sforum->type == 'single' or !$discussion->id) {
-            $ratingoptions->returnurl = "$CFG->wwwroot/mod/sforum/view.php?id=$cm->id";
-        } else {
+        //if ($sforum->type == 'single' or !$discussion->id) {
+        //    $ratingoptions->returnurl = "$CFG->wwwroot/mod/sforum/view.php?id=$cm->id";
+        //} else {
             $ratingoptions->returnurl = "$CFG->wwwroot/mod/sforum/discuss.php?d=$discussion->id";
-        }
+        //}
         $ratingoptions->assesstimestart = $sforum->assesstimestart;
         $ratingoptions->assesstimefinish = $sforum->assesstimefinish;
 
@@ -5968,12 +6024,12 @@ function sforum_print_posts_threaded($course, &$cm, $sforum,
 
                 if ($sforumtracked) {
                     if (!empty($post->postread)) {
-                        $style = '<span class="sforumthread read">';
+                        $style = '<span class="forumthread read">';
                     } else {
-                        $style = '<span class="sforumthread unread">';
+                        $style = '<span class="forumthread unread">';
                     }
                 } else {
-                    $style = '<span class="sforumthread">';
+                    $style = '<span class="forumthread">';
                 }
                 echo $style."<a name=\"$post->id\"></a>".
                         "<a href=\"discuss.php?d=$post->discussion&amp;parent=$post->id\">".
@@ -6161,7 +6217,7 @@ function sforum_print_recent_mod_activity($activity,
         $class = 'discussion';
     }
 
-    echo '<table border="0" cellpadding="3" cellspacing="0" class="sforum-recent">';
+    echo '<table border="0" cellpadding="3" cellspacing="0" class="forum-recent">';
 
     echo "<tr><td class=\"userpicture\" valign=\"top\">";
     echo $OUTPUT->user_picture($activity->user, array('courseid'=>$courseid));
@@ -6188,7 +6244,7 @@ function sforum_print_recent_mod_activity($activity,
     echo "<a href=\"$CFG->wwwroot/user/view.php?id={$activity->user->id}&amp;course=$courseid\">"
          ."{$fullname}</a> - ".userdate($activity->timestamp);
     echo '</div>';
-      echo "</td></tr></table>";
+    echo "</td></tr></table>";
 
     return;
 }
@@ -7159,12 +7215,12 @@ function sforum_reset_userdata($data) {
         $DB->delete_records_select('sforum_posts',
                 "discussion IN ($discussionssql) AND parent <> 0", $params); // first all children
         $DB->delete_records_select('sforum_posts',
-                "discussion IN ($discussionssql AND f.type <> 'single') AND parent = 0",
+                "discussion IN ($discussionssql AND f.type <> 'eachgroup') AND parent = 0",
                 $params); // now the initial posts for non single simple
 
         // finally all discussions except single simple sforums
         $DB->delete_records_select('sforum_discussions',
-                "sforum IN ($sforumssql AND f.type <> 'single')", $params);
+                "sforum IN ($sforumssql AND f.type <> 'eachgroup')", $params);
 
         // remove all grades from gradebook
         if (empty($data->reset_gradebook_grades)) {
