@@ -598,21 +598,33 @@ if (!isset($sforum->maxattachments)) {
     $sforum->maxattachments = 3;
 }
 
-
-$sql = 'SELECT s.label, s.description
+// Defining the sripting steps for edit in the form
+$nextsteps = array();
+if (empty($post->id) && optional_param('step', false, PARAM_INT)) {
+    $stepid = required_param('step', PARAM_INT);
+    $nextsteps = $DB->get_records_menu('sforum_steps', array('id'=>$stepid), '', 'id, description');
+} else if (empty($post->id)) {
+    $dependon = $DB->get_field('sforum_performed_steps', 'step', array('post'=>$post->parent));
+    $sql = 'SELECT s.id, s.description
 FROM {sforum_steps} s
+INNER JOIN {sforum_discussions} d ON d.forum = s.forum
 INNER JOIN {groups_members} m ON m.groupid = s.groupid
-WHERE s.forum = :forumid AND m.userid = :userid AND s.deleted = 0 AND ';
-$cond = array('forumid'=>$sforum->id, 'userid'=>$USER->id);
-$current_step = $DB->get_field('sforum_current_steps', 'stepid',
-    array('forum'=>$sforum->id, 'userid'=>$USER->id));
-if (empty($current_step)) {
-   $sql .= 's.dependon IS NULL';
+WHERE s.deleted = 0 AND d.id = :discussion AND m.userid = :user';
+    $cond = array('discussion'=>$post->discussion, 'user'=>$USER->id);
+    if ($dependon == false) {
+        $sql .= ' AND s.dependon IS NULL';
+    } else {
+        $sql .= ' AND s.dependon = :dependon';
+        $cond = array_merge($cond, array('dependon'=>$dependon));
+    } 
+    $nextsteps = $DB->get_records_sql_menu($sql, $cond);
+    if ($nextsteps) $nextsteps = array_merge(array(null=>get_string('none')),$nextsteps);
+    else $nextsteps = null;
 } else {
-   $sql .= '(s.dependon = :stepid OR s.dependon IS NULL)';
-   $cond = array_merge($cond, array('stepid'=>$current_step));
+    // we are editing an existing post (current step can't be change if it's defined)
+    $parentid = $post->parent;
+    die;
 }
-$nextsteps = $DB->get_records_sql_menu($sql, $cond);
 
 $thresholdwarning = sforum_check_throttling($sforum, $cm);
 

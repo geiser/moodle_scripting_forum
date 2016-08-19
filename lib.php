@@ -162,7 +162,7 @@ function sforum_scripting_clroles_update($sforum) {
         $clroles = new stdClass();
         $clroles->forum = $sforum->id;
     }
-    $clroles->groupingid = $sforum->clroles;
+    $clroles->grouping = $sforum->clroles;
     
     if (!empty($clroles->id)) $DB->update_record('sforum_clroles', $clroles);
     else $DB->insert_record('sforum_clroles', $clroles);
@@ -203,21 +203,19 @@ function sforum_scripting_steps_update($sforum) {
             $step->optional = 1;
         }
         // update cl role in each step
-        if (!empty($cstep->clrole)) {
-            $group = $DB->get_record_sql(
-            'SELECT g.id as id
-             FROM {groups} g
-             INNER JOIN {groupings_groups} s ON g.id = s.groupid
-             WHERE g.name = :name AND s.groupingid = :grouping',
-            array('name'=>$cstep->clrole, 'grouping'=>$sforum->clroles),
-            MUST_EXIST);
-            $step->groupid = $group->id;
-        }
+        $group = $DB->get_record_sql('SELECT g.id as id
+FROM {groups} g
+INNER JOIN {groupings_groups} s ON g.id = s.groupid
+WHERE g.name = :name AND s.groupingid = :grouping',
+                 array('name'=>$cstep->clrole, 'grouping'=>$sforum->clroles),
+                 MUST_EXIST);
+        $step->groupid = $group->id;
         // 
         if (!empty($step->id)) {
             $DB->update_record('sforum_steps', $step);
             $updated_ids[] = $step->id;
         } else {
+            print_r($step);
             $step->id = $DB->insert_record('sforum_steps', $step);
         }
     }
@@ -314,7 +312,7 @@ function sforum_update_instance($sforum, $mform) {
                 $discussion->messageformat   = $sforum->introformat;
                 $discussion->messagetrust    = true;
                 $discussion->mailnow         = false;
-                $discussion->groupid         = $grouping_group->groupid;;
+                $discussion->groupid         = $grouping_group->groupid;
 
                 $message = '';
 
@@ -430,14 +428,12 @@ function sforum_delete_instance($id) {
     // delete cl roles
     $DB->delete_records('sforum_clroles', array('forum'=>$sforum->id));
     // delete performed steps
-    $step_ids = array_keys($DB->get_records_menu('sforum_steps',
+    $stepids = array_keys($DB->get_records_menu('sforum_steps',
             array('forum'=>$sforum->id), '', 'id, label'));
-    if (!empty($step_ids)) {
-        $DB->delete_records_select('sforum_performed_steps',
-                    "stepid IN ('"+implode("','", $step_ids)+"')");
+    if (!empty($stepids)) {
+        $stepids = "('".implode("','", $stepids)."')";
+        $DB->delete_records_select('sforum_performed_steps', "step IN ".$stepids);
     }
-    // delete current steps 
-    $DB->delete_records('sforum_current_steps', array('forum'=>$sforum->id));
     // delete steps
     $DB->delete_records('sforum_steps', array('forum'=>$sforum->id));
 
@@ -3611,45 +3607,28 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
 function add_reply_commands(&$commands, $post) {
     global $DB, $USER;
     $url = '/mod/sforum/post.php#mformsforum';
-    $stepid = $DB->get_field_sql('SELECT c.stepid
-FROM {sforum_current_steps} c
-INNER JOIN {sforum_discussions} d ON d.forum = c.forum
-WHERE d.id = :discussion AND c.userid = :user',
-    array('discussion'=>$post->discussion, 'user'=>$USER->id));
+    $stepid = $DB->get_field('sforum_performed_steps', 'step', array('post'=>$post->id));
     
-    $sql = 'SELECT *
+    $sql = 'SELECT s.*
 FROM {sforum_steps} s
-INNER JOIN {sforum_discussions} d ON d.forum = s.forum
 INNER JOIN {groups_members} m ON m.groupid = s.groupid 
-WHERE s.deleted = 0 AND d.id = :discussion AND m.userid = :user';
-    $cond = array('discussion'=>$post->discussion, 'user'=>$USER->id);
+WHERE s.deleted = 0 AND m.userid = :user';
+    $cond = array('user'=>$USER->id);
     if ($stepid == false) {
         $sql .= ' AND s.dependon IS NULL';
     } else {
-        $sql .= ' AND (s.dependon = :step OR s.dependon )';
-    } 
-
-    $commands[] = array(
-        'url'=>new moodle_url($url, array('reply'=>$post->id)),
-        'text'=>get_string('reply', 'sforum'));
-}
-
-function sforum_get_next_steps() {
-$sql = 'SELECT s.label, s.description
-FROM {sforum_steps} s
-INNER JOIN {groups_members} m ON m.groupid = s.groupid
-WHERE s.forum = :forumid AND m.userid = :userid AND s.deleted = 0 AND ';
-$cond = array('forumid'=>$sforum->id, 'userid'=>$USER->id);
-
-if (empty($current_step)) {
-   $sql .= 's.dependon IS NULL';
-} else {
-   $sql .= '(s.dependon = :stepid OR s.dependon IS NULL)';
-   $cond = array_merge($cond, array('stepid'=>$current_step));
-}
-$nextsteps = $DB->get_records_sql_menu($sql, $cond);
-
-
+        $sql .= ' AND s.dependon = :step';
+        $cond = array_merge($cond, array('step'=>$stepid));
+    }
+    $nextsteps = $DB->get_records_sql($sql, $cond);
+    if ($nextsteps) {
+        foreach ($nextsteps as $nextstep) {
+            $murl = new moodle_url($url, array('reply'=>$post->id, 'step'=>$nextstep->id));
+            $commands[] = array('url'=>$murl, 'text'=>$nextstep->label);
+        }
+    }
+    $murl = new moodle_url($url, array('reply'=>$post->id));
+    $commands[] = array('url'=>$murl, 'text'=>get_string('reply', 'sforum'));
 }
 
 /**
