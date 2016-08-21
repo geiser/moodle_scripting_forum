@@ -265,6 +265,7 @@ $string['generalsforum'] = 'Standard scripting forum for general use';
 $string['generalsforums'] = 'General scripting forums';
 $string['hiddensforumpost'] = 'Hidden scripting forum post';
 $string['insforum'] = 'in {$a}';
+$string['instructions'] = 'Instructions';
 $string['introblog'] = 'The posts in this scripting forum were copied here automatically from blogs of users in this course because those blog entries are no longer available';
 $string['intronews'] = 'General news and announcements';
 $string['introsocial'] = 'An open scripting forum for chatting about anything you want to';
@@ -515,6 +516,7 @@ $string['warnformorepost'] = 'Warning! There is more than one discussion in this
 $string['yournewquestion'] = 'Your new question';
 $string['yournewtopic'] = 'Your new discussion topic';
 $string['yourreply'] = 'Your reply';
+$string['yourrole'] = 'Your role is "{$a}"';
 
 // Deprecated since Moodle 3.0.
 $string['subscribersto'] = 'Subscribers to "{$a->name}"';

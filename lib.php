@@ -215,16 +215,17 @@ WHERE g.name = :name AND s.groupingid = :grouping',
             $DB->update_record('sforum_steps', $step);
             $updated_ids[] = $step->id;
         } else {
-            print_r($step);
             $step->id = $DB->insert_record('sforum_steps', $step);
         }
     }
+
     // eliminate non-updated steps
     $eliminated_ids = array_diff($current_ids, $updated_ids);
     if (!empty($eliminated_ids)) {
         $DB->execute("UPDATE {sforum_steps} SET deleted = 1 WHERE id IN ('".
             implode("','", $eliminated_ids)."')");
     }
+
     // update dependon in each step
     foreach ($steps as $cstep) {
         $cstep = json_decode($cstep); // decode json
@@ -232,9 +233,31 @@ WHERE g.name = :name AND s.groupingid = :grouping',
         $step = $DB->get_record('sforum_steps', $search, '*', MUST_EXIST);
         if (!empty($cstep->dependon)) {
             $dependon = $DB->get_record('sforum_steps',
-                    array('label'=>$cstep->dependon, 'forum'=>$sforum->id), '*', MUST_EXIST);
+                    array('deleted'=>0, 'label'=>$cstep->dependon, 'forum'=>$sforum->id),
+                    '*', MUST_EXIST);
             $step->dependon = $dependon->id;
             $DB->update_record('sforum_steps', $step);
+        }
+    }
+
+    // update nextsteps in each step
+    foreach ($steps as $cstep) {
+        $cstep = json_decode($cstep); // decode json
+        $search = array('forum'=>$sforum->id, 'label'=>$cstep->label, 'deleted'=>0);
+        $step = $DB->get_record('sforum_steps', $search, '*', MUST_EXIST);
+        if (!empty($cstep->nextsteps)) {
+            
+            $nextsteps = '';
+            foreach ($cstep->nextsteps as $cnextstep) {
+                $nextid = $DB->get_field('sforum_steps', 'id',
+                        array('deleted'=>0, 'label'=>$cnextstep, 'forum'=>$sforum->id),
+                        MUST_EXIST);
+                $nextsteps .=  ','.$nextid;
+            }
+            $nextsteps = substr($nextsteps, 1);
+
+            $sql = 'UPDATE {sforum_steps} SET nextsteps = :nextsteps WHERE id = :id';
+            $DB->execute($sql, array('nextsteps'=>$nextsteps, 'id'=>$step->id));
         }
     }
 }
@@ -3206,7 +3229,7 @@ function sforum_get_course_sforum($courseid, $type) {
  */
 function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=false, $reply=false, $link=false,
                           $footer="", $highlight="", $postisread=null, $dummyifcantsee=true, $istracked=null, $return=false) {
-    global $USER, $CFG, $OUTPUT;
+    global $USER, $CFG, $OUTPUT, $DB;
 
     require_once($CFG->libdir . '/filelib.php');
 
@@ -3469,7 +3492,13 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
 
     $output .= html_writer::start_tag('div', array('class'=>'topic'.$topicclass));
 
+    // Hack to alter the post subject and include the step
+    $steplbl = $DB->get_field_sql('SELECT s.label
+FROM {sforum_steps} s
+INNER JOIN {sforum_performed_steps} p ON p.step = s.id
+WHERE s.deleted = 0 AND p.post = :post', array("post"=>$post->id));
     $postsubject = $post->subject;
+    if ($steplbl) $postsubject .= ' - '.$steplbl;
     if (empty($post->subjectnoformat)) {
         $postsubject = format_string($postsubject);
     }
@@ -3607,28 +3636,43 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
 function add_reply_commands(&$commands, $post) {
     global $DB, $USER;
     $url = '/mod/sforum/post.php#mformsforum';
-    $stepid = $DB->get_field('sforum_performed_steps', 'step', array('post'=>$post->id));
-    
-    $sql = 'SELECT s.*
+    $dependon = $DB->get_field('sforum_performed_steps', 'step', array('post'=>$post->id));
+    $firstpost = $DB->get_field('sforum_discussions', 'firstpost', array('id'=>$post->discussion));
+
+    // set next steps based on dependon and nextsteps fields
+    $nextsteps = false;
+    if (!empty($dependon) or $firstpost == $post->id) {
+        $sql = 'SELECT s.*
 FROM {sforum_steps} s
 INNER JOIN {groups_members} m ON m.groupid = s.groupid 
 WHERE s.deleted = 0 AND m.userid = :user';
-    $cond = array('user'=>$USER->id);
-    if ($stepid == false) {
-        $sql .= ' AND s.dependon IS NULL';
-    } else {
-        $sql .= ' AND s.dependon = :step';
-        $cond = array_merge($cond, array('step'=>$stepid));
-    }
-    $nextsteps = $DB->get_records_sql($sql, $cond);
-    if ($nextsteps) {
-        foreach ($nextsteps as $nextstep) {
-            $murl = new moodle_url($url, array('reply'=>$post->id, 'step'=>$nextstep->id));
-            $commands[] = array('url'=>$murl, 'text'=>$nextstep->label);
+        $cond = array('user'=>$USER->id);
+        if ($dependon == false) {
+            $sql .= ' AND s.dependon IS NULL';
+        } else {
+            // include in the sql query the next steps defined explicitly in step 
+            $nextsteps = $DB->get_field('sforum_steps', 'nextsteps', array('id'=>$dependon));
+            if (!empty($nextsteps)) {
+                $sql .= ' AND (s.dependon = :dependon OR s.id IN ('.$nextsteps.'))';
+            } else {
+                $sql .= ' AND s.dependon = :dependon';
+            }
+            $cond = array_merge($cond, array('dependon'=>$dependon));
+        }
+        $nextsteps = $DB->get_records_sql($sql, $cond);
+        if ($nextsteps) {
+            foreach ($nextsteps as $nextstep) {
+                $murl = new moodle_url($url, array('reply'=>$post->id, 'step'=>$nextstep->id));
+                $commands[] = array('url'=>$murl, 'text'=>ucfirst($nextstep->label));
+            }
         }
     }
-    $murl = new moodle_url($url, array('reply'=>$post->id));
-    $commands[] = array('url'=>$murl, 'text'=>get_string('reply', 'sforum'));
+
+    // put reply only if there are nextsteps, it is first post or the post isn't a performed step
+    if ($nextsteps or $firstpost == $post->id or !$dependon) {
+        $murl = new moodle_url($url, array('reply'=>$post->id));
+        $commands[] = array('url'=>$murl, 'text'=>get_string('reply', 'sforum'));
+    }
 }
 
 /**
@@ -4538,7 +4582,7 @@ function sforum_add_new_post($post, $mform, $unused = null) {
     global $USER, $CFG, $DB;
 
     $discussion = $DB->get_record('sforum_discussions', array('id' => $post->discussion));
-    $sforum      = $DB->get_record('sforum', array('id' => $discussion->forum));
+    $sforum     = $DB->get_record('sforum', array('id' => $discussion->forum));
     $cm         = get_coursemodule_from_instance('sforum', $sforum->id);
     $context    = context_module::instance($cm->id);
 
@@ -4554,7 +4598,8 @@ function sforum_add_new_post($post, $mform, $unused = null) {
     }
 
     $post->id = $DB->insert_record("sforum_posts", $post);
-    $post->message = file_save_draft_area_files($post->itemid, $context->id, 'mod_sforum', 'post', $post->id,
+    $post->message = file_save_draft_area_files($post->itemid,
+            $context->id, 'mod_sforum', 'post', $post->id,
             mod_sforum_post_form::editor_options($context, null), $post->message);
     $DB->set_field('sforum_posts', 'message', $post->message, array('id'=>$post->id));
     sforum_add_attachment($post, $sforum, $cm, $mform);
@@ -4573,6 +4618,13 @@ function sforum_add_new_post($post, $mform, $unused = null) {
 
     // Let Moodle know that assessable content is uploaded (eg for plagiarism detection)
     sforum_trigger_content_uploaded_event($post, $cm, 'sforum_add_new_post');
+    // Insert new performed step
+    if (!empty($post->step)) {
+        $pstep = new stdClass;
+        $pstep->step = $post->step;
+        $pstep->post = $post->id;
+        $DB->insert_record('sforum_performed_steps', $pstep);
+    }
 
     return $post->id;
 }
@@ -5603,7 +5655,6 @@ function sforum_print_latest_discussions($course,
 
     // Get all the recent discussions we're allowed to see
     $getuserlastmodified = ($displayformat == 'header');
-
     if (! $discussions = sforum_get_discussions($cm,
             $sort, $fullpost, null, $maxdiscussions, $getuserlastmodified, $page, $perpage)) {
         echo '<div class="forumnodiscuss">';
@@ -5815,7 +5866,7 @@ function sforum_print_latest_discussions($course,
  */
 function sforum_print_discussion($course, $cm, $sforum,
         $discussion, $post, $mode, $canreply=NULL, $canrate=false) {
-    global $USER, $CFG;
+    global $USER, $CFG, $DB;
 
     require_once($CFG->dirroot.'/rating/lib.php');
 
@@ -5889,8 +5940,19 @@ function sforum_print_discussion($course, $cm, $sforum,
     $post->sforum = $sforum->id;   // Add the sforum id to the post object, later used by sforum_print_post
     $post->sforumtype = $sforum->type;
 
-    $post->subject = format_string($post->subject);
 
+    // Hack to introduce instruction and role as label in the first post
+    $rolename = $DB->get_field_sql('SELECT g.name
+FROM {groups} g
+INNER JOIN {groupings_groups} r ON r.groupid = g.id
+INNER JOIN {groups_members} m ON m.groupid = g.id
+INNER JOIN {sforum_clroles} c ON c.grouping = r.groupingid
+WHERE c.forum = :forum AND m.userid = :user',
+        array('forum'=>$sforum->id, 'user'=>$USER->id));
+    $post->subject = format_string($post->subject).' - '.get_string('instructions','sforum');
+    if (!empty($rolename)) {
+        $post->subject = $post->subject.' ('.get_string('yourrole', 'sforum', $rolename).')';
+    }
     $postread = !empty($post->postread);
 
     sforum_print_post($post, $discussion, $sforum,

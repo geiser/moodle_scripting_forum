@@ -454,7 +454,51 @@ class mod_sforum_mod_form extends moodleform_mod {
         $this->plugin_extend_coursemodule_standard_elements();
     }
 
+    function set_data($default_values) {
+        global $DB;
+        parent::set_data($default_values);
 
+        // set steps
+        if ($default_values->id) {
+            $steps = $DB->get_records('sforum_steps',
+                        array('deleted'=>0, 'forum'=>$default_values->id));
+            $strsteps = '';
+            foreach ($steps as $step) {
+                unset($step->id);
+                unset($step->forum);
+                unset($step->deleted);
+                // true for optional
+                if ((int)$step->optional == 0) unset($step->optional);
+                else $step->optional = true;
+                // label for dependon
+                if (empty($step->dependon)) unset($step->dependon); else {
+                    $step->dependon = $DB->get_field('sforum_steps',
+                                'label', array('id'=>$step->dependon));
+                }
+                //label for cl role
+                $step->clrole = $DB->get_field('groups', 'name', array('id'=>$step->groupid));
+                unset($step->groupid);
+                //array list for nextsteps
+                if (empty($step->nextsteps)) unset($step->nextsteps); else {
+                    $nextsteps = array();
+                    foreach (explode(',', $step->nextsteps) as $nextstep) {
+                        $nextsteps[] = $DB->get_field('sforum_steps', 'label', array('id'=>$nextstep));
+                    }
+                    $step->nextsteps = $nextsteps;
+                }
+                
+                $strsteps .= json_encode($step). "\n";
+            }
+            $this->_form->setDefault('steps', $strsteps);
+        }
+
+        // set CL roles
+        if ($default_values->id) {
+            $grouping = $DB->get_field('sforum_clroles',
+                        'grouping', array('forum'=>$default_values->id));
+            $this->_form->setDefault('clroles', $grouping);
+        }
+    }
 
     function definition_after_data() {
         parent::definition_after_data();
@@ -542,6 +586,7 @@ class mod_sforum_mod_form extends moodleform_mod {
 
     function get_data() {
         $data = parent::get_data();
+            
         if (!$data) {
             return false;
         }

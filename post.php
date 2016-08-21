@@ -29,7 +29,7 @@ require_once('lib.php');
 require_once($CFG->libdir.'/completionlib.php');
 
 $reply   = optional_param('reply', 0, PARAM_INT);
-$sforum = optional_param('sforum', 0, PARAM_INT);
+$sforum  = optional_param('sforum', 0, PARAM_INT);
 $edit    = optional_param('edit', 0, PARAM_INT);
 $delete  = optional_param('delete', 0, PARAM_INT);
 $prune   = optional_param('prune', 0, PARAM_INT);
@@ -304,7 +304,7 @@ if (!empty($sforum)) {      // User is starting a new discussion in a sforum
     // Unsetting this will allow the correct return URL to be calculated later.
     unset($SESSION->fromdiscussion);
 
-}else if (!empty($delete)) {  // User is deleting a post
+} else if (!empty($delete)) {  // User is deleting a post
 
     if (! $post = sforum_get_post_full($delete)) {
         print_error('invalidpostid', 'sforum');
@@ -598,32 +598,50 @@ if (!isset($sforum->maxattachments)) {
     $sforum->maxattachments = 3;
 }
 
-// Defining the sripting steps for edit in the form
+// Hack to defining the sripting steps for edit in the form
 $nextsteps = array();
 if (empty($post->id) && optional_param('step', false, PARAM_INT)) {
+    // the step is indicate as parameter
     $stepid = required_param('step', PARAM_INT);
-    $nextsteps = $DB->get_records_menu('sforum_steps', array('id'=>$stepid), '', 'id, description');
+    $nextsteps = $DB->get_records_menu('sforum_steps',
+            array('id'=>$stepid, 'deleted'=>0), '', 'id, description');
 } else if (empty($post->id)) {
+    // we are using the common button reply
     $dependon = $DB->get_field('sforum_performed_steps', 'step', array('post'=>$post->parent));
-    $sql = 'SELECT s.id, s.description
+    $firstpost = $DB->get_field('sforum_discussions', 'firstpost', array('id'=>$post->discussion));
+
+    $nextsteps = null;
+    if (!empty($dependon) or $firstpost == $post->parent) {
+        $sql = 'SELECT s.id, s.description
 FROM {sforum_steps} s
 INNER JOIN {sforum_discussions} d ON d.forum = s.forum
 INNER JOIN {groups_members} m ON m.groupid = s.groupid
 WHERE s.deleted = 0 AND d.id = :discussion AND m.userid = :user';
-    $cond = array('discussion'=>$post->discussion, 'user'=>$USER->id);
-    if ($dependon == false) {
-        $sql .= ' AND s.dependon IS NULL';
-    } else {
-        $sql .= ' AND s.dependon = :dependon';
-        $cond = array_merge($cond, array('dependon'=>$dependon));
-    } 
-    $nextsteps = $DB->get_records_sql_menu($sql, $cond);
-    if ($nextsteps) $nextsteps = array_merge(array(null=>get_string('none')),$nextsteps);
-    else $nextsteps = null;
+        $cond = array('discussion'=>$post->discussion, 'user'=>$USER->id);
+        if ($dependon == false) {
+            $sql .= ' AND s.dependon IS NULL';
+        } else {
+            // include in the sql query the next steps defined explicitly in step 
+            $nextsteps = $DB->get_field('sforum_steps', 'nextsteps', array('id'=>$dependon));
+            if (!empty($nextsteps)) {
+                $sql .= ' AND (s.dependon = :dependon OR s.id IN ('.$nextsteps.'))';
+            } else { $sql .= ' AND s.dependon = :dependon'; }
+            $cond = array_merge($cond, array('dependon'=>$dependon));
+        }
+
+        $nextsteps = $DB->get_records_sql_menu($sql, $cond);
+        if ($firstpost == $post->parent) {
+            $nextsteps = array_merge(array(null=>get_string('none')),$nextsteps);
+        }
+    }
 } else {
-    // we are editing an existing post (current step can't be change if it's defined)
-    $parentid = $post->parent;
-    die;
+    // we are editing an existing post (current step can't be change if it was defined)
+    // TODO - in the future allow the user change label
+    $nextsteps = $DB->get_records_sql_menu('SELECT s.id, s.description
+FROM {sforum_steps} s
+INNER JOIN {sforum_performed_steps} p ON p.step = s.id
+WHERE s.deleted = 0 AND p.post = :post', array('post'=>$post->id));
+    if (empty($nextsteps)) $nextsteps = null;
 }
 
 $thresholdwarning = sforum_check_throttling($sforum, $cm);
@@ -883,6 +901,7 @@ if ($mform_post->is_cancelled()) {
         $message = '';
         $addpost = $fromform;
         $addpost->forum=$sforum->id;
+
         if ($fromform->id = sforum_add_new_post($addpost, $mform_post, $message)) {
             $subscribemessage = sforum_post_subscription($fromform,
                         $sforum, $discussion);
@@ -971,7 +990,7 @@ if ($mform_post->is_cancelled()) {
             require_capability('mod/sforum:canposttomygroups', $modcontext);
 
             // Fetch all of this user's groups.
-            // Note: all groups are returned when in visible groups mode so we must manually filter.
+            // Note: all groups are returned when in visible groups mode so we must manually filter
             $allowedgroups = groups_get_activity_allowed_groups($cm);
             foreach ($allowedgroups as $groupid => $group) {
                 if (sforum_user_can_post_discussion($sforum,

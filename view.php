@@ -32,94 +32,106 @@ $mode        = optional_param('mode', 0, PARAM_INT);     // Display mode (for si
 $showall     = optional_param('showall', '', PARAM_INT); // show all discussions on one page
 $changegroup = optional_param('group', -1, PARAM_INT);   // choose the current group
 $page        = optional_param('page', 0, PARAM_INT);     // which page to show
-    $search      = optional_param('search', '', PARAM_CLEAN);// search string
+$search      = optional_param('search', '', PARAM_CLEAN);// search string
 
-    $params = array();
-    if ($id) {
-        $params['id'] = $id;
-    } else {
-        $params['f'] = $f;
-    }
-    if ($page) {
-        $params['page'] = $page;
-    }
-    if ($search) {
-        $params['search'] = $search;
-    }
+$params = array();
+if ($id) {
+    $params['id'] = $id;
+} else {
+    $params['f'] = $f;
+}
+if ($page) {
+    $params['page'] = $page;
+}
+if ($search) {
+    $params['search'] = $search;
+}
 $PAGE->set_url('/mod/sforum/view.php', $params);
 
-    if ($id) {
-        if (! $cm = get_coursemodule_from_id('sforum', $id)) {
-            print_error('invalidcoursemodule');
-        }
-        if (! $course = $DB->get_record("course", array("id" => $cm->course))) {
-            print_error('coursemisconf');
-        }
-        if (! $sforum = $DB->get_record("sforum", array("id" => $cm->instance))) {
-            print_error('invalidsforumid', 'sforum');
-        }
-        if ($sforum->type == 'single') {
-            $PAGE->set_pagetype('mod-sforum-discuss');
-        }
-        // move require_course_login here to use forced language for course
-        // fix for MDL-6926
-        require_course_login($course, true, $cm);
-        $strsforums = get_string("modulenameplural", "sforum");
-        $strsforum = get_string("modulename", "sforum");
-    } else if ($f) {
-
-        if (! $sforum = $DB->get_record("sforum", array("id" => $f))) {
-            print_error('invalidsforumid', 'sforum');
-        }
-        if (! $course = $DB->get_record("course", array("id" => $sforum->course))) {
-            print_error('coursemisconf');
-        }
-
-        if (!$cm = get_coursemodule_from_instance("sforum", $sforum->id, $course->id)) {
-            print_error('missingparameter');
-        }
-        // move require_course_login here to use forced language for course
-        // fix for MDL-6926
-        require_course_login($course, true, $cm);
-        $strsforums = get_string("modulenameplural", "sforum");
-        $strsforum = get_string("modulename", "sforum");
-    } else {
+if ($id) {
+    if (! $cm = get_coursemodule_from_id('sforum', $id)) {
+        print_error('invalidcoursemodule');
+    }
+    if (! $course = $DB->get_record("course", array("id" => $cm->course))) {
+        print_error('coursemisconf');
+    }
+    if (! $sforum = $DB->get_record("sforum", array("id" => $cm->instance))) {
+        print_error('invalidsforumid', 'sforum');
+    }
+    if ($sforum->type == 'single') {
+        $PAGE->set_pagetype('mod-sforum-discuss');
+    }
+    // move require_course_login here to use forced language for course
+    // fix for MDL-6926
+    require_course_login($course, true, $cm);
+    $strsforums = get_string("modulenameplural", "sforum");
+    $strsforum = get_string("modulename", "sforum");
+} else if ($f) {
+    if (! $sforum = $DB->get_record("sforum", array("id" => $f))) {
+        print_error('invalidsforumid', 'sforum');
+    }
+    if (! $course = $DB->get_record("course", array("id" => $sforum->course))) {
+        print_error('coursemisconf');
+    }
+    if (!$cm = get_coursemodule_from_instance("sforum", $sforum->id, $course->id)) {
         print_error('missingparameter');
     }
+    // move require_course_login here to use forced language for course
+    // fix for MDL-6926
+    require_course_login($course, true, $cm);
+    $strsforums = get_string("modulenameplural", "sforum");
+    $strsforum = get_string("modulename", "sforum");
+} else {
+    print_error('missingparameter');
+}
 
-    if (!$PAGE->button) {
-        $PAGE->set_button(sforum_search_form($course, $search));
+if (!$PAGE->button) {
+    $PAGE->set_button(sforum_search_form($course, $search));
+}
+
+$context = context_module::instance($cm->id);
+$PAGE->set_context($context);
+
+if (!empty($CFG->enablerssfeeds) && !empty($CFG->sforum_enablerssfeeds)
+            && $sforum->rsstype && $sforum->rssarticles) {
+    require_once("$CFG->libdir/rsslib.php");
+    $rsstitle = format_string($course->shortname, true,
+            array('context' => context_course::instance($course->id))).': '.format_string($sforum->name);
+    rss_add_http_header($context, 'mod_sforum', $sforum, $rsstitle);
+}
+
+// Redirect into the discussion if you are student and has only one discussion
+$context = context_module::instance($cm->id);
+$roles = get_user_roles($context, $USER->id, true);
+foreach ($roles as $role) {
+    if ($role->shortname == 'student') {
+        $objs = sforum_get_discussions($cm);
+        if (count($objs) == 1) {
+            $dis = array_pop($objs);
+            redirect(new moodle_url('/mod/sforum/discuss.php', array('d'=>$dis->discussion)));
+        }
+        break;
     }
-
-    $context = context_module::instance($cm->id);
-    $PAGE->set_context($context);
-
-    if (!empty($CFG->enablerssfeeds) && !empty($CFG->sforum_enablerssfeeds) && $sforum->rsstype && $sforum->rssarticles) {
-        require_once("$CFG->libdir/rsslib.php");
-
-        $rsstitle = format_string($course->shortname, true, array('context' => context_course::instance($course->id))) . ': ' . format_string($sforum->name);
-        rss_add_http_header($context, 'mod_sforum', $sforum, $rsstitle);
-    }
+}
 
 /// Print header.
-
-    $PAGE->set_title($sforum->name);
-    $PAGE->add_body_class('sforumtype-'.$sforum->type);
-    $PAGE->set_heading($course->fullname);
+$PAGE->set_title($sforum->name);
+$PAGE->add_body_class('sforumtype-'.$sforum->type);
+$PAGE->set_heading($course->fullname);
 
 /// Some capability checks.
-    if (empty($cm->visible) and !has_capability('moodle/course:viewhiddenactivities', $context)) {
-        notice(get_string("activityiscurrentlyhidden"));
-    }
+if (empty($cm->visible) and !has_capability('moodle/course:viewhiddenactivities', $context)) {
+    notice(get_string("activityiscurrentlyhidden"));
+}
 
-    if (!has_capability('mod/sforum:viewdiscussion', $context)) {
-        notice(get_string('noviewdiscussionspermission', 'sforum'));
-    }
+if (!has_capability('mod/sforum:viewdiscussion', $context)) {
+    notice(get_string('noviewdiscussionspermission', 'sforum'));
+}
 
-    // Mark viewed and trigger the course_module_viewed event.
-    sforum_view($sforum, $course, $cm, $context);
+// Mark viewed and trigger the course_module_viewed event.
+sforum_view($sforum, $course, $cm, $context);
 
-    echo $OUTPUT->header();
+echo $OUTPUT->header();
 
     echo $OUTPUT->heading(format_string($sforum->name), 2);
     if (!empty($sforum->intro) && $sforum->type != 'single' && $sforum->type != 'teacher') {
@@ -138,7 +150,7 @@ $PAGE->set_url('/mod/sforum/view.php', $params);
     // mode control.
     if ($sforum->type == 'single') {
         $discussion = NULL;
-        $discussions = $DB->get_records('sforum_discussions', array('sforum'=>$sforum->id), 'timemodified ASC');
+        $discussions = $DB->get_records('sforum_discussions', array('forum'=>$sforum->id), 'timemodified ASC');
         if (!empty($discussions)) {
             $discussion = array_pop($discussions);
         }
@@ -163,7 +175,7 @@ $PAGE->set_url('/mod/sforum/view.php', $params);
     }
 
     switch ($sforum->type) {
-        case 'single':
+        case 'single': 
             if (!empty($discussions) && count($discussions) > 1) {
                 echo $OUTPUT->notification(get_string('warnformorepost', 'sforum'));
             }
@@ -225,9 +237,9 @@ $PAGE->set_url('/mod/sforum/view.php', $params);
 
 
             break;
-    }
+}
 
-    // Add the subscription toggle JS.
-    $PAGE->requires->yui_module('moodle-mod_sforum-subscriptiontoggle', 'Y.M.mod_sforum.subscriptiontoggle.init');
+// Add the subscription toggle JS.
+$PAGE->requires->yui_module('moodle-mod_sforum-subscriptiontoggle', 'Y.M.mod_sforum.subscriptiontoggle.init');
 
-    echo $OUTPUT->footer($course);
+echo $OUTPUT->footer($course);
