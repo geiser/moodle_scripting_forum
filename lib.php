@@ -183,8 +183,10 @@ function sforum_scripting_steps_update($sforum) {
             array('forum'=>$sforum->id, 'deleted'=>0), '', 'id, label'));
     // update or insert steps
     $updated_ids = array();
-    $steps = array_filter(preg_split("/[\r\t\n\f]+/", $sforum->steps),
-            function($s) { return trim($s) != ''; });
+    $steps = array();
+    foreach (preg_split("/[\r\t\n\f]+/", $sforum->steps) as $s) {
+        if (!empty(trim($s))) $steps[] = trim($s);
+    }
     foreach ($steps as $cstep) {
         $cstep = json_decode($cstep); // decode json
         $step = new stdClass();
