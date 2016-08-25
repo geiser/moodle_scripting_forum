@@ -184,7 +184,7 @@ function sforum_scripting_steps_update($sforum) {
     // update or insert steps
     $updated_ids = array();
     $steps = array_filter(preg_split("/[\r\t\n\f]+/", $sforum->steps),
-            function($s) { return !empty(trim($s)); });
+            function($s) { return trim($s) != ''; });
     foreach ($steps as $cstep) {
         $cstep = json_decode($cstep); // decode json
         $step = new stdClass();
