@@ -106,12 +106,12 @@ function sforum_add_instance($sforum, $mform = null) {
         $groupings_groups = $DB->get_records('groupings_groups',
                 array('groupingid'=>$sforum->groupingid));
         foreach ($groupings_groups as $grouping_group) {
-            $groupname = $DB->get_field('groups', 'name', array('id'=>$grouping_group->groupid));
+            //$groupname = $DB->get_field('groups', 'name', array('id'=>$grouping_group->groupid));
             // update discussion
             $discussion = new stdClass();
             $discussion->course        = $sforum->course;
             $discussion->forum         = $sforum->id;
-            $discussion->name          = $sforum->name.' ('.$groupname.')';
+            $discussion->name          = $sforum->name;//.' ('.$groupname.')';
             $discussion->assessed      = $sforum->assessed;
             $discussion->message       = $sforum->intro;
             $discussion->messageformat = $sforum->introformat;
@@ -326,13 +326,13 @@ function sforum_update_instance($sforum, $mform) {
         foreach ($groupings_groups as $grouping_group) {
             $discussion = $DB->get_record('sforum_discussions',
                 array('forum'=>$sforum->id, 'groupid'=>$grouping_group->groupid));
-            $groupname = $DB->get_field('groups', 'name', array('id'=>$grouping_group->groupid));
+            //$groupname = $DB->get_field('groups', 'name', array('id'=>$grouping_group->groupid));
             if (! $discussion) {
                 // try to recover by creating initial discussion - MDL-16262
                 $discussion = new stdClass();
                 $discussion->course          = $sforum->course;
                 $discussion->forum           = $sforum->id;
-                $discussion->name            = $sforum->name.' ('.$groupname.')';
+                $discussion->name            = $sforum->name;//.' ('.$groupname.')';
                 $discussion->assessed        = $sforum->assessed;
                 $discussion->message         = $sforum->intro;
                 $discussion->messageformat   = $sforum->introformat;
@@ -373,7 +373,7 @@ function sforum_update_instance($sforum, $mform) {
             }
 
             $DB->update_record('sforum_posts', $post);
-            $discussion->name = $sforum->name.' ('.$groupname.')';
+            $discussion->name = $sforum->name;//.' ('.$groupname.')';
             $DB->update_record('sforum_discussions', $discussion);
         }
     }
