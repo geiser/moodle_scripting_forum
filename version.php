@@ -19,13 +19,12 @@
  *
  * @package   mod_sforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
- * @copyright 1999 Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2016081100;                 // The current module version (Date: YYYYMMDDXX)
-$plugin->requires  = 2016052301;                 // Requires this Moodle version
-$plugin->component = 'mod_sforum';      // Full name of the plugin (used for diagnostics)
+$plugin->version   = 2016092101;     // The current module version (Date: YYYYMMDDXX)
+$plugin->requires  = 2016052301;     // Requires this Moodle version
+$plugin->component = 'mod_sforum';   // Full name of the plugin (used for diagnostics)
 

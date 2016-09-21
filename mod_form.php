@@ -470,32 +470,41 @@ class mod_sforum_mod_form extends moodleform_mod {
                 // true for optional
                 if ((int)$step->optional == 0) unset($step->optional);
                 else $step->optional = true;
+                // idnumber for optional
+                if (empty($step->idnumber)) unset($step->idnumber);
                 // label for dependon
                 if (empty($step->dependon)) unset($step->dependon); else {
-                    $step->dependon = $DB->get_field('sforum_steps',
-                                'label', array('id'=>$step->dependon));
+                    $dependon = $DB->get_record('sforum_steps', array('id'=>$step->dependon));
+                    $step->dependon = $dependon->label;
+                    if (!empty($dependon->idnumber)) {
+                        $step->dependon = $dependon->idnumber;
+                    }
                 }
                 //label for cl role
                 $step->clrole = $DB->get_field('groups', 'name', array('id'=>$step->groupid));
                 unset($step->groupid);
-                //array list for nextsteps
+                //label for the list for nextsteps
                 if (empty($step->nextsteps)) unset($step->nextsteps); else {
                     $nextsteps = array();
-                    foreach (explode(',', $step->nextsteps) as $nextstep) {
-                        $nextsteps[] = $DB->get_field('sforum_steps', 'label', array('id'=>$nextstep));
+                    foreach (explode(',', $step->nextsteps) as $nextstepid) {
+                        $nextstep = $DB->get_record('sforum_steps', array('id'=>$nextstepid));
+                        $nextstepid = $nextstep->label;
+                        if (!empty($nextstep->idnumber)) {
+                            $nextstepid = $nextstep->idnumber;
+                        }
+                        $nextsteps[] = $nextstepid;
                     }
                     $step->nextsteps = $nextsteps;
                 }
                 
-                $strsteps .= json_encode($step). "\n";
+                $strsteps .= json_encode($step, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_NUMERIC_CHECK)."\n";
             }
             $this->_form->setDefault('steps', $strsteps);
         }
 
         // set CL roles
         if ($default_values->id) {
-            $grouping = $DB->get_field('sforum_clroles',
-                        'grouping', array('forum'=>$default_values->id));
+            $grouping = $DB->get_field('sforum_clroles', 'grouping', array('forum'=>$default_values->id));
             $this->_form->setDefault('clroles', $grouping);
         }
     }

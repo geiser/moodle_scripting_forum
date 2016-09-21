@@ -17,7 +17,6 @@
 /**
  * @package   mod_sforum
  * @copyright 2016 Geiser Chalco {@link https://github.com/geiser}
- * @copyright 2003 Eloy Lafuente (stronk7) {@link http://stronk7.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -27,10 +26,17 @@ function xmldb_sforum_upgrade($oldversion=0) {
     global $CFG, $DB;
 
     $dbman = $DB->get_manager(); // Loads ddl manager and xmldb classes.
+    $result = true;
 
-    // Moodle v3.1.0 release upgrade line.
-    // Put any upgrade step following this.
+    if ($result && $oldversion < 2016092101) {
+        $table = new xmldb_table('sforum_steps');
+        $field = new xmldb_field('idnumber', XMLDB_TYPE_CHAR, '100', NULL, NULL, NULL, NULL, 'id');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_mod_savepoint(true, 2016092101, 'sforum');
+    }
 
-    return true;
+    return $result;
 }
 
