@@ -470,14 +470,14 @@ class mod_sforum_mod_form extends moodleform_mod {
                 // true for optional
                 if ((int)$step->optional == 0) unset($step->optional);
                 else $step->optional = true;
-                // idnumber for optional
-                if (empty($step->idnumber)) unset($step->idnumber);
+                // alias for optional
+                if (empty($step->alias)) unset($step->alias);
                 // label for dependon
                 if (empty($step->dependon)) unset($step->dependon); else {
                     $dependon = $DB->get_record('sforum_steps', array('id'=>$step->dependon));
                     $step->dependon = $dependon->label;
-                    if (!empty($dependon->idnumber)) {
-                        $step->dependon = $dependon->idnumber;
+                    if (!empty($dependon->alias)) {
+                        $step->dependon = $dependon->alias;
                     }
                 }
                 //label for cl role
@@ -489,8 +489,8 @@ class mod_sforum_mod_form extends moodleform_mod {
                     foreach (explode(',', $step->nextsteps) as $nextstepid) {
                         $nextstep = $DB->get_record('sforum_steps', array('id'=>$nextstepid));
                         $nextstepid = $nextstep->label;
-                        if (!empty($nextstep->idnumber)) {
-                            $nextstepid = $nextstep->idnumber;
+                        if (!empty($nextstep->alias)) {
+                            $nextstepid = $nextstep->alias;
                         }
                         $nextsteps[] = $nextstepid;
                     }

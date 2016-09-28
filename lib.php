@@ -192,16 +192,16 @@ function sforum_scripting_steps_update($sforum) {
         $cstep = json_decode($cstep); // decode json
         $step = new stdClass();
         $search = array('forum'=>$sforum->id, 'label'=>$cstep->label, 'deleted'=>0);
-        if (!empty($cstep->idnumber)) {
-            $search = array('forum'=>$sforum->id, 'idnumber'=>$cstep->idnumber, 'deleted'=>0);
+        if (!empty($cstep->alias)) {
+            $search = array('forum'=>$sforum->id, 'alias'=>$cstep->alias, 'deleted'=>0);
         }
         if ($DB->record_exists('sforum_steps', $search)) {
             $step = $DB->get_record('sforum_steps', $search);
         }
         $step->forum = $sforum->id;
         $step->label = $cstep->label;
-        if (!empty($cstep->idnumber)) {
-            $step->idnumber = $cstep->idnumber;
+        if (!empty($cstep->alias)) {
+            $step->alias = $cstep->alias;
         }
         $step->description = $cstep->label;
         if (!empty($cstep->description)) {
@@ -243,7 +243,7 @@ WHERE g.name = :name AND s.groupingid = :grouping',
         
         if (!empty($cstep->dependon)) {
             $dependon = $DB->get_record('sforum_steps',
-                array('deleted'=>0, 'idnumber'=>$cstep->dependon, 'forum'=>$sforum->id));
+                array('deleted'=>0, 'alias'=>$cstep->alias, 'forum'=>$sforum->id));
             if (empty($dependon)) {
                 $dependon = $DB->get_record('sforum_steps',
                     array('deleted'=>0, 'label'=>$cstep->dependon, 'forum'=>$sforum->id),
@@ -264,7 +264,7 @@ WHERE g.name = :name AND s.groupingid = :grouping',
             $nextsteps = '';
             foreach ($cstep->nextsteps as $cnextstep) {
                 $nextid = $DB->get_field('sforum_steps', 'id',
-                        array('deleted'=>0, 'idnumber'=>$cnextstep, 'forum'=>$sforum->id));
+                        array('deleted'=>0, 'alias'=>$cnextstep, 'forum'=>$sforum->id));
                 if (empty($nextid)) {
                     $nextid = $DB->get_field('sforum_steps', 'id',
                         array('deleted'=>0, 'label'=>$cnextstep, 'forum'=>$sforum->id),

@@ -36,6 +36,14 @@ function xmldb_sforum_upgrade($oldversion=0) {
         }
         upgrade_mod_savepoint(true, 2016092101, 'sforum');
     }
+    if ($result && $oldversion < 2016092800) {
+        $table = new xmldb_table('sforum_steps');
+        $field = new xmldb_field('idnumber', XMLDB_TYPE_CHAR, '100', NULL, NULL, NULL, NULL, 'id');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->rename_field($table, $field, 'alias');
+        }
+        upgrade_mod_savepoint(true, 2016092800, 'sforum');
+    }
 
     return $result;
 }
