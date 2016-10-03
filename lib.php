@@ -3230,7 +3230,7 @@ function sforum_get_course_sforum($courseid, $type) {
  */
 function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=false, $reply=false, $link=false,
                           $footer="", $highlight="", $postisread=null, $dummyifcantsee=true, $istracked=null, $return=false) {
-    global $USER, $CFG, $OUTPUT, $DB;
+    global $USER, $CFG, $OUTPUT, $DB, $PAGE;
 
     require_once($CFG->libdir . '/filelib.php');
 
@@ -3405,13 +3405,9 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
         $age = 0;
     }
 
-//    if ($sforum->type == 'single' and $discussion->firstpost == $post->id) {
-//        if (has_capability('moodle/course:manageactivities', $modcontext)) {
-//            // The first post in single simple is the sforum description.
-//            $commands[] = array('url'=>new moodle_url('/course/modedit.php', array('update'=>$cm->id, 'sesskey'=>sesskey(), 'return'=>1)), 'text'=>$str->edit);
-//        }
-//    } else
     if (($ownpost && $age < $CFG->maxeditingtime) || $cm->cache->caps['mod/sforum:editanypost']) {
+        // TODO: Maybe edit command must be allways enabled for posts related to transitions in the script
+        // $DB->record_exists('sforum_performed_transitions', array('post'=>$post->id))
         $commands[] = array('url'=>new moodle_url('/mod/sforum/post.php', array('edit'=>$post->id)), 'text'=>$str->edit);
     }
 
@@ -3419,8 +3415,11 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
         $commands[] = array('url'=>new moodle_url('/mod/sforum/post.php', array('prune'=>$post->id)), 'text'=>$str->prune, 'title'=>$str->pruneheading);
     }
 
-    if ($sforum->type == 'eachgroup' and $discussion->firstpost == $post->id) {
-        // Do not allow deleting of first post in discussion of eachgroup type.
+    if ($sforum->type == 'eachgroup' && ($discussion->firstpost == $post->id ||
+        $DB->record_exists('sforum_performed_transitions', array('post'=>$post->id)))) {
+        // Do not allow deleting of first post in discussion of eachgroup type
+        // and also don't allow delete a post related to transitions in the script
+        // TODO: In the future allow users to delete post related to transitions in the script
     } else if (($ownpost && $age < $CFG->maxeditingtime && $cm->cache->caps['mod/sforum:deleteownpost']) || $cm->cache->caps['mod/sforum:deleteanypost']) {
         $commands[] = array('url'=>new moodle_url('/mod/sforum/post.php', array('delete'=>$post->id)), 'text'=>$str->delete);
     }
@@ -3446,7 +3445,22 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
         }
     }
     // Finished building commands
-
+    
+    // Include javascript to fade sections in the first post
+    if ($discussion->firstpost == $post->id) {
+        $transition_ids = get_enabled_transition_ids($discussion->id, $USER->id);
+        $nextsteps = array();
+        if (!empty($transition_ids)) {
+            $steps = $DB->get_records_sql('SELECT s.*
+FROM {sforum_steps} s
+INNER JOIN {sforum_transitions} t ON t.toid = s.id
+WHERE t.id IN ('.implode(',', $transition_ids).')');
+            foreach ($steps as $step) {
+                $nextsteps[] = (empty($step->alias) ? $step->label : $step->alias);
+            }
+        }
+        $PAGE->requires->js_call_amd('mod_sforum/guideline_fading', 'init', array('nextSteps'=>$nextsteps));
+    }
 
     // Begin output
 
@@ -3661,7 +3675,33 @@ function next_transitions_as_steps($transition_ids) {
 }
 
 /**
- * Get next transtions as steps for an specific user
+ * Get the transitions ids that can be executed by a user in a discussion
+ *
+ * @param int $discussionid discussion id
+ * @param int $userid user id
+ * @return array an array with the transition ids for an user in a specific discussion
+ */
+function get_enabled_transition_ids($discussionid, $userid) {
+    global $DB;
+
+    $result = array();
+    if ($DB->record_exists('sforum_next_transitions', array('discussion'=>$discussionid))) {
+        $result = $DB->get_fieldset_select('sforum_next_transitions', 'transition',
+            'userid = :userid AND discussion = :discussion',
+            array('userid'=>$userid, 'discussion'=>$discussionid));
+    } else {
+        $result = $DB->get_fieldset_sql('SELECT t.id FROM {sforum_transitions} t
+INNER JOIN {sforum_discussions} d ON d.forum = t.forum
+INNER JOIN {groups_members} m ON m.groupid = t.forid
+WHERE t.fromid = 0 AND d.id = :discussionid AND m.userid = :userid',
+        array("discussionid"=>$discussionid, "userid"=>$userid));
+    }
+
+    return array_unique($result);
+}
+
+/**
+ * Get next transtions as steps for an specific user giving a post
  *
  * @param int $postid the identificator of post
  * @param int $userid the identificator of user
@@ -3672,37 +3712,32 @@ function get_next_transitions_as_steps($postid, $userid) {
     $post = $DB->get_record('sforum_posts', array('id'=>$postid));
     $discussion = $DB->get_record('sforum_discussions', array('id'=>$post->discussion));
 
+    // return null if the post is not first post and it is not associated with a step
     $fromid = $DB->get_field_sql('SELECT t.toid
 FROM {sforum_transitions} t
 INNER JOIN {sforum_performed_transitions} h ON h.transition = t.id
 WHERE  h.post = :postid', array('postid'=>$postid));
-
     if ($discussion->firstpost != $postid && empty($fromid)) return;
 
+    // obtain transitions and enabled transitions in the discussion for the current user
     $cond = array('forum'=>$discussion->forum, 'fromid'=>($discussion->firstpost != $postid ? $fromid : 0));
     $transitions = $DB->get_records('sforum_transitions', $cond);
     $enabled_transition_ids = $DB->get_fieldset_select('sforum_next_transitions',
         'transition', 'userid = :userid AND discussion = :discussion',
         array('userid'=>$userid, 'discussion'=>$discussion->id));
 
-    /*
-    if ($userid == 10050 && $postid == 437) {
-        print_r($transitions);
-        echo '<hr/>';
-        print_r($enabled_transition_ids);
-        die;
-    }*/
-
+    // iterate over transitions to identify what of them can be execute
     $transition_ids = array();
     foreach ($transitions as $transition) {
         if ($DB->record_exists('groups_members', array('groupid'=>$transition->forid, 'userid'=>$userid))) {
             if ((empty($enabled_transition_ids) && $discussion->firstpost == $post->id) ||
                 (!empty($enabled_transition_ids) && in_array($transition->id, $enabled_transition_ids))) {
                 $transition_ids[] = $transition->id;
-            } 
+            }
         }
     }
 
+    // include field from and to in transitions as steps
     if (empty($transition_ids)) return array();
     return next_transitions_as_steps($transition_ids);
 }
@@ -3719,7 +3754,6 @@ function add_reply_commands(&$commands, $discussion, $post) {
     $url = '/mod/sforum/post.php#mformsforum';
 
     $transitions = get_next_transitions_as_steps($post->id, $USER->id); 
-    print_r($transitions);
 
     foreach ($transitions as $id=>$transition) {
         $murl = new moodle_url($url, array('reply'=>$post->id, 'transition'=>$id));
@@ -4961,12 +4995,8 @@ function sforum_delete_post($post, $children, $course, $cm, $sforum, $skipcomple
         sforum_rss_delete_file($sforum);
     }
 
-    // Delete performed transitions and next steps
-    $ptransition = $DB->get_record('sforum_performed_transitions', array('post'=>$post->id));
-    if ($ptransition) {
-        print_r($ptransition);
-        die;
-    }
+    // TODO: Include code to delete performed transitions related to this post
+    // $ptransition = $DB->get_record('sforum_performed_transitions', array('post'=>$post->id));
 
     if ($DB->delete_records("sforum_posts", array("id" => $post->id))) {
 

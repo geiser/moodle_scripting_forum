@@ -17,7 +17,7 @@ define(["jquery"], function($) {
 
         setHiddenGuidelineOpacity: function(opacity) {
             hiddenGuidelineOpacity = opacity;
-        }
+        },
 
         /**
          * Initialize the guideline fading.
@@ -25,14 +25,16 @@ define(["jquery"], function($) {
          * @param {nextSteps} array of ids or alias for the next steps
          */
         init: function(nextSteps) {
-            $(".guideline.step").fadeTo("fast", 1);
+            $(".guideline-step").fadeTo("fast", 1);
             if (nextSteps != undefined && nextSteps.length>0) {
                 var nexts = "";
                 for (var i = 0; i < nextSteps.length; i++) {
                     nexts = nexts + ", ."+nextSteps[i];
                 }
                 nexts = nexts.substr(2);
-                $(".guideline.step").not(nexts).fadeTo('fast', hiddenGuidelineOpacity);
+                $(".guideline-step").not(nexts).fadeTo('fast', hiddenGuidelineOpacity);
+            } else {
+                $(".guideline-step").fadeTo('fast', hiddenGuidelineOpacity);
             }
         }
 
