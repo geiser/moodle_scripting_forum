@@ -97,13 +97,19 @@ class mod_sforum_post_form extends moodleform {
         $subscribe = $this->_customdata['subscribe'];
         $edit = $this->_customdata['edit'];
         $thresholdwarning = $this->_customdata['thresholdwarning'];
-        $nextsteps = $this->_customdata['nextsteps'];
-        if (empty($this->_customdata['nextsteps'])) {
-            $nextsteps = array(null=>get_string('none'));
+        $next_transitions = $this->_customdata['nexttransitions'];
+        
+        $default_transitionid = null;
+        $idtransition_step_list = array();
+        if (!empty($this->_customdata['defaulttransition'])) {
+            $idtransition_step_list = array(null=>get_string('none'));
+            $default_transitionid = $this->_customdata['defaulttransition'];
         }
-        $defaultstep = null;
-        if (!empty($this->_customdata['defaultstep'])) {
-            $defaultstep = $this->_customdata['defaultstep'];
+        
+        if (!empty($next_transitions)) {
+            foreach ($next_transitions as $id=>$transition) {
+                $idtransition_step_list[$id] = $transition->to->description;
+            }
         }
         
         $mform->addElement('header', 'general', ''); // fill in the data depending on page params later using set_data
@@ -123,9 +129,9 @@ class mod_sforum_post_form extends moodleform {
         $mform->addRule('subject', get_string('required'), 'required', null, 'client');
         $mform->addRule('subject', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
-        $mform->addElement('select', 'step', get_string('step', 'sforum'), $nextsteps);
-        $mform->addHelpButton('step',  'step', 'sforum');
-        $mform->setDefault('step', 'step', $defaultstep);
+        $mform->addElement('select', 'nexttransition', get_string('step', 'sforum'), $idtransition_step_list);
+        $mform->addHelpButton('nexttransition', 'step', 'sforum');
+        $mform->setDefault('nexttransition', 'step', $default_transitionid);
 
         $mform->addElement('editor', 'message',
                 get_string('message', 'sforum'),

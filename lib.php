@@ -178,105 +178,88 @@ function sforum_scripting_clroles_update($sforum) {
  */
 function sforum_scripting_steps_update($sforum) {
     global $DB;
+    $obj = json_decode($sforum->steps);
+    if (empty($sforum->steps) || empty($obj)) return;
 
-    $current_ids = array_keys($DB->get_records_menu('sforum_steps',
-            array('forum'=>$sforum->id, 'deleted'=>0), '', 'id, label'));
-    // update or insert steps
+    // update steps
     $updated_ids = array();
-    $steps = array();
-    foreach (preg_split("/[\r\t\n\f]+/", $sforum->steps) as $s) {
-        $s = trim($s);
-        if ($s != "") $steps[] = $s;
-    }
-    foreach ($steps as $cstep) {
-        $cstep = json_decode($cstep); // decode json
-        $step = new stdClass();
-        $search = array('forum'=>$sforum->id, 'label'=>$cstep->label, 'deleted'=>0);
+    $current_ids = array_keys($DB->get_records_menu('sforum_steps', array('forum'=>$sforum->id), '', 'id, label'));
+    
+    foreach ($obj->steps as $cstep) {
+        $cond = array('forum'=>$sforum->id, 'label'=>$cstep->label);
         if (!empty($cstep->alias)) {
-            $search = array('forum'=>$sforum->id, 'alias'=>$cstep->alias, 'deleted'=>0);
+            $cond = array('forum'=>$sforum->id, 'alias'=>$cstep->alias);
         }
-        if ($DB->record_exists('sforum_steps', $search)) {
-            $step = $DB->get_record('sforum_steps', $search);
-        }
+        $step = $DB->get_record('sforum_steps', $cond, '*', IGNORE_MULTIPLE);
+        if (!$step) $step = new stdClass();
+        
         $step->forum = $sforum->id;
         $step->label = $cstep->label;
-        if (!empty($cstep->alias)) {
-            $step->alias = $cstep->alias;
+        if (!empty($cstep->alias)) $step->alias = $cstep->alias;
+        $step->description = (empty($cstep->description) ? $cstep->label : $cstep->description);
+
+        if (empty($step->id)) {
+            $step->id = $DB->insert_record('sforum_steps', $step);
+        } else {
+            $updated_ids[] = $step->id;
+            $DB->update_record('sforum_steps', $step);
         }
-        $step->description = $cstep->label;
-        if (!empty($cstep->description)) {
-            $step->description = $cstep->description;
+    }
+
+    $eliminated_ids = array_diff($current_ids, $updated_ids);
+    if (!empty($eliminated_ids)) {
+        $DB->execute("DELETE FROM {sforum_steps} WHERE id IN ('".implode("','", $eliminated_ids)."')");
+    }
+
+    // update transitions
+    $updated_ids = array();
+    $current_ids = array_keys($DB->get_records_menu('sforum_transitions', array('forum'=>$sforum->id), '', 'id, fromid'));
+    
+    foreach ($obj->transitions as $ctransition) {
+        // get fromid 
+        if ($ctransition->from == 'start') {
+            $fromid = 0;
+        } else {
+            $fromid = $DB->get_field('sforum_steps', 'id', array('forum'=>$sforum->id, 'alias'=>$ctransition->from));
+            if (!$fromid) {
+                $fromid = $DB->get_field('sforum_steps', 'id', array('forum'=>$sforum->id, 'label'=>$ctransition->from), MUST_EXIST);
+            }
         }
-        $step->optional = 0;
-        if (!empty($cstep->optional) && ($cstep->optional != false)) {
-            $step->optional = 1;
+        // get to id;
+        $toid = $DB->get_field('sforum_steps', 'id', array('forum'=>$sforum->id, 'alias'=>$ctransition->to));
+        if (!$toid) {
+            $toid = $DB->get_field('sforum_steps', 'id', array('forum'=>$sforum->id, 'label'=>$ctransition->to), MUST_EXIST);
         }
-        // update cl role in each step
+        
+        $cond = array('forum'=>$sforum->id, 'fromid'=>$fromid, 'toid'=>$toid);
+        $transition = $DB->get_record('sforum_transitions', $cond, '*', IGNORE_MULTIPLE);
+        if (!$transition) $transition = new stdClass();
+
+        $transition->forum = $sforum->id;
+        $transition->fromid = $fromid;
+        $transition->toid = $toid;
         $group = $DB->get_record_sql('SELECT g.id as id
 FROM {groups} g
 INNER JOIN {groupings_groups} s ON g.id = s.groupid
 WHERE g.name = :name AND s.groupingid = :grouping',
-                 array('name'=>$cstep->clrole, 'grouping'=>$sforum->clroles),
-                 MUST_EXIST);
-        $step->groupid = $group->id;
-        // 
-        if (!empty($step->id)) {
-            $DB->update_record('sforum_steps', $step);
-            $updated_ids[] = $step->id;
+                 array('name'=>$ctransition->for, 'grouping'=>$sforum->clroles), MUST_EXIST);
+        $transition->forid = $group->id;
+        if (!empty($ctransition->type) && $ctransition->type != 'individual') {
+            $transition->type = 'enabled-for-group';
+        }
+        if ($ctransition->optional) $transition->optional = 1;
+
+        if (empty($transition->id)) {
+            $transition->id = $DB->insert_record('sforum_transitions', $transition);
         } else {
-            $step->id = $DB->insert_record('sforum_steps', $step);
+            $updated_ids[] = $transition->id;
+            $DB->update_record('sforum_transitions', $transition);
         }
     }
 
-    // eliminate non-updated steps
     $eliminated_ids = array_diff($current_ids, $updated_ids);
     if (!empty($eliminated_ids)) {
-        $DB->execute("UPDATE {sforum_steps} SET deleted = 1 WHERE id IN ('".
-            implode("','", $eliminated_ids)."')");
-    }
-
-    // update dependon in each step
-    foreach ($steps as $cstep) {
-        $cstep = json_decode($cstep); // decode json
-        $search = array('forum'=>$sforum->id, 'label'=>$cstep->label, 'deleted'=>0);
-        $step = $DB->get_record('sforum_steps', $search, '*', MUST_EXIST);
-        
-        if (!empty($cstep->dependon)) {
-            $dependon = $DB->get_record('sforum_steps',
-                array('deleted'=>0, 'alias'=>$cstep->alias, 'forum'=>$sforum->id));
-            if (empty($dependon)) {
-                $dependon = $DB->get_record('sforum_steps',
-                    array('deleted'=>0, 'label'=>$cstep->dependon, 'forum'=>$sforum->id),
-                    '*', MUST_EXIST);
-            }
-            $step->dependon = $dependon->id;
-            $DB->update_record('sforum_steps', $step);
-        }
-    }
-
-    // update nextsteps in each step
-    foreach ($steps as $cstep) {
-        $cstep = json_decode($cstep); // decode json
-        $search = array('forum'=>$sforum->id, 'label'=>$cstep->label, 'deleted'=>0);
-        $step = $DB->get_record('sforum_steps', $search, '*', MUST_EXIST);
-        
-        if (!empty($cstep->nextsteps)) {
-            $nextsteps = '';
-            foreach ($cstep->nextsteps as $cnextstep) {
-                $nextid = $DB->get_field('sforum_steps', 'id',
-                        array('deleted'=>0, 'alias'=>$cnextstep, 'forum'=>$sforum->id));
-                if (empty($nextid)) {
-                    $nextid = $DB->get_field('sforum_steps', 'id',
-                        array('deleted'=>0, 'label'=>$cnextstep, 'forum'=>$sforum->id),
-                        MUST_EXIST);
-                }
-                $nextsteps .=  ','.$nextid;
-            }
-            $nextsteps = substr($nextsteps, 1);
-
-            $sql = 'UPDATE {sforum_steps} SET nextsteps = :nextsteps WHERE id = :id';
-            $DB->execute($sql, array('nextsteps'=>$nextsteps, 'id'=>$step->id));
-        }
+        $DB->execute("DELETE FROM {sforum_transitions} WHERE id IN ('".implode("','", $eliminated_ids)."')");
     }
 }
 
@@ -3380,7 +3363,6 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
     // Determine if we need to shorten this post
     $shortenpost = ($link && (strlen(strip_tags($post->message)) > $CFG->sforum_longpost));
 
-
     // Prepare an array of commands
     $commands = array();
 
@@ -3444,7 +3426,7 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
     }
 
     if ($reply) {
-        add_reply_commands($commands, $post);
+        add_reply_commands($commands, $discussion, $post);
     }
 
     if ($CFG->enableportfolios && ($cm->cache->caps['mod/sforum:exportpost'] || ($ownpost && $cm->cache->caps['mod/sforum:exportownpost']))) {
@@ -3513,8 +3495,9 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
     // Hack to alter the post subject and include the step
     $steplbl = $DB->get_field_sql('SELECT s.label
 FROM {sforum_steps} s
-INNER JOIN {sforum_performed_steps} p ON p.step = s.id
-WHERE s.deleted = 0 AND p.post = :post', array("post"=>$post->id));
+INNER JOIN {sforum_transitions} t ON t.toid = s.id
+INNER JOIN {sforum_performed_transitions} h ON h.transition = t.id
+WHERE h.post = :postid', array("postid"=>$post->id));
     $postsubject = $post->subject;
     if ($steplbl) $postsubject .= ' - '.$steplbl;
     if (empty($post->subjectnoformat)) {
@@ -3651,43 +3634,98 @@ WHERE s.deleted = 0 AND p.post = :post', array("post"=>$post->id));
     return;
 }
 
-function add_reply_commands(&$commands, $post) {
-    global $DB, $USER;
-    $url = '/mod/sforum/post.php#mformsforum';
-    $dependon = $DB->get_field('sforum_performed_steps', 'step', array('post'=>$post->id));
-    $firstpost = $DB->get_field('sforum_discussions', 'firstpost', array('id'=>$post->discussion));
 
-    // set next steps based on dependon and nextsteps fields
-    $nextsteps = false;
-    if (!empty($dependon) or $firstpost == $post->id) {
-        $sql = 'SELECT s.*
-FROM {sforum_steps} s
-INNER JOIN {groups_members} m ON m.groupid = s.groupid 
-WHERE s.deleted = 0 AND m.userid = :user';
-        $cond = array('user'=>$USER->id);
-        if ($dependon == false) {
-            $sql .= ' AND s.dependon IS NULL';
-        } else {
-            // include in the sql query the next steps defined explicitly in step 
-            $nextsteps = $DB->get_field('sforum_steps', 'nextsteps', array('id'=>$dependon));
-            if (!empty($nextsteps)) {
-                $sql .= ' AND (s.dependon = :dependon OR s.id IN ('.$nextsteps.'))';
-            } else {
-                $sql .= ' AND s.dependon = :dependon';
-            }
-            $cond = array_merge($cond, array('dependon'=>$dependon));
+/**
+ * Get next transitions as steps for transition ids
+ *
+ * @param array $transition_ids the array with transition ids
+ * @return array an associative array of the next transtions
+ */
+function next_transitions_as_steps($transition_ids) {
+    global $DB;
+    $transitions = $DB->get_records_sql('SELECT * FROM {sforum_transitions} WHERE id IN('.implode(',', $transition_ids).')');
+
+    $next_transitions = array();
+    foreach ($transition_ids as $id) {
+        $transition = $transitions[$id];
+        $transition->to = $DB->get_record('sforum_steps', array('id'=>$transition->toid));
+        unset($transition->toid);
+        if ($transition->fromid != 0) { 
+            $transition->from = $DB->get_record('sforum_steps', array('id'=>$transition->fromid));
         }
-        $nextsteps = $DB->get_records_sql($sql, $cond);
-        if ($nextsteps) {
-            foreach ($nextsteps as $nextstep) {
-                $murl = new moodle_url($url, array('reply'=>$post->id, 'step'=>$nextstep->id));
-                $commands[] = array('url'=>$murl, 'text'=>ucfirst($nextstep->label));
-            }
+        unset($transition->fromid);
+        $next_transitions[$id] = $transition;
+    }
+
+    return $next_transitions;
+}
+
+/**
+ * Get next transtions as steps for an specific user
+ *
+ * @param int $postid the identificator of post
+ * @param int $userid the identificator of user
+ * @return array an associative array of the user's next transitions
+ */
+function get_next_transitions_as_steps($postid, $userid) {
+    global $DB;
+    $post = $DB->get_record('sforum_posts', array('id'=>$postid));
+    $discussion = $DB->get_record('sforum_discussions', array('id'=>$post->discussion));
+
+    $fromid = $DB->get_field_sql('SELECT t.toid
+FROM {sforum_transitions} t
+INNER JOIN {sforum_performed_transitions} h ON h.transition = t.id
+WHERE  h.post = :postid', array('postid'=>$postid));
+
+    if ($discussion->firstpost != $postid && empty($fromid)) return;
+
+    $cond = array('forum'=>$discussion->forum, 'fromid'=>($discussion->firstpost != $postid ? $fromid : 0));
+    $transitions = $DB->get_records('sforum_transitions', $cond);
+    $enabled_transition_ids = $DB->get_fieldset_select('sforum_next_transitions',
+        'transition', 'userid = :userid AND discussion = :discussion',
+        array('userid'=>$userid, 'discussion'=>$discussion->id));
+
+    /*
+    if ($userid == 10050 && $postid == 437) {
+        print_r($transitions);
+        echo '<hr/>';
+        print_r($enabled_transition_ids);
+        die;
+    }*/
+
+    $transition_ids = array();
+    foreach ($transitions as $transition) {
+        if ($DB->record_exists('groups_members', array('groupid'=>$transition->forid, 'userid'=>$userid))) {
+            if ((empty($enabled_transition_ids) && $discussion->firstpost == $post->id) ||
+                (!empty($enabled_transition_ids) && in_array($transition->id, $enabled_transition_ids))) {
+                $transition_ids[] = $transition->id;
+            } 
         }
     }
 
-    // put reply only if there are nextsteps, it is first post or the post isn't a performed step
-    if ($nextsteps or $firstpost == $post->id or !$dependon) {
+    if (empty($transition_ids)) return array();
+    return next_transitions_as_steps($transition_ids);
+}
+
+/**
+ * Generate commands for a post in a discussion
+ * 
+ * @param array $commands
+ * @param object $discussion 
+ * @param object $post 
+ */
+function add_reply_commands(&$commands, $discussion, $post) {
+    global $DB, $USER;
+    $url = '/mod/sforum/post.php#mformsforum';
+
+    $transitions = get_next_transitions_as_steps($post->id, $USER->id); 
+    print_r($transitions);
+
+    foreach ($transitions as $id=>$transition) {
+        $murl = new moodle_url($url, array('reply'=>$post->id, 'transition'=>$id));
+        $commands[] = array('url'=>$murl, 'text'=>ucfirst($transition->to->label));
+    }
+    if (!empty($transitions)) {
         $murl = new moodle_url($url, array('reply'=>$post->id));
         $commands[] = array('url'=>$murl, 'text'=>get_string('reply', 'sforum'));
     }
@@ -4637,11 +4675,36 @@ function sforum_add_new_post($post, $mform, $unused = null) {
     // Let Moodle know that assessable content is uploaded (eg for plagiarism detection)
     sforum_trigger_content_uploaded_event($post, $cm, 'sforum_add_new_post');
     // Insert new performed step
-    if (!empty($post->step)) {
-        $pstep = new stdClass;
-        $pstep->step = $post->step;
-        $pstep->post = $post->id;
-        $DB->insert_record('sforum_performed_steps', $pstep);
+    if (!empty($post->nexttransition)) {
+        $transition = $DB->get_record('sforum_transitions', array('id'=>$post->nexttransition));
+        // insert performed transitions
+        $ptransition = new stdClass();
+        $ptransition->post = $post->id;
+        $ptransition->transition = $transition->id;
+        $DB->insert_record('sforum_performed_transitions', $ptransition);
+        // change next transitions
+        $next_transitions = $DB->get_records('sforum_transitions', array('fromid'=>$transition->toid));
+        foreach ($next_transitions as $next_transition) {
+            $userids = array($USER->id);
+            if ($DB->record_exists('sforum_performed_transitions', array('post'=>$post->parent))) {
+                $userids = array($DB->get_field('sforum_posts', 'userid', array('id'=>$post->parent)));
+            } 
+            if ($next_transition->type == 'enabled-for-group') {
+                $userids = $DB->get_fieldset_sql('SELECT userid FROM {groups_members} WHERE groupid = :groupid',
+                    array('groupid'=>$next_transition->forid));
+            }
+            // insert next transitions for users
+            foreach ($userids as $userid) {
+                $ptransition = new stdClass();
+                $ptransition->userid = $userid;
+                $ptransition->discussion = $post->discussion;
+                $ptransition->transition = $next_transition->id;
+                $DB->insert_record('sforum_next_transitions', $ptransition);
+            }
+        }
+
+        $DB->delete_records('sforum_next_transitions', array('userid'=>$USER->id,
+            'transition'=>$transition->id, 'discussion'=>$post->discussion));
     }
 
     return $post->id;
@@ -4896,6 +4959,13 @@ function sforum_delete_post($post, $children, $course, $cm, $sforum, $skipcomple
     if (!empty($CFG->enablerssfeeds)) {
         require_once($CFG->dirroot.'/mod/sforum/rsslib.php');
         sforum_rss_delete_file($sforum);
+    }
+
+    // Delete performed transitions and next steps
+    $ptransition = $DB->get_record('sforum_performed_transitions', array('post'=>$post->id));
+    if ($ptransition) {
+        print_r($ptransition);
+        die;
     }
 
     if ($DB->delete_records("sforum_posts", array("id" => $post->id))) {

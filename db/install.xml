@@ -29,6 +29,7 @@
         <FIELD NAME="completiondiscussions" TYPE="int" LENGTH="9" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Nonzero if a certain number of posts are required to mark this scripting forum completed for a user."/>
         <FIELD NAME="completionreplies" TYPE="int" LENGTH="9" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Nonzero if a certain number of replies are required to mark this scripting forum complete for a user."/>
         <FIELD NAME="completionposts" TYPE="int" LENGTH="9" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Nonzero if a certain number of posts or replies (total) are required to mark this scripting forum complete for a user."/>
+        <FIELD NAME="completionsteps" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Non-null if certain steps are required to mark this scripting-forum as completed for a user."/>
         <FIELD NAME="displaywordcount" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
@@ -216,32 +217,54 @@
         <FIELD NAME="forum" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="label" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="description" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="dependon" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"
-                COMMENT="For now only one dependence is enough, more than one will be wonderful"/>
-        <FIELD NAME="nextsteps" TYPE="text" NOTNULL="false" SEQUENCE="false"
-                COMMENT="Usually used to define cycles, Theser are not automatic filled"/>
-        <FIELD NAME="optional" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="deleted" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="groupid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"
-                COMMENT="CL role who can push these step in forward" />
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="sforum" REFFIELDS="id"/>
-        <KEY NAME="groupid" TYPE="foreign" FIELDS="groupid" REFTABLE="groups" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
 
-    <TABLE NAME="sforum_performed_steps" COMMENT="Performed steps in the sequencing.">
+    <TABLE NAME="sforum_transitions" COMMENT="Transitions among steps">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="step" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="post" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="forum" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="fromid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="toid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="forid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"
+                COMMENT="CL role of students who performs the transition"/>
+        <FIELD NAME="type" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="individual" SEQUENCE="false"/>
+        <FIELD NAME="optional" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="step" TYPE="foreign" FIELDS="step" REFTABLE="sforum_steps" REFFIELDS="id"/>
+        <KEY NAME="forum" TYPE="foreign" FIELDS="forum" REFTABLE="sforum" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+
+    <TABLE NAME="sforum_performed_transitions" COMMENT="Performed transitions in the sequencing">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="post" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="transition" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/> 
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="post" TYPE="foreign" FIELDS="post" REFTABLE="sforum_posts" REFFIELDS="id"/>
+        <KEY NAME="transition" TYPE="foreign" FIELDS="transition" REFTABLE="sforum_transitions" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+
+    <TABLE NAME="sforum_next_transitions" COMMENT="Transitions that can be performed for a student">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="discussion" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="transition" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/> 
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="discussion" TYPE="foreign" FIELDS="discussion" REFTABLE="sforum_discussions" REFFIELDS="id"/>
+        <KEY NAME="transition" TYPE="foreign" FIELDS="transition" REFTABLE="sforum_transitions" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
 

@@ -598,50 +598,24 @@ if (!isset($sforum->maxattachments)) {
     $sforum->maxattachments = 3;
 }
 
-// Hack to defining the sripting steps for edit in the form
-$nextsteps = array();
-if (empty($post->id) && optional_param('step', false, PARAM_INT)) {
-    // the step is indicate as parameter
-    $stepid = required_param('step', PARAM_INT);
-    $nextsteps = $DB->get_records_menu('sforum_steps',
-            array('id'=>$stepid, 'deleted'=>0), '', 'id, description');
+// Hack to defining the scripting steps for edit in the form
+$next_transitions = array();
+if (empty($post->id) && optional_param('transition', false, PARAM_INT)) {
+    // the transition is indicate as parameter
+    $transitionid = required_param('transition', PARAM_INT);
+    $next_transitions = next_transitions_as_steps(array($transitionid));
 } else if (empty($post->id)) {
     // we are using the common button reply
-    $dependon = $DB->get_field('sforum_performed_steps', 'step', array('post'=>$post->parent));
-    $firstpost = $DB->get_field('sforum_discussions', 'firstpost', array('id'=>$post->discussion));
-
-    $nextsteps = null;
-    if (!empty($dependon) or $firstpost == $post->parent) {
-        $sql = 'SELECT s.id, s.description
-FROM {sforum_steps} s
-INNER JOIN {sforum_discussions} d ON d.forum = s.forum
-INNER JOIN {groups_members} m ON m.groupid = s.groupid
-WHERE s.deleted = 0 AND d.id = :discussion AND m.userid = :user';
-        $cond = array('discussion'=>$post->discussion, 'user'=>$USER->id);
-        if ($dependon == false) {
-            $sql .= ' AND s.dependon IS NULL';
-        } else {
-            // include in the sql query the next steps defined explicitly in step 
-            $nextsteps = $DB->get_field('sforum_steps', 'nextsteps', array('id'=>$dependon));
-            if (!empty($nextsteps)) {
-                $sql .= ' AND (s.dependon = :dependon OR s.id IN ('.$nextsteps.'))';
-            } else { $sql .= ' AND s.dependon = :dependon'; }
-            $cond = array_merge($cond, array('dependon'=>$dependon));
-        }
-
-        $nextsteps = $DB->get_records_sql_menu($sql, $cond);
-        if ($firstpost == $post->parent) {
-            $nextsteps = array_merge(array(null=>get_string('none')),$nextsteps);
-        }
-    }
+    $next_transitions = get_next_transitions_as_steps($post->parent, $USER->id);
+    $default_transition = current(array_keys($next_transitions));
 } else {
-    // we are editing an existing post (current step can't be change if it was defined)
-    // TODO - in the future allow the user change label
-    $nextsteps = $DB->get_records_sql_menu('SELECT s.id, s.description
-FROM {sforum_steps} s
-INNER JOIN {sforum_performed_steps} p ON p.step = s.id
-WHERE s.deleted = 0 AND p.post = :post', array('post'=>$post->id));
-    if (empty($nextsteps)) $nextsteps = null;
+    // we are editing an existing post (current transition can't be change if it was defined)
+    // TODO - in the future, we'll allow the user change the transition
+    $transitionid = $DB->get_field('sforum_performed_transitions',
+        'transition', array('post'=>$post->id));
+    if ($transitionid) {
+        $next_transitions = next_transitions_as_steps(array($transitionid));
+    }
 }
 
 $thresholdwarning = sforum_check_throttling($sforum, $cm);
@@ -656,7 +630,8 @@ $mform_post = new mod_sforum_post_form('post.php',
               'subscribe' => \mod_sforum\subscriptions::is_subscribed(
                       $USER->id, $sforum, null, $cm),
               'thresholdwarning' => $thresholdwarning,
-              'nextsteps' => $nextsteps,
+              'nexttransitions' => $next_transitions,
+              'defaulttransition' => $default_transition,
               'edit' => $edit),
         'post', '', array('id' => 'mformsforum'));
 

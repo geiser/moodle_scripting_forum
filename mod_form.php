@@ -460,45 +460,48 @@ class mod_sforum_mod_form extends moodleform_mod {
 
         // set steps
         if ($default_values->id) {
-            $steps = $DB->get_records('sforum_steps',
-                        array('deleted'=>0, 'forum'=>$default_values->id));
-            $strsteps = '';
+            $steps = $DB->get_records('sforum_steps', array('forum'=>$default_values->id));
+            $transitions = $DB->get_records('sforum_transitions', array('forum'=>$default_values->id));
+
+            $config = new stdClass();
+            $config->steps = array();
+            $config->transitions = array();
+
+            // setting steps
             foreach ($steps as $step) {
                 unset($step->id);
                 unset($step->forum);
-                unset($step->deleted);
-                // true for optional
-                if ((int)$step->optional == 0) unset($step->optional);
-                else $step->optional = true;
-                // alias for optional
-                if (empty($step->alias)) unset($step->alias);
-                // label for dependon
-                if (empty($step->dependon)) unset($step->dependon); else {
-                    $dependon = $DB->get_record('sforum_steps', array('id'=>$step->dependon));
-                    $step->dependon = $dependon->label;
-                    if (!empty($dependon->alias)) {
-                        $step->dependon = $dependon->alias;
-                    }
-                }
-                //label for cl role
-                $step->clrole = $DB->get_field('groups', 'name', array('id'=>$step->groupid));
-                unset($step->groupid);
-                //label for the list for nextsteps
-                if (empty($step->nextsteps)) unset($step->nextsteps); else {
-                    $nextsteps = array();
-                    foreach (explode(',', $step->nextsteps) as $nextstepid) {
-                        $nextstep = $DB->get_record('sforum_steps', array('id'=>$nextstepid));
-                        $nextstepid = $nextstep->label;
-                        if (!empty($nextstep->alias)) {
-                            $nextstepid = $nextstep->alias;
-                        }
-                        $nextsteps[] = $nextstepid;
-                    }
-                    $step->nextsteps = $nextsteps;
-                }
-                
-                $strsteps .= json_encode($step, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_NUMERIC_CHECK)."\n";
+                $config->steps[] = $step;
             }
+
+            // setting transitions
+            foreach ($transitions as $transition) {
+                unset($transition->id);
+                unset($transition->forum);
+                if ($transition->type == 'individual') unset($transition->type);
+                
+                if ($transition->fromid != 0) { 
+                    $step = $steps[$transition->fromid];
+                    $transition->from = (empty($step->alias) ? $step->label : $step->alias);
+                } else {
+                    $transition->from = 'start';
+                }
+                unset($transition->fromid);
+                
+                $step = $steps[$transition->toid];
+                $transition->to = (empty($step->alias) ? $step->label : $step->alias);
+                unset($transition->toid);
+               
+                $transition->for = $DB->get_field('groups', 'name', array('id'=>$transition->forid));
+                unset($transition->forid);
+
+                if ((int)$transition->optional == 0) unset($transition->optional);
+                else $transition->optional = true;
+
+                $config->transitions[] = $transition;
+            }
+
+            $strsteps = json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n";
             $this->_form->setDefault('steps', $strsteps);
         }
 
