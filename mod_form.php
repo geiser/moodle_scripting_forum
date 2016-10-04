@@ -545,15 +545,23 @@ class mod_sforum_mod_form extends moodleform_mod {
         if (empty($default_values['completiondiscussions'])) {
             $default_values['completiondiscussions']=1;
         }
+        
         $default_values['completionrepliesenabled']=
             !empty($default_values['completionreplies']) ? 1 : 0;
         if (empty($default_values['completionreplies'])) {
             $default_values['completionreplies']=1;
         }
+        
         $default_values['completionpostsenabled']=
             !empty($default_values['completionposts']) ? 1 : 0;
         if (empty($default_values['completionposts'])) {
             $default_values['completionposts']=1;
+        }
+        
+        $default_values['completionstepsenabled']=
+            empty($default_values['completionsteps']) ? 0 : 1;
+        if (empty($default_values['completionsteps'])) {
+            $default_values['completionsteps']='all-necessary-steps';
         }
     }
 
@@ -587,12 +595,22 @@ class mod_sforum_mod_form extends moodleform_mod {
                 get_string('completionrepliesgroup','sforum'), array(' '), false);
         $mform->disabledIf('completionreplies','completionrepliesenabled','notchecked');
 
-        return array('completiondiscussionsgroup','completionrepliesgroup','completionpostsgroup');
+        $group=array();
+        $group[] =& $mform->createElement('checkbox', 'completionstepsenabled', '',
+                get_string('completionsteps','sforum'));
+        $group[] =& $mform->createElement('text', 'completionsteps', '', array('size'=>20));
+        $mform->setType('completionsteps',PARAM_TEXT);
+        $mform->addGroup($group, 'completionstepsgroup',
+                get_string('completionstepsgroup','sforum'), array(' '), false);
+        $mform->disabledIf('completionsteps','completionstepsenabled','notchecked');
+
+        return array('completiondiscussionsgroup','completionrepliesgroup','completionpostsgroup', 'completionstepsgroup');
     }
 
     function completion_rule_enabled($data) {
         return (!empty($data['completiondiscussionsenabled']) && $data['completiondiscussions']!=0) ||
             (!empty($data['completionrepliesenabled']) && $data['completionreplies']!=0) ||
+            (!empty($data['completionstepsenabled']) && !empty($data['completionsteps'])) ||
             (!empty($data['completionpostsenabled']) && $data['completionposts']!=0);
     }
 
@@ -613,6 +631,9 @@ class mod_sforum_mod_form extends moodleform_mod {
             }
             if (empty($data->completionpostsenabled) || !$autocompletion) {
                 $data->completionposts = 0;
+            }
+            if (empty($data->completionstepsenabled) || !$autocompletion) {
+                $data->completionsteps = null;
             }
         }
         return $data;

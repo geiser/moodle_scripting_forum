@@ -83,9 +83,15 @@ $string['clicktosubscribe'] = 'You are not subscribed to this discussion. Click 
 $string['completiondiscussions'] = 'Student must create discussions:';
 $string['completiondiscussionsgroup'] = 'Require discussions';
 $string['completiondiscussionshelp'] = 'requiring discussions to complete';
+
 $string['completionposts'] = 'Student must post discussions or replies:';
 $string['completionpostsgroup'] = 'Require posts';
 $string['completionpostshelp'] = 'requiring discussions or replies to complete';
+
+$string['completionsteps'] = 'Student must perform scripting-steps:';
+$string['completionstepsgroup'] = 'Require steps';
+$string['completionstepshelp'] = 'requiring scripting-steps to complete';
+
 $string['completionreplies'] = 'Student must post replies:';
 $string['completionrepliesgroup'] = 'Require replies';
 $string['completionreplieshelp'] = 'requiring replies to complete';

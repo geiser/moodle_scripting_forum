@@ -139,6 +139,7 @@ class mod_sforum_external extends external_api {
                     'completiondiscussions' => new external_value(PARAM_INT, 'Student must create discussions'),
                     'completionreplies' => new external_value(PARAM_INT, 'Student must post replies'),
                     'completionposts' => new external_value(PARAM_INT, 'Student must post discussions or replies'),
+                    'completionsteps' => new external_value(PARAM_TEXT, 'Student must perform scripting-steps'),
                     'cmid' => new external_value(PARAM_INT, 'Course module id'),
                     'numdiscussions' => new external_value(PARAM_INT, 'Number of discussions in the sforum', VALUE_OPTIONAL),
                     'cancreatediscussions' => new external_value(PARAM_BOOL, 'If the user can create discussions', VALUE_OPTIONAL),
@@ -867,7 +868,7 @@ class mod_sforum_external extends external_api {
             // Update completion state.
             $completion = new completion_info($course);
             if ($completion->is_enabled($cm) &&
-                    ($sforum->completionreplies || $sforum->completionposts)) {
+                    ($sforum->completionreplies || $sforum->completionposts || !empty($sforum->completionsteps))) {
                 $completion->update_state($cm, COMPLETION_COMPLETE);
             }
 
@@ -1055,7 +1056,7 @@ class mod_sforum_external extends external_api {
 
             $completion = new completion_info($course);
             if ($completion->is_enabled($cm) &&
-                    ($sforum->completiondiscussions || $sforum->completionposts)) {
+                    ($sforum->completiondiscussions || $sforum->completionposts || !empty($sforum->completionsteps))) {
                 $completion->update_state($cm, COMPLETION_COMPLETE);
             }
 

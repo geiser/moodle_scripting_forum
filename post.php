@@ -917,7 +917,7 @@ if ($mform_post->is_cancelled()) {
             // Update completion state
             $completion=new completion_info($course);
             if($completion->is_enabled($cm) &&
-                ($sforum->completionreplies || $sforum->completionposts)) {
+                ($sforum->completionreplies || $sforum->completionposts || !empty($sforum->completionsteps))) {
                 $completion->update_state($cm,COMPLETION_COMPLETE);
             }
 
@@ -1028,7 +1028,7 @@ if ($mform_post->is_cancelled()) {
         // Update completion status.
         $completion = new completion_info($course);
         if ($completion->is_enabled($cm) &&
-                ($sforum->completiondiscussions || $sforum->completionposts)) {
+                ($sforum->completiondiscussions || $sforum->completionposts || !empty($sforum->completionsteps))) {
             $completion->update_state($cm, COMPLETION_COMPLETE);
         }
 

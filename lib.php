@@ -534,7 +534,7 @@ WHERE
     if ($sforum->completiondiscussions) {
         $value = $sforum->completiondiscussions <=
                  $DB->count_records('sforum_discussions',
-                      array('forumid'=>$sforum->id,'userid'=>$userid));
+                      array('forum'=>$sforum->id,'userid'=>$userid));
         if ($type == COMPLETION_AND) {
             $result = $result && $value;
         } else {
@@ -552,6 +552,30 @@ WHERE
     }
     if ($sforum->completionposts) {
         $value = $sforum->completionposts <= $DB->get_field_sql($postcountsql,$postcountparams);
+        if ($type == COMPLETION_AND) {
+            $result = $result && $value;
+        } else {
+            $result = $result || $value;
+        }
+    }
+    // TODO:only implemented for all-necessary-steps
+    // for performed transitions as steps
+    if (!empty($sforum->completionsteps) && $sforum->completionsteps == 'all-necessary-steps') {
+        
+        $ptids = $DB->get_fieldset_sql('SELECT h.transition
+FROM {sforum_performed_transitions} h
+INNER JOIN {sforum_posts} p ON p.id = h.post
+WHERE p.userid = :userid', array('userid'=>$userid));
+        
+        $ntids = $DB->get_fieldset_sql('SELECT t.id
+FROM {sforum_transitions} t
+INNER JOIN {groups_members} m ON m.groupid = t.forid
+WHERE t.optional = 0 AND t.forum = :forum AND m.userid = :userid',
+            array('forum'=>$sforum->id, 'userid'=>$userid));
+
+        $value = !empty($ntids) && !empty($ptids) && 
+            count(array_unique(array_intersect($ptids, $ntids))) == count(array_unique($ntids));
+
         if ($type == COMPLETION_AND) {
             $result = $result && $value;
         } else {
@@ -4930,7 +4954,7 @@ function sforum_delete_discussion($discussion, $fulldelete, $course, $cm, $sforu
         $completion = new completion_info($course);
         if ($completion->is_enabled($cm) == COMPLETION_TRACKING_AUTOMATIC &&
            ($sforum->completiondiscussions ||
-           $sforum->completionreplies || $sforum->completionposts)) {
+           $sforum->completionreplies || $sforum->completionposts || !empty($sforum->completionsteps))) {
             $completion->update_state($cm, COMPLETION_INCOMPLETE, $discussion->userid);
         }
     }
@@ -5011,7 +5035,7 @@ function sforum_delete_post($post, $children, $course, $cm, $sforum, $skipcomple
             $completion = new completion_info($course);
             if ($completion->is_enabled($cm) == COMPLETION_TRACKING_AUTOMATIC &&
                 ($sforum->completiondiscussions ||
-                 $sforum->completionreplies || $sforum->completionposts)) {
+                 $sforum->completionreplies || $sforum->completionposts || !empty($sforum->completionsteps))) {
                 $completion->update_state($cm, COMPLETION_INCOMPLETE, $post->userid);
             }
         }
