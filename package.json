@@ -1,0 +1,25 @@
+{
+  "name": "moodle-mod_sforum",
+  "description": "A scripting-forum activity for Moodle based on http://moodle.org",
+  "license": "GPLv3",
+  "authors": [
+    {
+      "name": "Geiser Chalco",
+      "email": "geiser@usp.br"
+    }
+  ],
+  "type": "moodle-mod",
+  "require": {
+    "composer/installers": "~1.0"
+  },
+  "extra": {
+    "installer-name": "sforum"
+  },
+  "devDependencies": {
+    "grunt": "^1.0.1",
+    "grunt-contrib-clean": "^1.0.0",
+    "grunt-contrib-less": "^1.4.0",
+    "grunt-contrib-uglify": "^2.0.0",
+    "grunt-contrib-watch": "^1.0.0"
+  }
+}
