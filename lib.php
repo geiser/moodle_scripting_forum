@@ -3743,23 +3743,12 @@ INNER JOIN {sforum_performed_transitions} h ON h.transition = t.id
 WHERE  h.post = :postid', array('postid'=>$postid));
     if ($discussion->firstpost != $postid && empty($fromid)) return;
 
-    // obtain transitions and enabled transitions in the discussion for the current user
+    // obtain ids of transitions and enabled transitions in the discussion for the current user
     $cond = array('forum'=>$discussion->forum, 'fromid'=>($discussion->firstpost != $postid ? $fromid : 0));
-    $transitions = $DB->get_records('sforum_transitions', $cond);
-    $enabled_transition_ids = $DB->get_fieldset_select('sforum_next_transitions',
-        'transition', 'userid = :userid AND discussion = :discussion',
-        array('userid'=>$userid, 'discussion'=>$discussion->id));
-
-    // iterate over transitions to identify what of them can be execute
-    $transition_ids = array();
-    foreach ($transitions as $transition) {
-        if ($DB->record_exists('groups_members', array('groupid'=>$transition->forid, 'userid'=>$userid))) {
-            if ((empty($enabled_transition_ids) && $discussion->firstpost == $post->id) ||
-                (!empty($enabled_transition_ids) && in_array($transition->id, $enabled_transition_ids))) {
-                $transition_ids[] = $transition->id;
-            }
-        }
-    }
+    $transition_ids = $DB->get_fieldset_select('sforum_transitions', 'id',
+        'forum = :forum AND fromid = :fromid', $cond);
+    $enabled_transition_ids = get_enabled_transition_ids($discussion->id, $userid);
+    $transition_ids = array_intersect($transition_ids, $enabled_transition_ids);
 
     // include field from and to in transitions as steps
     if (empty($transition_ids)) return array();
@@ -4743,11 +4732,17 @@ function sforum_add_new_post($post, $mform, $unused = null) {
         // change next transitions
         $next_transitions = $DB->get_records('sforum_transitions', array('fromid'=>$transition->toid));
         foreach ($next_transitions as $next_transition) {
-            $userids = array($USER->id);
+            $userids = array($USER->id); // also obtaine is_member($USER,group($transition->forid));
             if ($DB->record_exists('sforum_performed_transitions', array('post'=>$post->parent))) {
-                $userids = array($DB->get_field('sforum_posts', 'userid', array('id'=>$post->parent)));
-            } 
+                // enable for the user that are in the parent post if he is part of group defined by the for id field 
+                $parent_userid = $DB->get_field('sforum_posts', 'userid', array('id'=>$post->parent));
+                if (!empty($parent_userid) && $DB->record_exists('groups_members',
+                    array('groupid'=>$next_transition->forid, 'userid'=>$parent_userid))) {
+                    $userids = array($parent_userid);
+                }
+            }
             if ($next_transition->type == 'enabled-for-group') {
+                // enabled for all users that are part of group (forid) defined by the forid field
                 $userids = $DB->get_fieldset_sql('SELECT userid FROM {groups_members} WHERE groupid = :groupid',
                     array('groupid'=>$next_transition->forid));
             }
