@@ -225,19 +225,25 @@ function sforum_scripting_steps_update($sforum) {
                 $fromid = $DB->get_field('sforum_steps', 'id', array('forum'=>$sforum->id, 'label'=>$ctransition->from), MUST_EXIST);
             }
         }
-        // get to id;
-        $toid = $DB->get_field('sforum_steps', 'id', array('forum'=>$sforum->id, 'alias'=>$ctransition->to));
-        if (!$toid) {
-            $toid = $DB->get_field('sforum_steps', 'id', array('forum'=>$sforum->id, 'label'=>$ctransition->to), MUST_EXIST);
+
+        $toids = '';
+        foreach (explode(',', (string)$ctransition->to) as $to) {
+            // get to id;
+            $toid = $DB->get_field('sforum_steps', 'id', array('forum'=>$sforum->id, 'alias'=>$to));
+            if (!$toid) {
+                $toid = $DB->get_field('sforum_steps', 'id', array('forum'=>$sforum->id, 'label'=>$to), MUST_EXIST);
+            }
+            $toids .= ','.$toid;
         }
+        $toids = substr($toids, 1);
         
-        $cond = array('forum'=>$sforum->id, 'fromid'=>$fromid, 'toid'=>$toid);
+        $cond = array('forum'=>$sforum->id, 'fromid'=>$fromid, 'toids'=>$toids);
         $transition = $DB->get_record('sforum_transitions', $cond, '*', IGNORE_MULTIPLE);
         if (!$transition) $transition = new stdClass();
 
         $transition->forum = $sforum->id;
         $transition->fromid = $fromid;
-        $transition->toid = $toid;
+        $transition->toids = $toids;
         $group = $DB->get_record_sql('SELECT g.id as id
 FROM {groups} g
 INNER JOIN {groupings_groups} s ON g.id = s.groupid
@@ -3475,10 +3481,16 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
         $transition_ids = get_enabled_transition_ids($discussion->id, $USER->id);
         $nextsteps = array();
         if (!empty($transition_ids)) {
-            $steps = $DB->get_records_sql('SELECT s.*
-FROM {sforum_steps} s
-INNER JOIN {sforum_transitions} t ON t.toid = s.id
-WHERE t.id IN ('.implode(',', $transition_ids).')');
+            $array_toids = $DB->get_fieldset_sql('SELECT t.toids FROM {sforum_transitions} t
+WHERE t.id IN('.implode(',', $transition_ids).')');
+            $str_toids = '';
+            foreach ($array_toids as $toids) {
+                $str_toids .= ','.$toids;
+            }
+            $str_toids = substr($str_toids, 1);
+
+            $steps = $DB->get_records_sql('SELECT s.* FROM {sforum_steps} s
+WHERE s.id IN ('.$str_toids.')');
             foreach ($steps as $step) {
                 $nextsteps[] = (empty($step->alias) ? $step->label : $step->alias);
             }
@@ -3533,8 +3545,7 @@ WHERE t.id IN ('.implode(',', $transition_ids).')');
     // Hack to alter the post subject and include the step
     $steplbl = $DB->get_field_sql('SELECT s.label
 FROM {sforum_steps} s
-INNER JOIN {sforum_transitions} t ON t.toid = s.id
-INNER JOIN {sforum_performed_transitions} h ON h.transition = t.id
+INNER JOIN {sforum_performed_transitions} h ON h.toid = s.id
 WHERE h.post = :postid', array("postid"=>$post->id));
     $postsubject = $post->subject;
     if ($steplbl) $postsubject .= ' - '.$steplbl;
@@ -3681,13 +3692,17 @@ WHERE h.post = :postid', array("postid"=>$post->id));
  */
 function next_transitions_as_steps($transition_ids) {
     global $DB;
-    $transitions = $DB->get_records_sql('SELECT * FROM {sforum_transitions} WHERE id IN('.implode(',', $transition_ids).')');
+    $transitions = $DB->get_records_sql('SELECT * FROM {sforum_transitions}
+WHERE id IN('.implode(',', $transition_ids).')');
 
     $next_transitions = array();
     foreach ($transition_ids as $id) {
         $transition = $transitions[$id];
-        $transition->to = $DB->get_record('sforum_steps', array('id'=>$transition->toid));
-        unset($transition->toid);
+        foreach(explode(',', $transition->toids) as $toid) {
+            $step = $DB->get_record('sforum_steps', array('id'=>$toid));
+            $transition->to[$step->id] = $step;
+        }
+        unset($transition->toids);
         if ($transition->fromid != 0) { 
             $transition->from = $DB->get_record('sforum_steps', array('id'=>$transition->fromid));
         }
@@ -3736,11 +3751,8 @@ function get_next_transitions_as_steps($postid, $userid) {
     $post = $DB->get_record('sforum_posts', array('id'=>$postid));
     $discussion = $DB->get_record('sforum_discussions', array('id'=>$post->discussion));
 
-    // return null if the post is not first post and it is not associated with a step
-    $fromid = $DB->get_field_sql('SELECT t.toid
-FROM {sforum_transitions} t
-INNER JOIN {sforum_performed_transitions} h ON h.transition = t.id
-WHERE  h.post = :postid', array('postid'=>$postid));
+    // return null if the post is not first and it is not associated with a step
+    $fromid = $DB->get_field('sforum_performed_transitions', 'toid', array('post'=>$postid));
     if ($discussion->firstpost != $postid && empty($fromid)) return;
 
     // obtain ids of transitions and enabled transitions in the discussion for the current user
@@ -3769,8 +3781,10 @@ function add_reply_commands(&$commands, $discussion, $post) {
     $transitions = get_next_transitions_as_steps($post->id, $USER->id); 
 
     foreach ($transitions as $id=>$transition) {
-        $murl = new moodle_url($url, array('reply'=>$post->id, 'transition'=>$id));
-        $commands[] = array('url'=>$murl, 'text'=>ucfirst($transition->to->label));
+        foreach ($transition->to as $stepid=>$step) {
+            $murl = new moodle_url($url, array('reply'=>$post->id, 'transition'=>$id, 'to'=>$stepid));
+            $commands[] = array('url'=>$murl, 'text'=>ucfirst($step->label));
+        }
     }
     if (!empty($transitions)) {
         $murl = new moodle_url($url, array('reply'=>$post->id));
@@ -4721,16 +4735,21 @@ function sforum_add_new_post($post, $mform, $unused = null) {
 
     // Let Moodle know that assessable content is uploaded (eg for plagiarism detection)
     sforum_trigger_content_uploaded_event($post, $cm, 'sforum_add_new_post');
-    // Insert new performed step
+    // Hack - Insert new performed step
     if (!empty($post->nexttransition)) {
-        $transition = $DB->get_record('sforum_transitions', array('id'=>$post->nexttransition));
+        $transitionid_toid = explode(',', (string)$post->nexttransition);
+        $transitionid = $transitionid_toid[0];
+        $toid = $transitionid_toid[1];
+
+        $transition = $DB->get_record('sforum_transitions', array('id'=>$transitionid));
         // insert performed transitions
         $ptransition = new stdClass();
         $ptransition->post = $post->id;
         $ptransition->transition = $transition->id;
+        $ptransition->toid = $toid;
         $DB->insert_record('sforum_performed_transitions', $ptransition);
         // change next transitions
-        $next_transitions = $DB->get_records('sforum_transitions', array('fromid'=>$transition->toid));
+        $next_transitions = $DB->get_records('sforum_transitions', array('fromid'=>$toid));
         foreach ($next_transitions as $next_transition) {
             $userids = array($USER->id); // also obtaine is_member($USER,group($transition->forid));
             if ($DB->record_exists('sforum_performed_transitions', array('post'=>$post->parent))) {

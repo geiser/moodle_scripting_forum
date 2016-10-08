@@ -164,6 +164,26 @@ function xmldb_sforum_upgrade($oldversion=0) {
 
         upgrade_mod_savepoint(true, 2016100108, 'sforum');
     }
+
+    if ($result && $oldversion < 2016100706) {
+        $table = new xmldb_table('sforum_transitions');
+        $field = new xmldb_field('toid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'fromid');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->rename_field($table, $field, 'toids');
+            $field = new xmldb_field('toids', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'fromid');
+            $dbman->change_field_type($table, $field);
+            upgrade_mod_savepoint(true, 2016100706, 'sforum');
+        }
+    }
+
+    if ($result && $oldversion < 2016100800) {
+        $table = new xmldb_table('sforum_performed_transitions');
+        $field = new xmldb_field('toid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'transition');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+            upgrade_mod_savepoint(true, 2016100800, 'sforum');
+        }
+    }
     
     return $result;
 }

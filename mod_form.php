@@ -487,10 +487,14 @@ class mod_sforum_mod_form extends moodleform_mod {
                     $transition->from = 'start';
                 }
                 unset($transition->fromid);
-                
-                $step = $steps[$transition->toid];
-                $transition->to = (empty($step->alias) ? $step->label : $step->alias);
-                unset($transition->toid);
+
+                $transition->to = '';
+                foreach (explode(',', $transition->toids) as $toid) {
+                    $step = $steps[$toid];
+                    $transition->to .= ','.(empty($step->alias) ? $step->label : $step->alias);
+                }
+                $transition->to = substr($transition->to, 1);
+                unset($transition->toids);
                
                 $transition->for = $DB->get_field('groups', 'name', array('id'=>$transition->forid));
                 unset($transition->forid);

@@ -600,8 +600,10 @@ if (!isset($sforum->maxattachments)) {
 
 // Hack to defining the scripting steps for edit in the form
 $next_transitions = array();
+$default_transition = null;
 if (empty($post->id) && optional_param('transition', false, PARAM_INT)) {
     // the transition is indicate as parameter
+    $toid = required_param('to', PARAM_INT);
     $transitionid = required_param('transition', PARAM_INT);
     $next_transitions = next_transitions_as_steps(array($transitionid));
 } else if (empty($post->id)) {
@@ -609,12 +611,14 @@ if (empty($post->id) && optional_param('transition', false, PARAM_INT)) {
     $next_transitions = get_next_transitions_as_steps($post->parent, $USER->id);
     $default_transition = current(array_keys($next_transitions));
 } else {
-    // we are editing an existing post (current transition can't be change if it was defined)
+    // we are editing an existing post (current transition can't be changed)
     // TODO - in the future, we'll allow the user change the transition
-    $transitionid = $DB->get_field('sforum_performed_transitions',
-        'transition', array('post'=>$post->id));
-    if ($transitionid) {
-        $next_transitions = next_transitions_as_steps(array($transitionid));
+    $performed_transition = $DB->get_record('sforum_performed_transitions',
+        array('post'=>$post->id));
+    if (!empty($performed_transition)) {
+        $t_ids = array($performed_transition->transition);
+        $next_transitions = next_transitions_as_steps($t_ids);
+        $toid = $performed_transition->toid;
     }
 }
 
@@ -631,6 +635,7 @@ $mform_post = new mod_sforum_post_form('post.php',
                       $USER->id, $sforum, null, $cm),
               'thresholdwarning' => $thresholdwarning,
               'nexttransitions' => $next_transitions,
+              'toid' => $toid,
               'defaulttransition' => $default_transition,
               'edit' => $edit),
         'post', '', array('id' => 'mformsforum'));

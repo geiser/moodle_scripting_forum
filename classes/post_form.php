@@ -98,17 +98,24 @@ class mod_sforum_post_form extends moodleform {
         $edit = $this->_customdata['edit'];
         $thresholdwarning = $this->_customdata['thresholdwarning'];
         $next_transitions = $this->_customdata['nexttransitions'];
+        $toid = $this->_customdata['toid'];
         
         $default_transitionid = null;
-        $idtransition_step_list = array();
+        $idtransition_toid_step_list = array();
         if (!empty($this->_customdata['defaulttransition'])) {
-            $idtransition_step_list = array(null=>get_string('none'));
-            $default_transitionid = $this->_customdata['defaulttransition'];
+            $idtransition_toid_step_list = array(null=>get_string('none'));
+            $default_transitionid = $this->_customdata['defaulttransition'].(empty($toid) ? '': ','.$toid);
         }
-        
+
         if (!empty($next_transitions)) {
-            foreach ($next_transitions as $id=>$transition) {
-                $idtransition_step_list[$id] = $transition->to->description;
+            foreach ($next_transitions as $nid=>$transition) {
+                foreach ($transition->to as $sid=>$step) {
+                    if (empty($toid)) {
+                        $idtransition_toid_step_list[$nid.','.$sid] = $transition->to[$sid]->description;
+                    } else if ($toid == $sid) {
+                        $idtransition_toid_step_list[$nid.','.$sid] = $transition->to[$sid]->description;
+                    }
+                }
             }
         }
         
@@ -129,7 +136,7 @@ class mod_sforum_post_form extends moodleform {
         $mform->addRule('subject', get_string('required'), 'required', null, 'client');
         $mform->addRule('subject', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
-        $mform->addElement('select', 'nexttransition', get_string('step', 'sforum'), $idtransition_step_list);
+        $mform->addElement('select', 'nexttransition', get_string('step', 'sforum'), $idtransition_toid_step_list);
         $mform->addHelpButton('nexttransition', 'step', 'sforum');
         $mform->setDefault('nexttransition', 'step', $default_transitionid);
 
