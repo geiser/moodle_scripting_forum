@@ -250,8 +250,19 @@ INNER JOIN {groupings_groups} s ON g.id = s.groupid
 WHERE g.name = :name AND s.groupingid = :grouping',
                  array('name'=>$ctransition->for, 'grouping'=>$sforum->clroles), MUST_EXIST);
         $transition->forid = $group->id;
-        if (!empty($ctransition->type) && $ctransition->type != 'individual') {
-            $transition->type = 'enabled-for-group';
+        if (!empty($ctransition->type)) {
+            $transition->type = '';
+            foreach (explode(',', $ctransition->type) as $type) {
+                //TODO improve validation of types
+                if (trim($type) == 'enabled-for-group') {
+                    $transition->type .= ',enabled-for-group';
+                } else if (trim($type) == 'permanent') {
+                    $transition->type .= ',permanent';
+                }
+            }
+            $transition->type = substr($transition->type, 1);
+        } else {
+            $transition->type = 'individual';
         }
         if ($ctransition->optional) $transition->optional = 1;
 
@@ -4760,7 +4771,7 @@ function sforum_add_new_post($post, $mform, $unused = null) {
                     $userids = array($parent_userid);
                 }
             }
-            if ($next_transition->type == 'enabled-for-group') {
+            if (in_array('enabled-for-group', explode(',', $next_transition->type))) {
                 // enabled for all users that are part of group (forid) defined by the forid field
                 $userids = $DB->get_fieldset_sql('SELECT userid FROM {groups_members} WHERE groupid = :groupid',
                     array('groupid'=>$next_transition->forid));
@@ -4771,12 +4782,17 @@ function sforum_add_new_post($post, $mform, $unused = null) {
                 $ptransition->userid = $userid;
                 $ptransition->discussion = $post->discussion;
                 $ptransition->transition = $next_transition->id;
-                $DB->insert_record('sforum_next_transitions', $ptransition);
+                if (!$DB->record_exists('sforum_next_transitions',
+                    array('userid'=>$userid, 'discussion'=>$post->discussion, 'transition'=>$next_transition->id))) {
+                    $DB->insert_record('sforum_next_transitions', $ptransition);
+                }
             }
         }
-
-        $DB->delete_records('sforum_next_transitions', array('userid'=>$USER->id,
-            'transition'=>$transition->id, 'discussion'=>$post->discussion));
+        // remove from next_transitions only if it is not permanent
+        if (!in_array('permanent', explode(',', $transition->type))) {
+            $DB->delete_records('sforum_next_transitions', array('userid'=>$USER->id,
+                'transition'=>$transition->id, 'discussion'=>$post->discussion));
+        }
     }
 
     return $post->id;

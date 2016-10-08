@@ -227,7 +227,7 @@
     <TABLE NAME="sforum_transitions" COMMENT="Transitions among steps">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="type" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="individual" SEQUENCE="false"/>
+        <FIELD NAME="type" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="individual" SEQUENCE="false"/>
         <FIELD NAME="forum" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="fromid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="toids" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>

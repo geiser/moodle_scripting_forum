@@ -185,6 +185,15 @@ function xmldb_sforum_upgrade($oldversion=0) {
         }
     }
     
+    if ($result && $oldversion < 2016100802) {
+        $table = new xmldb_table('sforum_transitions');
+        $field = new xmldb_field('type', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, 'individual');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->change_field_precision($table, $field);
+            upgrade_mod_savepoint(true, 2016100802, 'sforum');
+        }
+    }
+
     return $result;
 }
 
