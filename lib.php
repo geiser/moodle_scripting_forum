@@ -3703,6 +3703,7 @@ WHERE h.post = :postid', array("postid"=>$post->id));
  */
 function next_transitions_as_steps($transition_ids) {
     global $DB;
+    if (empty($transition_ids)) return null;
     $transitions = $DB->get_records_sql('SELECT * FROM {sforum_transitions}
 WHERE id IN('.implode(',', $transition_ids).')');
 
