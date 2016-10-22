@@ -138,7 +138,7 @@ span.unread {
 }
 .path-mod-sforum .discussion-nav ul {
     margin: 0;
-    list-style: none;
+    /*list-style: none;*/
 }
 .dir-rtl.path-mod-sforum .discussion-nav .next-discussion:after,
 .path-mod-sforum .discussion-nav .prev-discussion:before {
