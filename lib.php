@@ -3798,7 +3798,9 @@ function add_reply_commands(&$commands, $discussion, $post) {
             $commands[] = array('url'=>$murl, 'text'=>ucfirst($step->label));
         }
     }
-    if (!empty($transitions)) {
+    $in_transition = $DB->record_exists('sforum_performed_transitions', array('post'=>$post->id));
+    if (!empty($transitions) ||
+        (!$in_transition && ($discussion->firstpost != $post->id))) {
         $murl = new moodle_url($url, array('reply'=>$post->id));
         $commands[] = array('url'=>$murl, 'text'=>get_string('reply', 'sforum'));
     }
