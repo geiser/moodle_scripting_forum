@@ -586,4 +586,5 @@ class sforum_file_info_container extends file_info {
     public function get_parent() {
         return $this->browser->get_file_info($this->context);
     }
+
 }

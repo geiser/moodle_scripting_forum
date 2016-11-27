@@ -34,8 +34,7 @@ require_sesskey();
 
 $sforum = $DB->get_record('sforum', array('id' => $id));
 $course  = $DB->get_record('course', array('id' => $sforum->course), '*', MUST_EXIST);
-$cm      = get_coursemodule_from_instance('sforum',
-        $sforum->id, $course->id, false, MUST_EXIST);
+$cm      = get_coursemodule_from_instance('sforum', $sforum->id, $course->id, false, MUST_EXIST);
 $context = context_module::instance($cm->id);
 
 require_login($course, false, $cm);

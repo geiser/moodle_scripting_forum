@@ -260,10 +260,10 @@ if ($generalsforums) {
                     $unreadlink = '<span class="read">0</span>';
                 }
 
-                if (($sforum->trackingtype == FORUM_TRACKING_FORCED) &&
+                if (($sforum->trackingtype == SCRIPTING_FORUM_TRACKING_FORCED) &&
                     ($CFG->sforum_allowforcedreadtracking)) {
                     $trackedlink = $stryes;
-                } else if ($sforum->trackingtype === FORUM_TRACKING_OFF ||
+                } else if ($sforum->trackingtype === SCRIPTING_FORUM_TRACKING_OFF ||
                             ($USER->tracksforums == 0)) {
                     $trackedlink = '-';
                 } else {
@@ -393,7 +393,7 @@ if ($course->id != SITEID) {    // Only real courses have learning sforums
             $count = sforum_count_discussions($sforum, $cm, $course);
 
             if ($usetracking) {
-                if ($sforum->trackingtype == FORUM_TRACKING_OFF) {
+                if ($sforum->trackingtype == SCRIPTING_FORUM_TRACKING_OFF) {
                     $unreadlink  = '-';
                     $trackedlink = '-';
 

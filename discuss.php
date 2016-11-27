@@ -147,7 +147,7 @@ if ($move > 0 and confirm_sesskey()) {
 
     $DB->set_field('sforum_discussions', 'forum',
             $sforumto->id, array('id' => $discussion->id));
-    $DB->set_field('sforum_read', 'sforumid',
+    $DB->set_field('sforum_read', 'forumid',
             $sforumto->id, array('discussionid' => $discussion->id));
 
     // Delete the existing per-discussion subscriptions and

@@ -674,7 +674,7 @@ function sforum_cron() {
 
     // caches
     $discussions        = array();
-    $sforums   = array();
+    $sforums            = array();
     $courses            = array();
     $coursemodules      = array();
     $subscribedusers    = array();
@@ -689,13 +689,13 @@ function sforum_cron() {
 
     // Get the list of sforum subscriptions for per-user per-sforum maildigest settings.
     $digestsset = $DB->get_recordset('sforum_digests',
-                  null, '', 'id, userid, sforum, maildigest');
+                  null, '', 'id, userid, forum, maildigest');
     $digests = array();
     foreach ($digestsset as $thisrow) {
-        if (!isset($digests[$thisrow->sforum])) {
-            $digests[$thisrow->sforum] = array();
+        if (!isset($digests[$thisrow->forum])) {
+            $digests[$thisrow->forum] = array();
         }
-        $digests[$thisrow->sforum][$thisrow->userid] = $thisrow->maildigest;
+        $digests[$thisrow->forum][$thisrow->userid] = $thisrow->maildigest;
     }
     $digestsset->close();
 
@@ -1237,7 +1237,7 @@ function sforum_cron() {
                     core_php_time_limit::raise(120);   // to be reset for each post
 
                     $discussion      = $discussions[$discussionid];
-                    $sforum = $sforums[$discussion->forum];
+                    $sforum          = $sforums[$discussion->forum];
                     $course          = $courses[$sforum->course];
                     $cm              = $coursemodules[$sforum->id];
 
@@ -3287,7 +3287,7 @@ function sforum_print_post($post, $discussion, $sforum, &$cm, $course, $ownpost=
     $modcontext = context_module::instance($cm->id);
 
     $post->course = $course->id;
-    $post->sforum  = $sforum->id;
+    $post->forum  = $sforum->id;
     $post->message = file_rewrite_pluginfile_urls($post->message, 'pluginfile.php', $modcontext->id, 'mod_sforum', 'post', $post->id);
     if (!empty($CFG->enableplagiarism)) {
         require_once($CFG->libdir.'/plagiarismlib.php');
@@ -4847,7 +4847,7 @@ function sforum_update_post($post, $mform, &$message) {
 
     if (sforum_tp_can_track_sforums($sforum) &&
         sforum_tp_is_tracked($sforum)) {
-        sforum_tp_mark_post_read($post->userid, $post, $post->sforum);
+        sforum_tp_mark_post_read($post->userid, $post, $post->forum);
     }
 
     // Let Moodle know that assessable content is uploaded (eg for plagiarism detection)
@@ -6112,7 +6112,7 @@ function sforum_print_discussion($course, $cm, $sforum,
     }
 
 
-    $post->sforum = $sforum->id;   // Add the sforum id to the post object, later used by sforum_print_post
+    $post->forum = $sforum->id;   // Add the sforum id to the post object, later used by sforum_print_post
     $post->sforumtype = $sforum->type;
 
 
@@ -6566,7 +6566,7 @@ function sforum_tp_mark_posts_read($user, $postids) {
     }
 
     // First insert any new entries.
-    $sql = "INSERT INTO {sforum_read} (userid, postid, discussionid, sforumid, firstread, lastread)
+    $sql = "INSERT INTO {sforum_read} (userid, postid, discussionid, forumid, firstread, lastread)
 
             SELECT :userid1, p.id, p.discussion, d.forum, :firstread, :lastread
                 FROM {sforum_posts} p
@@ -6615,7 +6615,7 @@ function sforum_tp_add_read_record($userid, $postid) {
     $cutoffdate = $now - ($CFG->sforum_oldpostdays * 24 * 3600);
 
     if (!$DB->record_exists('sforum_read', array('userid' => $userid, 'postid' => $postid))) {
-        $sql = "INSERT INTO {sforum_read} (userid, postid, discussionid, sforumid, firstread, lastread)
+        $sql = "INSERT INTO {sforum_read} (userid, postid, discussionid, forumid, firstread, lastread)
 
                 SELECT ?, p.id, p.discussion, d.forum, ?, ?
                   FROM {sforum_posts} p
@@ -6776,7 +6776,7 @@ function sforum_tp_get_course_unread_posts($userid, $courseid) {
               FROM {sforum_posts} p
                    JOIN {sforum_discussions} d       ON d.id = p.discussion
                    JOIN {sforum} f                   ON f.id = d.forum
-                   JOIN {course} c                  ON c.id = f.course
+                   JOIN {course} c                   ON c.id = f.course
                    LEFT JOIN {sforum_read} r         ON (r.postid = p.id AND r.userid = ?)
                    LEFT JOIN {sforum_track_prefs} tf ON (tf.userid = ? AND tf.forumid = f.id)
              WHERE f.course = ?
@@ -8224,7 +8224,7 @@ function sforum_get_posts_by_user($user, array $courses,
     // printing these sforums posts. Given we have the sforums already there is
     // practically no overhead here.
     foreach ($return->posts as $post) {
-        if (!array_key_exists($post->forum, $return->forums)) {
+        if (!array_key_exists($post->forum, $return->sforums)) {
             $return->sforums[$post->forum] = $sforums[$post->forum];
         }
     }
@@ -8253,8 +8253,7 @@ function sforum_set_user_maildigest($sforum, $maildigest, $user = null) {
     }
 
     $course  = $DB->get_record('course', array('id' => $sforum->course), '*', MUST_EXIST);
-    $cm      = get_coursemodule_from_instance('sforum',
-            $sforum->id, $course->id, false, MUST_EXIST);
+    $cm      = get_coursemodule_from_instance('sforum', $sforum->id, $course->id, false, MUST_EXIST);
     $context = context_module::instance($cm->id);
 
     // User must be allowed to see this sforum.
@@ -8270,14 +8269,13 @@ function sforum_set_user_maildigest($sforum, $maildigest, $user = null) {
     // Attempt to retrieve any existing sforum digest record.
     $subscription = $DB->get_record('sforum_digests', array(
         'userid' => $user->id,
-        'sforum' => $sforum->id,
+        'sforum' => $sforum->id
     ));
 
     // Create or Update the existing maildigest setting.
     if ($subscription) {
         if ($maildigest == -1) {
-                $DB->delete_records('sforum_digests',
-                        array('sforum' => $sforum->id, 'userid' => $user->id));
+            $DB->delete_records('sforum_digests', array('sforum' => $sforum->id, 'userid' => $user->id));
         } else if ($maildigest !== $subscription->maildigest) {
             // Only update the maildigest setting if it's changed.
             $subscription->maildigest = $maildigest;

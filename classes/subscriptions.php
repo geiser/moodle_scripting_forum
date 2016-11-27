@@ -329,7 +329,7 @@ class subscriptions {
                 }
             } else {
                 $subscriptions = $DB->get_recordset('sforum_subscriptions', array(
-                    'sforum' => $sforumid,
+                    'forum' => $sforumid,
                 ), '', 'id, userid');
                 foreach ($subscriptions as $id => $data) {
                     if (!isset(self::$sforumcache[$data->userid])) {
@@ -410,7 +410,7 @@ class subscriptions {
                       u.timezone,
                       u.theme,
                       u.lang,
-                      u.tracksforums,
+                      u.trackforums,
                       u.mnethostid";
         }
 

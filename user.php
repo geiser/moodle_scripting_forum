@@ -278,11 +278,11 @@ $ratingoptions = new stdClass;
 $ratingoptions->component = 'mod_sforum';
 $ratingoptions->ratingarea = 'post';
 foreach ($result->posts as $post) {
-    if (!isset($result->sforums[$post->sforum]) || !isset($discussions[$post->discussion])) {
+    if (!isset($result->sforums[$post->forum]) || !isset($discussions[$post->discussion])) {
         // Something very VERY dodgy has happened if we end up here
         continue;
     }
-    $sforum = $result->sforums[$post->sforum];
+    $sforum = $result->sforums[$post->forum];
     $cm = $sforum->cm;
     $discussion = $discussions[$post->discussion];
     $course = $result->courses[$discussion->course];

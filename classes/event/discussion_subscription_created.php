@@ -113,16 +113,13 @@ class discussion_subscription_created extends \core\event\base {
     }
 
     public static function get_objectid_mapping() {
-        return array('db' => 'sforum_discussion_subs',
-                    'restore' => 'sforum_discussion_sub');
+        return array('db' => 'sforum_discussion_subs', 'restore' => 'sforum_discussion_sub');
     }
 
     public static function get_other_mapping() {
         $othermapped = array();
-        $othermapped['sforumid'] = array('db' => 'sforum',
-                'restore' => 'sforum');
-        $othermapped['discussion'] = array('db' => 'sforum_discussions',
-                'restore' => 'sforum_discussion');
+        $othermapped['sforumid'] = array('db' => 'sforum', 'restore' => 'sforum');
+        $othermapped['discussion'] = array('db' => 'sforum_discussions', 'restore' => 'sforum_discussion');
         return $othermapped;
     }
 }

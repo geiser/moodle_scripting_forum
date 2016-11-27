@@ -69,9 +69,9 @@ if ($ADMIN->fulltree) {
 
     // Default Read Tracking setting.
     $options = array();
-    $options[FORUM_TRACKING_OPTIONAL] = get_string('trackingoptional', 'sforum');
-    $options[FORUM_TRACKING_OFF] = get_string('trackingoff', 'sforum');
-    $options[FORUM_TRACKING_FORCED] = get_string('trackingon', 'sforum');
+    $options[SCRIPTING_FORUM_TRACKING_OPTIONAL] = get_string('trackingoptional', 'sforum');
+    $options[SCRIPTING_FORUM_TRACKING_OFF] = get_string('trackingoff', 'sforum');
+    $options[SCRIPTING_FORUM_TRACKING_FORCED] = get_string('trackingon', 'sforum');
     $settings->add(new admin_setting_configselect('sforum_trackingtype',
             get_string('trackingtype', 'sforum'),
             get_string('configtrackingtype', 'sforum'),

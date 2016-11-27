@@ -17,13 +17,13 @@
 /**
  * Forum post renderable.
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2015 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scriptingforum\output\email;
+namespace mod_sforum\output\email;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -31,7 +31,7 @@ defined('MOODLE_INTERNAL') || die();
  * Forum post renderable.
  *
  * @since      Moodle 3.0
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2015 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -43,8 +43,8 @@ class renderer_textemail extends renderer {
      *
      * @return string
      */
-    public function scriptingforum_post_template() {
-        return 'scriptingforum_post_email_textemail';
+    public function sforum_post_template() {
+        return 'sforum_post_email_textemail';
     }
 
     /**
@@ -57,7 +57,7 @@ class renderer_textemail extends renderer {
     public function format_message_text($cm, $post) {
         $message = file_rewrite_pluginfile_urls($post->message, 'pluginfile.php',
             \context_module::instance($cm->id)->id,
-            'mod_scriptingforum', 'post', $post->id);
+            'mod_sforum', 'post', $post->id);
         return format_text_email($message, $post->messageformat);
     }
 
@@ -69,7 +69,7 @@ class renderer_textemail extends renderer {
      * @return string
      */
     public function format_message_attachments($cm, $post) {
-        return scriptingforum_print_attachments($post, $cm, "text");
+        return sforum_print_attachments($post, $cm, "text");
     }
 }
 

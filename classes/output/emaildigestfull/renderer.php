@@ -17,13 +17,13 @@
 /**
  * Forum post renderable.
  *
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2015 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_scriptingforum\output\emaildigestfull;
+namespace mod_sforum\output\emaildigestfull;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -31,20 +31,20 @@ defined('MOODLE_INTERNAL') || die();
  * Forum post renderable.
  *
  * @since      Moodle 3.0
- * @package    mod_scriptingforum
+ * @package    mod_sforum
  * @copyright  2016 Geiser Chalco <geiser@usp.br>
  * @copyright  2015 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class renderer extends \mod_scriptingforum\output\email\renderer {
+class renderer extends \mod_sforum\output\email\renderer {
 
     /**
      * The template name for this renderer.
      *
      * @return string
      */
-    public function scriptingforum_post_template() {
-        return 'scriptingforum_post_emaildigestfull_htmlemail';
+    public function sforum_post_template() {
+        return 'sforum_post_emaildigestfull_htmlemail';
     }
 }
 

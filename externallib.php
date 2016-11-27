@@ -207,7 +207,7 @@ class mod_sforum_external extends external_api {
         }
 
         $discussion = $DB->get_record('sforum_discussions', array('id' => $discussionid), '*', MUST_EXIST);
-        $sforum = $DB->get_record('sforum', array('id' => $discussion->sforum), '*', MUST_EXIST);
+        $sforum = $DB->get_record('sforum', array('id' => $discussion->forum), '*', MUST_EXIST);
         $course = $DB->get_record('course', array('id' => $sforum->course), '*', MUST_EXIST);
         $cm = get_coursemodule_from_instance('sforum', $sforum->id, $course->id, false, MUST_EXIST);
 
@@ -409,7 +409,7 @@ class mod_sforum_external extends external_api {
         );
 
         // Compact/extract functions are not recommended.
-        $sforumid        = $params['sforumid'];
+        $sforumid       = $params['sforumid'];
         $sortby         = $params['sortby'];
         $sortdirection  = $params['sortdirection'];
         $page           = $params['page'];
@@ -440,7 +440,7 @@ class mod_sforum_external extends external_api {
         require_capability('mod/sforum:viewdiscussion', $modcontext, null, true, 'noviewdiscussionspermission', 'sforum');
 
         $sort = 'd.pinned DESC, d.' . $sortby . ' ' . $sortdirection;
-        $alldiscussions = sforum_get_discussions($cm, $sort, true, -1, -1, true, $page, $perpage, FORUM_POSTS_ALL_USER_GROUPS);
+        $alldiscussions = sforum_get_discussions($cm, $sort, true, -1, -1, true, $page, $perpage, SCRIPTING_FORUM_POSTS_ALL_USER_GROUPS);
 
         if ($alldiscussions) {
             $canviewfullname = has_capability('moodle/site:viewfullnames', $modcontext);
@@ -701,7 +701,7 @@ class mod_sforum_external extends external_api {
         $warnings = array();
 
         $discussion = $DB->get_record('sforum_discussions', array('id' => $params['discussionid']), '*', MUST_EXIST);
-        $sforum = $DB->get_record('sforum', array('id' => $discussion->sforum), '*', MUST_EXIST);
+        $sforum = $DB->get_record('sforum', array('id' => $discussion->forum), '*', MUST_EXIST);
         list($course, $cm) = get_course_and_cm_from_instance($sforum, 'sforum');
 
         // Validate the module context. It checks everything that affects the module visibility (including groupings, etc..).
@@ -822,7 +822,7 @@ class mod_sforum_external extends external_api {
         }
 
         // Request and permission validation.
-        $sforum = $DB->get_record('sforum', array('id' => $discussion->sforum), '*', MUST_EXIST);
+        $sforum = $DB->get_record('sforum', array('id' => $discussion->forum), '*', MUST_EXIST);
         list($course, $cm) = get_course_and_cm_from_instance($sforum, 'sforum');
 
         $context = context_module::instance($cm->id);
@@ -909,7 +909,7 @@ class mod_sforum_external extends external_api {
     public static function add_discussion_parameters() {
         return new external_function_parameters(
             array(
-                'sforumid' => new external_value(PARAM_INT, 'Forum instance ID'),
+                'sforumid' => new external_value(PARAM_INT, 'Script-forum instance ID'),
                 'subject' => new external_value(PARAM_TEXT, 'New Discussion subject'),
                 'message' => new external_value(PARAM_RAW, 'New Discussion message (only html format allowed)'),
                 'groupid' => new external_value(PARAM_INT, 'The group, default to -1', VALUE_DEFAULT, -1),
@@ -1018,7 +1018,7 @@ class mod_sforum_external extends external_api {
         // Create the discussion.
         $discussion = new stdClass();
         $discussion->course = $course->id;
-        $discussion->sforum = $sforum->id;
+        $discussion->forum = $sforum->id;
         $discussion->message = $params['message'];
         $discussion->messageformat = FORMAT_HTML;   // Force formatting for now.
         $discussion->messagetrust = trusttext_trusted($context);
@@ -1032,9 +1032,9 @@ class mod_sforum_external extends external_api {
         $discussion->attachments = $options['attachmentsid'];
 
         if (has_capability('mod/sforum:pindiscussions', $context) && $options['discussionpinned']) {
-            $discussion->pinned = FORUM_DISCUSSION_PINNED;
+            $discussion->pinned = SCRIPTING_FORUM_DISCUSSION_PINNED;
         } else {
-            $discussion->pinned = FORUM_DISCUSSION_UNPINNED;
+            $discussion->pinned = SCRIPTING_FORUM_DISCUSSION_UNPINNED;
         }
         $fakemform = $options['attachmentsid'];
         if ($discussionid = sforum_add_discussion($discussion, $fakemform)) {
