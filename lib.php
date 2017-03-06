@@ -3735,8 +3735,35 @@ WHERE id IN('.implode(',', $transition_ids).')');
 function get_enabled_transition_ids($discussionid, $userid) {
     global $DB;
 
+    // If user is new, add transitions enabled-for-groups
+    if (!$DB->record_exists_sql('SELECT h.* FROM {sforum_performed_transitions} h
+INNER JOIN {sforum_posts} p ON p.id = h.post
+WHERE p.discussion = :discussionid AND p.userid = :userid',
+            array('discussionid'=>$discussionid, 'userid'=>$userid))) {
+        $transitions_for = $DB->get_records_sql("SELECT t.* FROM {sforum_transitions} t
+INNER JOIN {sforum_discussions} d ON d.forum = t.forum
+INNER JOIN {groups_members} m ON m.groupid = t.forid
+INNER JOIN {sforum_performed_transitions} h ON h.toid = t.fromid
+WHERE d.id = :discussionid AND m.userid = :userid AND t.type LIKE '%enabled-for-group%'",
+            array('discussionid'=>$discussionid, 'userid'=>$userid));
+        
+        // insert next transitions
+        foreach ($transitions_for as $t) {
+            $ntransition = new stdClass();
+            $ntransition->userid = $userid;
+            $ntransition->discussion = $discussionid;
+            $ntransition->transition = $t->id;
+            
+            if (!$DB->record_exists('sforum_next_transitions',
+                array('userid'=>$userid, 'discussion'=>$discussionid, 'transition'=>$t->id))) {
+                $DB->insert_record('sforum_next_transitions', $ntransition);
+            }
+        }
+    }
+    
     $result = array();
-    if ($DB->record_exists('sforum_next_transitions', array('discussion'=>$discussionid))) {
+    if ($DB->record_exists('sforum_next_transitions',
+        array('discussion'=>$discussionid, 'userid'=>$userid))) {
         $result = $DB->get_fieldset_select('sforum_next_transitions', 'transition',
             'userid = :userid AND discussion = :discussion',
             array('userid'=>$userid, 'discussion'=>$discussionid));
@@ -4786,7 +4813,8 @@ function sforum_add_new_post($post, $mform, $unused = null) {
                 $ptransition->discussion = $post->discussion;
                 $ptransition->transition = $next_transition->id;
                 if (!$DB->record_exists('sforum_next_transitions',
-                    array('userid'=>$userid, 'discussion'=>$post->discussion, 'transition'=>$next_transition->id))) {
+                    array('userid'=>$userid, 'discussion'=>$post->discussion,
+                          'transition'=>$next_transition->id))) {
                     $DB->insert_record('sforum_next_transitions', $ptransition);
                 }
             }
